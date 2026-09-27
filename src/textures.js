@@ -67,6 +67,11 @@ export function getTex(name) {
       speckle(ctx, S, S, r, 300, ['#7a5ad0', '#9a7af0', '#4a2a80'], 5, 20, 0.6); break;
     case 'cloud': [c, ctx] = canvas(S, S); ctx.fillStyle = '#e8eef8'; ctx.fillRect(0, 0, S, S);
       speckle(ctx, S, S, r, 300, ['#ffffff', '#d0dcf0', '#f8e8ff'], 8, 24, 0.5); break;
+    case 'mossw': [c, ctx] = canvas(S, S); ctx.fillStyle = '#2f5a2a'; ctx.fillRect(0, 0, S, S);
+      speckle(ctx, S, S, r, 700, ['#3a6e30', '#28502a', '#4f8a3a', '#1f4020'], 3, 10, 0.7);
+      ctx.strokeStyle = '#8affc0'; ctx.lineWidth = 3; ctx.globalAlpha = 0.8;
+      for (let i = 0; i < 7; i++) { const x = 18 + i * 36; ctx.beginPath(); ctx.moveTo(x, 0); for (let y = 0; y <= S; y += 16) ctx.lineTo(x + Math.sin(y * 0.08 + i) * 7, y); ctx.stroke(); }
+      ctx.globalAlpha = 1; speckle(ctx, S, S, r, 50, ['#d0ffe0'], 2, 3, 0.9); break;
     case 'rail': [c, ctx] = canvas(64, 64); ctx.fillStyle = '#5a3a20'; ctx.fillRect(0, 0, 64, 64); break;
     case 'glimspark': { [c, ctx] = canvas(64, 64); const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.25, 'rgba(255,255,255,0.8)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64); return (cache[name] = tex(c, false)); }
     case 'waterfall': [c, ctx] = canvas(128, 512); ctx.fillStyle = '#9fe0f0'; ctx.fillRect(0, 0, 128, 512);

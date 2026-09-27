@@ -12,6 +12,7 @@ import { CameraDirector } from './camera.js';
 import { FX } from './fx.js';
 import { Input } from './input.js';
 import { Audio } from './audio.js';
+import { Magic, ABILITIES } from './magic.js';
 
 const $ = (id) => document.getElementById(id);
 const isMobile = matchMedia('(pointer:coarse)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -25,7 +26,13 @@ class HUD {
   mount(txt) { const el = $('mount'); if (txt) { el.innerHTML = txt; el.classList.add('on'); } else el.classList.remove('on'); }
   toast(html, dur = 3) { const el = $('toast'); el.innerHTML = html; el.classList.add('on'); this.toastT = dur; }
   banner(name, sub, dur = 3) { const el = $('banner'); el.innerHTML = `${name}${sub ? `<small>${sub}</small>` : ''}`; el.classList.add('on'); this.bannerT = dur; }
+  abilities(set) { $('abilities').innerHTML = ['leap', 'song', 'grip'].map((k) => `<div class="ab ${set.has(k) ? 'on' : ''}" title="${ABILITIES[k].name}">${ABILITIES[k].icon}</div>`).join(''); }
+  echoes(n) { $('echoes').textContent = n ? `❋ ${n}/8` : ''; }
+  chain(n) { const el = $('chain'); if (n >= 3) { el.textContent = `airborne ×${n}`; el.classList.add('on'); } else el.classList.remove('on'); }
+  prompt(t) { const el = $('prompt'); if (t) { el.textContent = t; el.classList.add('on'); } else el.classList.remove('on'); }
+  story(text, sub) { $('story-text').textContent = text; $('story-sub').textContent = sub; $('story').classList.add('on'); this.storyT = 6.5; }
   update(dt) {
+    if (this.storyT > 0 && (this.storyT -= dt) <= 0) $('story').classList.remove('on');
     if (this.toastT > 0 && (this.toastT -= dt) <= 0) $('toast').classList.remove('on');
     if (this.bannerT > 0 && (this.bannerT -= dt) <= 0) $('banner').classList.remove('on');
   }
@@ -39,6 +46,10 @@ const SECRETS = [
   { id: 'falls', name: 'Behind the Falls', test: (p) => p.s > 716 + O && p.s < 740 + O && p.y < 4 },
   { id: 'grotto', name: 'The Low Grotto', test: (p) => p.s > 976 + O && p.s < 1012 + O && p.y < -14 && p.y > -30 },
   { id: 'colossus', name: 'Heart of the Colossus', test: (p) => p.s > 960 + O && p.s < 1046 + O && p.y > 12.5 && p.y < 60 },
+  { id: 'lookout', name: 'Mossroot Lookout', test: (p) => p.s > 103 + O && p.s < 119 + O && p.y > 21 && p.y < 30 },
+  { id: 'starwell', name: 'The Starwell', test: (p) => p.y < -120 },
+  { id: 'grove', name: 'The Dreaming Grove', test: (p) => p.y > 280 },
+  { id: 'mossback', name: 'The Sleeping Hill', test: (p, g) => g.stats.mossback },
 ];
 
 class Game {
@@ -74,6 +85,8 @@ class Game {
     this.stats = { glims: 0, enemies: 0, deaths: 0, time: 0, met: {}, walls: 0, vines: 0, flips: 0, secrets: new Set(), echo: false };
     this.entities = new Entities(this);
     this.player = new Player(this);
+    this.magic = new Magic(this);
+    this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
     this.checkpoint = { s: this.level.start.s, y: this.level.start.y };
     this.themeIdx = 0; this.currentTheme = 0; this.bannerSeen = new Set(); this.hintSeen = new Set();
@@ -86,6 +99,14 @@ class Game {
       if (code === 'KeyM') this.audio.toggleMute();
       if ((code === 'KeyP' || code === 'Escape') && (this.state === 'play' || this.state === 'paused')) this.togglePause();
       if ((code === 'Enter' || code === 'Space') && this.state === 'title' && this.ready) this.start();
+      if (this.state === 'travel') {
+        const L = this.magic.waystones;
+        const mv = (d) => { let i = this.travelSel; for (let k = 0; k < L.length; k++) { i = (i + d + L.length) % L.length; if (L[i].lit) break; } this.travelSel = i; this.renderTravel(); };
+        if (code === 'ArrowUp' || code === 'KeyW') mv(-1);
+        if (code === 'ArrowDown' || code === 'KeyS') mv(1);
+        if (code === 'Space' || code === 'Enter' || code === 'KeyZ') this.travelTo(this.travelSel);
+        if (code === 'Escape' || code === 'KeyX') this.travelTo(-1);
+      }
     };
     $('start-btn').onclick = () => this.start();
     $('resume-btn').onclick = () => this.togglePause();
@@ -95,6 +116,7 @@ class Game {
     requestAnimationFrame((t) => this.loop(t));
     window.__game = this; // debugging / automated tests
     if (params.has('s')) { const s = +params.get('s') + O, y = +(params.get('y') || 0); this.player.reset(s, y); this.checkpoint = { s, y }; this.director.update(0.016, this.player, true); this.snapTheme = true; }
+    if (params.has('abilities')) { for (const a of ['leap', 'song', 'grip']) this.magic.abilities.add(a); this.magic.shrines.forEach((x) => x.done = true); this.hud.abilities(this.magic.abilities); }
     if (params.has('autostart')) this.start(true);
   }
   resize() {
@@ -118,6 +140,18 @@ class Game {
       setTimeout(() => this.hud.banner('THORNWILD', 'The Rootwild · where the old roads sleep', 4), 600);
       this.bannerSeen.add(0);
     }
+  }
+  openTravel() {
+    const list = this.magic.waystones; this.travelSel = Math.max(0, list.indexOf(this.magic.nearWay));
+    const render = () => { $('travel-list').innerHTML = list.map((w, i) => `<button class="tv ${i === this.travelSel ? 'sel' : ''}" data-i="${i}" ${w.lit ? '' : 'disabled'}>${w.lit ? w.name : '· · ·'}${w === this.magic.nearWay ? ' (here)' : ''}</button>`).join(''); $('travel-list').querySelectorAll('.tv').forEach((b) => b.onclick = () => this.travelTo(+b.dataset.i)); };
+    this.renderTravel = render; render();
+    $('travel').classList.remove('hidden'); this.state = 'travel';
+  }
+  travelTo(i) {
+    const w = this.magic.waystones[i]; $('travel').classList.add('hidden'); this.state = 'play'; this.last = performance.now();
+    if (!w || !w.lit || w === this.magic.nearWay) return;
+    this.teleport({ ts: w.s + 1.2, ty: w.y + 0.1, kind: 'way', name: w.name });
+    this.checkpoint = { s: w.s + 1.2, y: w.y + 0.1 };
   }
   togglePause() {
     if (this.state === 'play') { this.state = 'paused'; $('pause').classList.remove('hidden'); }
@@ -145,7 +179,7 @@ class Game {
     const p = this.path.world(sd.s, sd.y, 0);
     this.fx.burst(p, sd.star ? 0xd0a0ff : 0xffd060, 60, 10, 0.9, 1.4, -3);
     this.fx.burst(p, 0xffffff, 20, 4, 1.4, 0.6, 0);
-    this.slowT = 0.6; this.flash(0.35);
+    this.slowT = 0.6; this.flash(0.35); this.magic.celebrate(); this.audio.motif(Math.min(4, 1 + got));
     if (sd.star) this.banner('STAR HEART', 'the Colossus remembers you'), this.toast('A living relic of the Sunwrights. <b>+1 max heart</b>', 4), this.player.maxHearts++, this.player.hearts = this.player.maxHearts, this.hud.hearts(this.player.hearts, this.player.maxHearts);
     else this.banner(`SUN SHARD ${got}/5`, ['it hums with warm light', 'a sliver of an old sun', 'the river kept it safe', 'hidden, but not lost', 'it beats like a heart'][sd.idx] || '');
   }
@@ -173,7 +207,7 @@ class Game {
     const max = p.maxHearts;
     p.cart = null; p.reset(this.checkpoint.s, this.checkpoint.y + 0.1); p.maxHearts = max; p.hearts = max; p.invuln = 1.2;
     this.hud.hearts(p.hearts, p.maxHearts); this.hud.mount(null);
-    E.resetChase(); E.resetCart(); E.resetEnemies();
+    E.resetChase(); E.resetCart(); E.resetEnemies(); this.magic.reset(); p.applyCosmetics();
     this.audio.intensity = 0;
     this.director.update(0.016, p, true); this.snapTheme = true;
     $('fade').style.opacity = 0;
@@ -183,11 +217,15 @@ class Game {
     this.audio.play('portal'); $('fade').style.opacity = 1;
     this.player.state = 'cutscene';
     setTimeout(() => {
-      const p = this.player; p.s = portal.ts; p.y = portal.ty; p.vs = 0; p.vy = 0; p.state = 'normal'; p.g = 1;
+      const p = this.player; p.s = portal.ts; p.y = portal.ty; p.vs = 0; p.vy = 0; p.state = 'normal'; p.g = 1; p.skyZone = 0;
+      if (portal.kind !== 'way') this.checkpoint = { s: portal.ts, y: portal.ty };
       this.director.update(0.016, p, true);
       $('fade').style.opacity = 0; this.teleporting = false;
       if (portal.kind === 'sky') this.banner('THE SKY SHRINE', 'above the world tree'), this.toast('Gather what you can — the return portal waits at the far end', 3);
-      else this.banner('Back to the canopy', '');
+      else if (portal.kind === 'starwell') this.banner('THE STARWELL', 'a lake that remembers the sky'), this.magic.quietFor = 4;
+      else if (portal.kind === 'grove') this.banner('THE DREAMING GROVE', 'it is always the happiest night here'), this.magic.quietFor = 4;
+      else if (portal.kind === 'way') this.banner(portal.name, 'the waystone hums');
+      else this.banner('Back again', 'the world feels a little different');
     }, 500);
   }
   onCartStart() { this.audio.intensity = 0.8; this.banner('HOLD ON!', 'Space to jump the gaps'); }
@@ -196,7 +234,7 @@ class Game {
   onChaseEnd() { this.audio.intensity = 0.2; this.audio.play('smash'); this.shake(1.2); this.toast('Phew…', 1.5); }
   finish() {
     const p = this.player; p.state = 'cutscene'; if (p.comp) p.comp.state = 'ridden';
-    this.audio.play('win'); this.audio.intensity = 0;
+    this.audio.motif(4); setTimeout(() => this.audio.play('win'), 3200); this.audio.intensity = 0;
     const A = this.entities.altar;
     const c = this.path.world(A.s, A.y + 3, 0);
     this.director.play({ dur: 7, hold: true,
@@ -222,7 +260,8 @@ class Game {
       <p class="big">${S.glims} / ${E.totalGlims} glims</p>
       <p>Sun Shards: <b>${shards} / 5</b> ${star ? ' · <b style="color:#d0a0ff">Star Heart ✦</b>' : ''}</p>
       <p>Secrets found: <b>${S.secrets.size} / ${SECRETS.length}</b> · Companions met: <b>${met} / 5</b></p>
-      <p>Critters bopped: ${S.enemies} · Falls: ${S.deaths} · Time: ${mins}:${secs}</p>
+      <p>Echoes: <b>${this.magic.echoes.size} / 8</b> · Abilities: <b>${this.magic.abilities.size} / 3</b> · Wind Trials: <b>${this.magic.trialsWon.size} / 2</b></p>
+      <p>Longest airborne chain: ${this.magic.bestChain} · Critters bopped: ${S.enemies} · Falls: ${S.deaths} · Time: ${mins}:${secs}</p>
       <div style="margin-top:22px"><button onclick="location.reload()">Play again</button></div>`;
     $('end').classList.remove('hidden'); $('banner').classList.remove('on'); $('toast').classList.remove('on'); $('hud').classList.add('hidden'); $('touch').classList.add('hidden');
   }
@@ -237,23 +276,26 @@ class Game {
     this.sun.color.copy(c.sun); this.sun.intensity += (T.si - this.sun.intensity) * k;
     this.renderer.toneMappingExposure += (T.exp - this.renderer.toneMappingExposure) * k;
     this.fx.ambColor.copy(c.pc);
+    const u = this.world.skyU; u.moonAmt.value += ((T.moon || 0) - u.moonAmt.value) * k; u.starAmt.value += ((T.stars || 0) - u.starAmt.value) * k;
   }
   updateAtmosphere(dt) {
     const p = this.player;
     let t = this.world.themeAt(p.s);
     if (p.y > 150) t = 1;
-    const sky = p.y > 150;
+    if (p.y < -100) t = 6;
+    if (p.y > 250) t = 7;
+    const sky = p.y > 150 && p.y < 250;
     this.currentTheme = t;
     let T = THEMES[t];
     if (sky) T = { ...T, fog: 0xa8c8e8, dens: 0.004, exp: 0.85, top: 0x3a80e0, hor: 0xd8e8ff };
     if (t === 3 && p.y > 12.5) T = { ...T, fog: 0x1a0a30, dens: 0.012, hs: 0x9070ff, si: 0.6 };
     this.applyTheme(T, this.snapTheme ? 1 : 1 - Math.exp(-dt * 1.2)); this.snapTheme = false;
-    this.audio.theme = Math.min(4, t === 5 ? 4 : t);
+    this.audio.theme = t; this.audio.wake = this.magic.awaken;
     // sun & shadow camera follow the player
     const w = this.path.world(p.s, p.y, 0);
     this.sun.position.set(w.x + 30, w.y + 60, w.z + 20); this.sun.target.position.copy(w);
     this.playerLight.position.set(w.x, w.y + 2, w.z + 2);
-    this.playerLight.intensity += ((t === 3 || t === 4 ? 18 : 0) - this.playerLight.intensity) * dt * 2;
+    this.playerLight.intensity += ((t === 3 ? 26 : t === 4 || t === 6 ? 18 : t === 7 ? 10 : 0) - this.playerLight.intensity) * dt * 2;
     this.world.sky.position.copy(this.camera.position);
     if (this.state !== 'play') return;
     // banners for new areas
@@ -262,9 +304,10 @@ class Game {
       const key = h.s0 + h.text;
       if (this.hintSeen.has(key) || p.s < h.s0 || p.s > h.s1) continue;
       if (h.cond === 'oru' && p.mount !== 'oru') continue;
+      if (h.cond === 'nosong' && this.magic.has('song')) continue;
       this.hintSeen.add(key); this.hud.toast(h.text, 3.5);
     }
-    for (const sc of SECRETS) if (!this.stats.secrets.has(sc.id) && p.state !== 'dead' && sc.test(p)) {
+    for (const sc of SECRETS) if (!this.stats.secrets.has(sc.id) && p.state !== 'dead' && sc.test(p, this)) {
       this.stats.secrets.add(sc.id); this.hud.banner('SECRET FOUND', `${sc.name} · ${this.stats.secrets.size}/${SECRETS.length}`, 3); this.audio.play('bloom');
     }
     // mount indicator
@@ -280,7 +323,7 @@ class Game {
     const h = 1 / 120;
     for (let i = 0; i < secs * 120; i++) {
       this.input.update();
-      this.entities.update(h); this.player.step(h, this.input); this.player.tick(h); this.player.interact(h);
+      this.entities.update(h); this.magic.step(h); this.player.step(h, this.input); this.player.tick(h); this.player.interact(h);
       if (i === 0) this.input.endFrame();
     }
     const p = this.player; return { s: +(p.s - O).toFixed(2), y: +p.y.toFixed(2), vs: +p.vs.toFixed(2), vy: +p.vy.toFixed(2), st: p.state, g: p.grounded, mount: p.mount, cart: !!p.cart, glims: this.stats.glims, hearts: p.hearts, deaths: this.stats.deaths, water: p.inWater };
@@ -289,7 +332,7 @@ class Game {
     requestAnimationFrame((t) => this.loop(t));
     this.frames = (this.frames || 0) + 1;
     let dt = Math.max(0, Math.min(0.05, (now - this.last) / 1000)); this.last = now;
-    if (this.state === 'paused') return;
+    if (this.state === 'paused' || this.state === 'travel') { this.input.endFrame(); return; }
     this.time += dt;
     const playing = this.state === 'play';
     this.input.update();
@@ -302,6 +345,7 @@ class Game {
       let n = 0;
       while (this.acc >= h && n < 8) {
         this.entities.update(h);
+        this.magic.step(h);
         this.player.step(h, this.input);
         this.player.tick(h);
         this.player.interact(h);
@@ -314,6 +358,7 @@ class Game {
       this.player.idleT = 0;
     } else this.entities.update(dt);
     this.player.render(dt);
+    this.magic.update(dt);
     this.world.update(this.time, dt);
     this.updateAtmosphere(dt);
     this.director.update(dt, this.player);

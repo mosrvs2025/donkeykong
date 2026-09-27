@@ -1,6 +1,6 @@
 // Fully synthesized audio: SFX + a light procedural jungle score. No external assets.
 export class Audio {
-  constructor() { this.ctx = null; this.muted = false; this.musicOn = false; this.intensity = 0; this.theme = 0; }
+  constructor() { this.ctx = null; this.muted = false; this.musicOn = false; this.intensity = 0; this.theme = 0; this.quiet = 0; this.q = 0; this.wake = 0; }
   init() {
     if (this.ctx) return;
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
@@ -63,7 +63,24 @@ export class Audio {
       case 'cart': this.noise(0.05, 0.05, 150, 'lowpass'); break;
       case 'portal': this.tone(300, 0.8, 'sine', 0.2, 3); this.tone(450, 0.8, 'sine', 0.1, 3, 0.1); break;
       case 'rumble': this.noise(1.2, 0.35, 90, 'lowpass'); break;
+      case 'leap': this.tone(520, 0.18, 'sine', 0.12, 2.4); this.tone(1040, 0.22, 'sine', 0.05, 2, 0.03); this.noise(0.15, 0.06, 3000, 'highpass'); break;
+      case 'song': [0, 7, 12, 16, 19, 24].forEach((n, i) => { this.tone(330 * Math.pow(2, n / 12), 1.2, 'sine', 0.07, 0, i * 0.06); this.tone(660 * Math.pow(2, n / 12), 0.8, 'triangle', 0.02, 0, i * 0.06 + 0.02); }); break;
+      case 'echo': [0, 5, 9, 12].forEach((n, i) => this.tone(392 * Math.pow(2, n / 12), 2.2, 'sine', 0.08, 0, i * 0.35)); break;
+      case 'notice': this.tone(880, 0.1, 'square', 0.05); this.tone(1320, 0.14, 'square', 0.05, 0, 0.09); break;
       case 'win': [0, 4, 7, 12, 7, 12, 16, 19, 24].forEach((n, i) => this.tone(392 * Math.pow(2, n / 12), 0.5, 'triangle', 0.12, 0, i * 0.12)); break;
+    }
+  }
+  // The Lumen motif: five notes that grow more complete as Kiri awakens the world.
+  motif(stage = 1, vol = 1) {
+    if (!this.ctx) return;
+    const notes = [12, 16, 19, 23, 21, 19, 24], lens = [0.45, 0.45, 0.7, 0.45, 0.45, 0.6, 1.6];
+    const n = Math.min(notes.length, [3, 3, 4, 5, 7][Math.min(4, stage)] || 3);
+    let t = 0;
+    for (let i = 0; i < n; i++) {
+      const f = 220 * Math.pow(2, notes[i] / 12);
+      this.tone(f, lens[i] * 1.8, 'sine', 0.14 * vol, 0, t); this.tone(f * 2, lens[i], 'triangle', 0.03 * vol, 0, t + 0.01);
+      if (stage >= 3) this.tone(f / 2, lens[i] * 2, 'sine', 0.06 * vol, 0, t);
+      t += lens[i];
     }
   }
   ambient() {
@@ -77,9 +94,12 @@ export class Audio {
   // theme: 0 jungle, 1 canopy, 2 water, 3 cave, 4 mine/chase
   updateMusic() {
     if (!this.ctx || !this.musicOn) return;
-    const bpm = 112 + this.intensity * 40, sp = 60 / bpm / 2;
-    const scales = [[0, 3, 5, 7, 10], [0, 2, 4, 7, 9], [0, 2, 5, 7, 9], [0, 1, 5, 7, 8], [0, 3, 5, 6, 7]];
-    const roots = [220, 247, 196, 185, 208];
+    this.q += (this.quiet - this.q) * 0.05;
+    this.mus.gain.value = this.muted ? 0 : 0.32 * (1 - this.q * 0.92);
+    const calm = this.theme >= 5 && this.theme !== 5;
+    const bpm = (calm ? 84 : 112) + this.intensity * 40, sp = 60 / bpm / 2;
+    const scales = [[0, 3, 5, 7, 10], [0, 2, 4, 7, 9], [0, 2, 5, 7, 9], [0, 1, 5, 7, 8], [0, 3, 5, 6, 7], [0, 2, 4, 7, 11], [0, 4, 7, 11, 14], [0, 2, 4, 7, 9]];
+    const roots = [220, 247, 196, 185, 208, 196, 262, 233];
     const sc = scales[this.theme], root = roots[this.theme];
     while (this.nextNote < this.ctx.currentTime + 0.2) {
       const t = this.nextNote - this.ctx.currentTime, st = this.step;
@@ -93,6 +113,9 @@ export class Audio {
         this.tone(root * Math.pow(2, n / 12), sp * 1.5, 'sine', 0.09, 0, t, this.mus);
         if (this.theme === 3) this.tone(root * 2 * Math.pow(2, n / 12), sp * 3, 'sine', 0.025, 0, t + sp, this.mus);
       }
+      // the world waking adds a warm pad; hidden worlds get bells instead of drums
+      if (this.wake >= 3 && st % 16 === 0) [0, 2, 4].forEach((k) => this.tone(root / 2 * Math.pow(2, sc[(prog + k) % 5] / 12), sp * 16, 'sine', 0.035, 0, t, this.mus));
+      if (calm) { if (st % 4 === 2) this.tone(root * 4 * Math.pow(2, sc[(st * 3) % 5] / 12), 1.5, 'sine', 0.03, 0, t, this.mus); this.nextNote += sp; this.step++; continue; }
       // percussion
       if (st % 8 === 0) this.noise(0.12, 0.2, 120, 'lowpass', t, this.mus);
       if (st % 8 === 4) this.noise(0.08, 0.1, 900, 'bandpass', t, this.mus);

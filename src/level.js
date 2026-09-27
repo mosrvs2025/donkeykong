@@ -13,6 +13,7 @@ export function buildLevel() {
     solids: [], slopes: [], water: [], vines: [], bouncers: [], glims: [], shards: [], cages: [], enemies: [],
     grapples: [], updrafts: [], checkpoints: [], portals: [], blooms: [], totems: [], carts: [], chases: [],
     altar: null, cams: [], themes: [], banners: [], signs: [], hints: [],
+    shrines: [], waystones: [], doors: [], echoes: [], trials: [], critters: [], blooms2: [], mossback: null, notices: [],
   };
   let id = 0;
   const solid = (s0, s1, y0, y1, mat = 'stone', extra = {}) => { const o = { id: id++, s0: s0 + O, s1: s1 + O, y0, y1, mat, ...extra }; L.solids.push(o); return o; };
@@ -110,10 +111,10 @@ export function buildLevel() {
   mplat(446, 451, 18.4, 5, 0, 3);
   mplat(461, 466, 17.4, 0, 3, 2.6, 'ruin', 1);
   collapse(472, 478, 18.2, 2, 'ruin');
-  plat(484, 490, 16.2, 'ruin', 1); bouncer(487, 16.2, 22);
+  plat(484, 490, 16.2, 'ruin', 1); bouncer(485.3, 16.2, 22);
   plat(494, 500, 19.2, 'ruin', 1);
   mplat(505, 510, 18.4, 4, 0, 3, 'ruin', 0.5);
-  enemy('buzzmoth', 456, 22.5, 1.2); enemy('buzzmoth', 463, 24.5, 1.2); enemy('buzzmoth', 470, 26.5, 1.2);
+  enemy('buzzmoth', 460.5, 22.3, 0); enemy('buzzmoth', 470.6, 22.2, 0); enemy('buzzmoth', 466, 31, 1);
   line(457, 471, 29, 32, 5);
   updraft(450, 455, 17, 44); updraft(478, 483, 14, 44); updraft(500, 505, 14, 40);
   oneway(466, 478, 39, 'leaf');
@@ -185,7 +186,7 @@ export function buildLevel() {
   solid(968, 972, -40, -3.5, 'cave'); bouncer(970, -3.5, 25, 'shroom');
   mplat(977, 982, -2.5, 6, 0, 3.4, 'crystal');
   solid(992, 997, -40, -1.5, 'cave');
-  enemy('buzzmoth', 1000, 2, 1.5);
+  enemy('buzzmoth', 990.2, -0.9, 0);
   solid(1003, 1007, -40, -3.2, 'cave');
   ground(1012, 1060, -5, 'cave');
   // falling on purpose leads to a hidden grotto below
@@ -257,6 +258,90 @@ export function buildLevel() {
   bouncer(432, 206, 26);
   portal(450, 205.6, 425, 20.6, 'return');
   cam(390, 470, { dist: 26, height: 4, fov: 52, yMin: 150, yMax: 260 });
+
+
+  // ═════════════════════ ROUND TWO: the world beneath the world ═════════════════════
+  const moss = (s0, s1, y0, y1) => solid(s0, s1, y0, y1, 'moss', { moss: true });
+  const ghost = (s0, s1, y, g) => solid(s0, s1, y - 0.6, y, 'ghost', { ghost: g });
+  const shrine = (s, y, ability) => L.shrines.push({ s: s + O, y, ability });
+  const waystone = (s, y, name) => L.waystones.push({ s: s + O, y, name });
+  const echo = (s, y, idx) => L.echoes.push({ s: s + O, y, idx });
+  const dawn = (s, y, d, size) => L.blooms2.push({ s: s + O, y, d, size });
+  const notice = (s, y, kind, text) => L.notices.push({ s: s + O, y, kind, text });
+
+  // Sunwright waystones: fast travel once lit
+  waystone(14, 0, 'The Rootwild'); waystone(424, 18.6, 'Canopy of Hands'); waystone(583, 2, 'The Weeping Ruins');
+  waystone(902, -5, 'The Glowdeep'); waystone(1064, -5, 'Sunwright Mine'); waystone(1362, -20, 'Heart of the Seed');
+  // Awakening shrines
+  shrine(201, 0, 'leap');   // Rootwild, before the vine chasm
+  shrine(590, 2, 'song');   // Weeping Ruins riverbank
+  shrine(913, -5, 'grip');  // Glowdeep
+  // A sealed Sunwright door right at the start. It hums. You can't open it... yet.
+  L.doors.push({ s: 27 + O, y: 0, ts: 54 + O, ty: -149.9 });
+  hint(20, 34, 'A sealed door hums a melody you almost remember…', 'nosong');
+  // A root wrapped in glowing moss — too sheer to climb, for now
+  moss(101, 103, 3.4, 22);
+  oneway(103, 119, 22, 'leaf');
+  echo(112, 22, 0);
+  line(104, 118, 23.5, 23.5, 5);
+  // The sleeping Mossback lies at the bottom of the vine chasm
+  L.mossback = { s: 234 + O, y: -7.2, toS: 251 + O, toY: 2.4, half: 6.5 };
+  line(226, 231, -1, -5, 4);
+  // Ghostwood: faint outlines above the canopy — only the Lumen Song makes them real
+  ghost(297, 303, 19.9, 'g1'); ghost(306, 312, 23.2, 'g1'); ghost(297, 303, 26.5, 'g1'); ghost(306, 312, 29.8, 'g1');
+  oneway(313, 334, 33.1, 'leaf');
+  portal(331, 33.2, 296, 300.1, 'grove');
+  line(314, 328, 34.5, 34.5, 5);
+  // Wind Trial I — through the rings over the bird gap without touching ground, on foot
+  L.trials.push({ id: 0, rings: [[445.2, 22.9], [452, 25.8], [456.5, 26.6], [464.9, 27.8], [468.6, 25.8], [474.8, 28.1], [480.1, 24.3], [486.8, 22.3]].map(([a, b]) => [a + O, b]), time: 6.5, reward: 'scarf' });
+  // waterfall cave glyph
+  echo(729, 0, 1);
+  // Wind Trial II — across the Glowdeep pit
+  L.trials.push({ id: 1, rings: [[962.7, -3], [966.4, -0.7], [972.4, 5.8], [976.9, 7.8], [983.7, 5.8], [988.2, 4.7], [994.4, 4.7], [999.6, 2.5]].map(([a, b]) => [a + O, b]), time: 6, reward: 'trail' });
+  // Rootgrip lets you climb out of the low grotto
+  moss(1011.2, 1012, -22, -5.2);
+  // Colossus chamber glyph (on the slab above the ceiling)
+  echo(978, 12, 5);
+  // Temple: a mossy pillar before the altar leads to the last glyph
+  moss(1512, 1514, -12.8, 6);
+  oneway(1514, 1530, 6, 'temple');
+  echo(1523, 6, 7);
+  // critters that dash into secret places
+  L.critters.push({ s: 148 + O, y: 0, toS: 161 + O }, { s: 700 + O, y: 5.6, toS: 722 + O, drop: 0 });
+  // companion noticing
+  notice(160, 1, 'beast', 'Grumbo snorts at the cracked stone. Something is behind it.');
+  notice(378, 25, 'frog', 'Boing stares straight up, throat pulsing…');
+  notice(641, -6, 'fish', 'Nuu chirps at the sealed stone under the water.');
+  notice(995, 9, 'oru', 'Oru’s rings tilt toward the ceiling.');
+  notice(472, 39, 'bird', 'Sola eyes the warm air high above.');
+  notice(234, -6, 'beast', 'Grumbo peers down into the chasm and whuffs softly.');
+  // dawnblooms: giant flowers that open as Kiri approaches
+  for (const [a, y, d, sz] of [[6, 0, -5, 1.2], [34, 0, -6, 1.6], [84, 0, -5, 1.1], [120, 0, -7, 1.8], [190, 0, -5, 1.3], [300, 16.6, -4, 1], [440, 18.6, -4, 1.2], [583, 2, -5, 1.5], [720, 11, -7, 2], [800, 21.4, -5, 1.2], [1370, -20, -5, 1.4], [1540, -16.4, -6, 2]]) dawn(a, y, d, sz);
+
+  // ───────────────────── HIDDEN WORLD: The Starwell ─────────────────────
+  plat(50, 62, -150, 'glyph', 2);
+  const stones = [[66, 70, -150], [74, 78, -148.8], [82, 86, -147.6], [90, 94, -148.8], [98, 102, -150]];
+  for (const [a, b, y] of stones) plat(a, b, y, 'glyph', 0.8);
+  plat(106, 124, -150, 'glyph', 2);
+  water(40, 130, -172, -151);
+  ground(40, 130, -172, 'cave');
+  arc(62, 66, -149, 2, 3); arc(70, 74, -148, 2.5, 3); arc(78, 82, -147, 2.5, 3); arc(86, 90, -147, 2.5, 3); arc(94, 98, -148, 2.5, 3);
+  ring(114, -144, 2.5, 10);
+  echo(113, -150, 2);
+  portal(121, -149.4, 30, 0.1, 'return');
+  cam(30, 140, { dist: 22, height: 3, fov: 52, yMin: -190, yMax: -120 });
+  // ───────────────────── HIDDEN WORLD: The Dreaming Grove ─────────────────────
+  plat(288, 302, 300, 'grass', 2);
+  plat(304, 310, 298.6, 'grass', 1); bouncer(307, 298.6, 28, 'flower');
+  oneway(312, 326, 307.6, 'leaf');
+  ring(319, 311.6, 2.2, 8);
+  plat(329, 336, 305.5, 'grass', 1.2);
+  plat(339, 350, 307, 'grass', 2);
+  echo(342, 307, 4);
+  portal(348, 307.6, 323, 33.2, 'return');
+  line(290, 300, 301.5, 301.5, 5); arc(326, 339, 306, 3, 6);
+  cam(270, 370, { dist: 20, height: 3.5, fov: 52, yMin: 250, yMax: 360 });
+  // Trial echo glyphs appear when trials are won (idx 3 & 6), placed by the trial system
 
   L.start = { s: 4 + O, y: 0 };
   L.endS = 1560 + O;

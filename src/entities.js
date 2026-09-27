@@ -42,7 +42,7 @@ export class Entities {
   buildDynamicSolids() {
     this.dyn = [];
     for (const o of this.solids) {
-      if (!(o.move || o.collapse || o.crack || o.echo)) continue;
+      if (!(o.move || o.collapse || o.crack || o.echo) || o.ghost) continue;
       o.depth = o.collapse ? 3.2 : (o.crack ? 4.6 : 4.2);
       const g = solidMesh(this.path, o);
       if (o.crack) { // visible cracks
@@ -224,7 +224,7 @@ export class Entities {
         if (ud.jaw) { const o = Math.max(0, Math.sin(e.t * 5)) * 0.5; ud.jaw.rotation.z = -o; ud.top.rotation.z = o * 0.6; }
         if (e.stun > 0) m.rotation.z = Math.PI * 0.9;
       } else if (e.kind === 'buzzmoth') {
-        e.y = e.homeY + Math.sin(e.t * 2.2) * e.range; e.s = e.homeS + Math.sin(e.t * 0.9) * 1.2;
+        e.y = e.homeY + Math.sin(e.t * 2.2) * e.range; e.s = e.homeS + Math.sin(e.t * 0.9) * 1.2 * Math.min(1, e.range);
         this.place(m, e.s, e.y - 0.3);
         const face = Math.cos(e.t * 0.9) > 0 ? 0 : Math.PI; m.rotation.y += face + (pl.s < e.s ? Math.PI : 0) * 0;
         ud.wings.forEach((w, i) => w.rotation.x = Math.sin(e.t * 40) * 0.9 * (i ? -1 : 1));
@@ -421,7 +421,7 @@ export class Entities {
       c.cage.rotation.y = this.path.yaw(c.s) + Math.sin(c.t * 2) * 0.03;
       if (c.kind === 'oru') { ud.rings.forEach((r, i) => { r.rotation.x = c.t * (1 + i); r.rotation.y = c.t * 0.7; }); ud.body.position.y = 0.3 + Math.sin(c.t * 2) * 0.2; }
     } else if (c.state === 'idle') {
-      this.place(c.model, c.s, c.y); ud.body.position.y = Math.abs(Math.sin(c.t * 2.5)) * 0.15; c.model.rotation.y += c.facing < 0 ? Math.PI : 0;
+      this.place(c.model, c.s, c.y); ud.body.position.y = Math.abs(Math.sin(c.t * 2.5)) * 0.15 + Math.sin((c.hop || 0) * Math.PI) * 0.8; c.model.rotation.y += c.facing < 0 ? Math.PI : 0;
       if (ud.head) ud.head.rotation.y = Math.sin(c.t * 0.8) * 0.4;
       if (c.kind === 'oru') ud.rings.forEach((r, i) => { r.rotation.x = c.t * (1 + i); r.rotation.y = c.t * 0.7; });
     } else if (c.state === 'fleeing') {

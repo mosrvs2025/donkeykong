@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0b1a12" />
 <title>Thornwild: The Lumen Seed</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Cormorant+Garamond:ital,wght@1,500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
@@ -16,8 +16,14 @@
   <div id="glims"><span class="glim-ico"></span><span id="glim-count">0</span></div>
   <div id="shards"></div>
   <div id="mount"></div>
+  <div id="abilities"></div>
+  <div id="echoes"></div>
   <div id="timer"></div>
 </div>
+<div id="chain"></div>
+<div id="prompt"></div>
+<div id="story"><p id="story-text"></p><small id="story-sub"></small></div>
+<div id="travel" class="hidden"><div class="travel-inner"><div class="kicker">Sunwright Waystones</div><h2>Where to?</h2><div id="travel-list"></div><small>↑↓ choose · Space travel · Esc close</small></div></div>
 <div id="banner"></div>
 <div id="toast"></div>
 <div id="flash"></div>
@@ -34,6 +40,7 @@
       <div><b>Space</b> jump (hold = higher)</div>
       <div><b>Shift / X</b> roll · in air: slam</div>
       <div><b>↓ + Shift</b> dismount</div>
+      <div><b>↑</b> waystones · songs, later</div>
       <div><b>M</b> mute · <b>P</b> pause</div>
     </div>
     <div id="loading">growing the jungle…</div>

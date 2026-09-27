@@ -2,13 +2,15 @@ import * as THREE from 'three';
 import { getTex } from './textures.js';
 
 export const THEMES = [
-  // sky top, horizon, fog color, fog density, hemi sky, hemi ground, sun color, sun intensity, particle color, exposure
-  { top: 0x3f8fd8, hor: 0xcfe8c0, fog: 0x9fc8a8, dens: 0.0065, hs: 0xbfe0ff, hg: 0x3a5a20, sun: 0xfff0c8, si: 2.6, pc: 0xfff6a0, exp: 1.0 },
-  { top: 0x2f78c8, hor: 0xf4e0b0, fog: 0xb8d0b0, dens: 0.0055, hs: 0xd0e8ff, hg: 0x456a2a, sun: 0xffe0a0, si: 3.0, pc: 0xfff0c0, exp: 1.05 },
-  { top: 0x3a70b0, hor: 0xc8e8f0, fog: 0x88b8c0, dens: 0.0075, hs: 0xc0e8ff, hg: 0x2a4a3a, sun: 0xfff8e0, si: 2.4, pc: 0xd0fff8, exp: 1.0 },
-  { top: 0x05040c, hor: 0x120a26, fog: 0x0c0a1c, dens: 0.028, hs: 0x5a48a8, hg: 0x102030, sun: 0x8070ff, si: 0.35, pc: 0x70f0ff, exp: 1.25 },
-  { top: 0x0a0604, hor: 0x2a160a, fog: 0x1e1008, dens: 0.018, hs: 0xd09060, hg: 0x302010, sun: 0xffa050, si: 1.1, pc: 0xffb050, exp: 1.35 },
-  { top: 0x2a0e08, hor: 0xd06a2a, fog: 0x7a3a1a, dens: 0.012, hs: 0xffb070, hg: 0x40200a, sun: 0xffb060, si: 2.2, pc: 0xffd080, exp: 1.05 },
+  // sky top, horizon, fog color, fog density, hemi sky, hemi ground, sun color, sun intensity, particle color, exposure, moon, stars
+  { top: 0x3f8fd8, hor: 0xcfe8c0, fog: 0x9fc8a8, dens: 0.0065, hs: 0xbfe0ff, hg: 0x3a5a20, sun: 0xfff0c8, si: 2.6, pc: 0xfff6a0, exp: 1.0, moon: 0, stars: 0 },
+  { top: 0x2f78c8, hor: 0xf4e0b0, fog: 0xb8d0b0, dens: 0.0055, hs: 0xd0e8ff, hg: 0x456a2a, sun: 0xffe0a0, si: 3.0, pc: 0xfff0c0, exp: 1.05, moon: 0, stars: 0 },
+  { top: 0x34508a, hor: 0xf0b890, fog: 0x9aa8b0, dens: 0.0075, hs: 0xd0c8ff, hg: 0x2a4a3a, sun: 0xffc890, si: 2.2, pc: 0xffe0c0, exp: 1.0, moon: 0.5, stars: 0.15 },
+  { top: 0x020206, hor: 0x07051a, fog: 0x050410, dens: 0.034, hs: 0x3a3070, hg: 0x081018, sun: 0x6050d0, si: 0.2, pc: 0x70f0ff, exp: 1.3, moon: 0, stars: 0 },
+  { top: 0x0a0604, hor: 0x2a160a, fog: 0x1e1008, dens: 0.018, hs: 0xd09060, hg: 0x302010, sun: 0xffa050, si: 1.1, pc: 0xffb050, exp: 1.35, moon: 0, stars: 0 },
+  { top: 0x060a24, hor: 0x33406e, fog: 0x1a2240, dens: 0.011, hs: 0x8a98d8, hg: 0x2a1e10, sun: 0xb8c8ff, si: 1.4, pc: 0xd0e0ff, exp: 1.15, moon: 1, stars: 1 },
+  { top: 0x010208, hor: 0x040a20, fog: 0x030614, dens: 0.004, hs: 0x4050a0, hg: 0x0a1030, sun: 0x8090ff, si: 0.4, pc: 0xa0c0ff, exp: 1.25, moon: 0, stars: 1 },
+  { top: 0x0a0a2a, hor: 0x3a2a60, fog: 0x1a1640, dens: 0.009, hs: 0x9080e0, hg: 0x201840, sun: 0xc0b0ff, si: 1.0, pc: 0xffc0f0, exp: 1.2, moon: 1, stars: 1 },
 ];
 
 const MAT_DEF = {
@@ -17,7 +19,7 @@ const MAT_DEF = {
   ruin: { top: 'ruin', side: 'ruin' }, cliff: { top: 'grass', side: 'cliff' }, sand: { top: 'sand', side: 'sand' },
   cave: { top: 'cave', side: 'cave' }, mine: { top: 'mine', side: 'mine' }, temple: { top: 'temple', side: 'temple' },
   glyph: { top: 'glyph', side: 'glyph', emissive: 0x0a3a38 }, crystal: { top: 'crystal', side: 'crystal', emissive: 0x3a1a70 },
-  cloud: { top: 'cloud', side: 'cloud', emissive: 0x10141c }, rail: { top: 'rail', side: 'rail' },
+  moss: { top: 'grass', side: 'mossw', emissive: 0x0a2a12 }, cloud: { top: 'cloud', side: 'cloud', emissive: 0x10141c }, rail: { top: 'rail', side: 'rail' },
 };
 const matCache = {};
 export function surfMat(texName, emissive) {
@@ -133,16 +135,29 @@ export class World {
   }
   buildSky() {
     const geo = new THREE.SphereGeometry(1200, 32, 16);
-    this.skyU = { top: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, sunDir: { value: new THREE.Vector3(0.4, 0.5, -0.6).normalize() }, sunCol: { value: new THREE.Color() } };
+    this.skyU = { top: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, sunDir: { value: new THREE.Vector3(0.4, 0.5, -0.6).normalize() }, sunCol: { value: new THREE.Color() }, moonDir: { value: new THREE.Vector3(-0.5, 0.42, -0.75).normalize() }, moonAmt: { value: 0 }, starAmt: { value: 0 }, uTime: windUniforms.uTime };
     const mat = new THREE.ShaderMaterial({
       side: THREE.BackSide, depthWrite: false, fog: false, uniforms: this.skyU,
       vertexShader: 'varying vec3 vd; void main(){ vd = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); gl_Position.z = gl_Position.w; }',
-      fragmentShader: `uniform vec3 top, hor, sunCol, sunDir; varying vec3 vd;
+      fragmentShader: `uniform vec3 top, hor, sunCol, sunDir, moonDir; uniform float moonAmt, starAmt, uTime; varying vec3 vd;
+        float h2(vec3 p){ return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453); }
         void main(){ float h = clamp(vd.y, -0.2, 1.0);
           vec3 c = mix(hor, top, pow(max(h,0.0), 0.6));
           c = mix(c, hor * 0.7, clamp(-h * 4.0, 0.0, 1.0));
           float sd = max(dot(normalize(vd), sunDir), 0.0);
-          c += sunCol * (pow(sd, 600.0) * 3.0 + pow(sd, 12.0) * 0.35);
+          c += sunCol * (pow(sd, 600.0) * 3.0 + pow(sd, 12.0) * 0.35) * (1.0 - moonAmt * 0.8);
+          vec3 nd = normalize(vd);
+          // stars that twinkle
+          vec3 cell = floor(nd * 160.0); float st = h2(cell);
+          float tw = 0.6 + 0.4 * sin(uTime * 2.0 + st * 40.0);
+          c += vec3(0.85, 0.9, 1.0) * step(0.9965, st) * tw * starAmt * smoothstep(0.0, 0.25, h);
+          // a vast moon with a pale ring, like an illustration
+          float md = dot(nd, moonDir);
+          float disc = smoothstep(0.9975, 0.9982, md);
+          float crater = 0.85 + 0.15 * sin(nd.x * 90.0) * sin(nd.y * 70.0);
+          c = mix(c, vec3(0.95, 0.96, 1.0) * crater, disc * moonAmt);
+          c += vec3(0.5, 0.6, 0.9) * pow(max(md, 0.0), 80.0) * 0.5 * moonAmt;
+          c += vec3(0.6, 0.7, 1.0) * smoothstep(0.004, 0.0, abs(md - 0.9935)) * 0.35 * moonAmt;
           gl_FragColor = vec4(c, 1.0); }`,
     });
     this.sky = new THREE.Mesh(geo, mat); this.sky.renderOrder = -10; this.sky.frustumCulled = false;
@@ -151,7 +166,7 @@ export class World {
   buildSolids() {
     const sb = new StripBuilder(this.path);
     for (const o of this.level.solids) {
-      if (o.move || o.collapse || o.crack || o.echo) continue;
+      if (o.move || o.collapse || o.crack || o.echo || o.ghost) continue;
       const deep = o.ground || o.y1 - o.y0 > 6;
       const d0 = deep ? -5 : -2.4, d1 = deep ? 3.6 : 2.4;
       const yb = Math.max(o.y0, o.y1 - 60);
@@ -343,7 +358,8 @@ export class World {
       const h = new THREE.Group();
       const b = new THREE.Mesh(new THREE.BoxGeometry(6, 7, 5), ruin); b.position.y = 3.5; h.add(b);
       const brow = new THREE.Mesh(new THREE.BoxGeometry(6.6, 1.2, 5.6), ruin); brow.position.y = 5.3; h.add(brow);
-      for (const x of [-1.5, 1.5]) { const e = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.35, 0.3), glow(0x40ffd0, 3)); e.position.set(x, 4.4, 2.55); h.add(e); }
+      const em = glow(0x40ffd0, 0.3); (this.headEyes ||= []).push(em);
+      for (const x of [-1.5, 1.5]) { const e = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.35, 0.3), em); e.position.set(x, 4.4, 2.55); h.add(e); }
       const nose = new THREE.Mesh(new THREE.BoxGeometry(1, 2.4, 1), ruin); nose.position.set(0, 3, 2.7); h.add(nose);
       const mouth = new THREE.Mesh(new THREE.BoxGeometry(3, 0.4, 0.3), glow(0x103830, 1)); mouth.position.set(0, 1.3, 2.55); h.add(mouth);
       for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5 + r(), 0), leaf); m.position.set((r() - 0.5) * 6, 6.5 + r(), (r() - 0.5) * 4); h.add(m); }
@@ -453,7 +469,7 @@ export class World {
       if (this.themeAt(s + 80) === 3) continue;
       const m = new THREE.Mesh(new THREE.CylinderGeometry(2 + r() * 3, 6 + r() * 5, 90, 12, 1, true), rayMat.clone());
       m.rotation.z = 0.35; m.rotation.x = -0.15; m.position.y = 30; const G = new THREE.Group(); G.add(m); at(G, s + 80, 0, -8 - r() * 30);
-      const ph = r() * 6; this.animated.push({ update: (t) => { m.material.opacity = 0.04 + Math.sin(t * 0.5 + ph) * 0.025; } });
+      const ph = r() * 6; this.animated.push({ update: (t) => { m.material.opacity = (0.04 + Math.sin(t * 0.5 + ph) * 0.025) * (1 + Math.min(1.5, (this.wake || 0) * 0.15)); } });
     }
     // ── distant wildlife: the Mossback giants wander the valley; bird flocks circle
     this.mossbacks = [];
@@ -490,6 +506,7 @@ export class World {
     this.waterMeshes = [];
     const mat = new THREE.MeshStandardMaterial({ color: 0x2a9ab0, transparent: true, opacity: 0.62, roughness: 0.15, metalness: 0.2, emissive: 0x05303a, depthWrite: false });
     for (const w of this.level.water) {
+      if (w.y1 < -100) continue;
       const pos = [];
       const n = Math.ceil((w.s1 - w.s0) / 2);
       for (let i = 0; i < n; i++) {

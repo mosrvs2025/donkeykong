@@ -5,7 +5,7 @@ export function surfaceY(sl, s) { return sl.ya + (sl.yb - sl.ya) * (s - sl.s0) /
 export function moveBody(b, solids, slopes, dt, onHit) {
   const g = b.g || 1; // +1 normal gravity, -1 inverted
   const wasGrounded = b.grounded, wasSlope = b.onSlope;
-  b.wallDir = 0; b.hitCeil = false;
+  b.wallDir = 0; b.hitCeil = false; b.wallSolid = null;
   // carry with moving platform
   if (b.grounded && b.ground && b.ground.dS !== undefined) { b.s += b.ground.dS; b.y += b.ground.dY; }
   // ── horizontal
@@ -21,6 +21,7 @@ export function moveBody(b, solids, slopes, dt, onHit) {
     if (ps + b.hw <= o.s0 + 0.05 + Math.abs(o.dS || 0)) { b.s = o.s0 - b.hw - EPS; b.wallDir = 1; }
     else if (ps - b.hw >= o.s1 - 0.05 - Math.abs(o.dS || 0)) { b.s = o.s1 + b.hw + EPS; b.wallDir = -1; }
     else { const l = b.s + b.hw - o.s0, r = o.s1 - (b.s - b.hw); if (l < r) { b.s -= l + EPS; b.wallDir = 1; } else { b.s += r + EPS; b.wallDir = -1; } }
+    b.wallSolid = o;
     if (b.wallDir * b.vs > 0) b.vs = 0;
   }
   // ── vertical

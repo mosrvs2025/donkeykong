@@ -29,7 +29,7 @@ export class Player {
     Object.assign(this, { s, y, vs: 0, vy: 0, g: 1, facing: 1, turn: 0, state: 'normal', grounded: false, ground: null, onSlope: null, wallDir: 0,
       mount: null, comp: null, invuln: 0, coyote: 0, jumpBuf: 0, rollT: 0, rollCool: 0, slamming: false, chain: 0, vine: null, vineR: 0,
       cart: null, inWater: false, birdTime: 0, flipCool: 0, grapT: null, chargeT: 0, dashT: 0, idleT: 0, animT: 0, squash: 0, landT: 0,
-      wallT: 0, wallD: 0, remountCool: 0, deadT: 0, hitstop: 0, dropThrough: 0, hearts: this.hearts ?? 3, tongueT: 0, tongueTo: null, airT: 0, wasSlope: null, hurtT: 0 });
+      wallT: 0, wallD: 0, remountCool: 0, leapReady: true, songHold: 0, sang: false, stillT: 0, gripD: 0, lastFlap: -9, mossHinted: this.mossHinted, deadT: 0, hitstop: 0, dropThrough: 0, hearts: this.hearts ?? 3, tongueT: 0, tongueTo: null, airT: 0, wasSlope: null, hurtT: 0 });
     this.hearts = this.maxHearts;
     this.applyMount();
   }
@@ -90,11 +90,18 @@ export class Player {
     if (this.state === 'cutscene') { this.vs = approach(this.vs, 0, 20 * dt); this.move(dt); return; }
     const H = input.held;
     const dir = (H.right ? 1 : 0) - (H.left ? 1 : 0);
-    if (input.peek('jump')) { this.jumpBuf = 0.13; input.consume('jump'); }
+    const freshJump = input.peek('jump');
+    if (freshJump) { this.jumpBuf = 0.13; input.consume('jump'); }
     else this.jumpBuf -= dt;
     let action = input.consume('action');
     if (action && H.down && this.comp && !this.cart) { this.dismount(false); action = false; }
 
+    const M = game.magic;
+    if (input.peek('up') && M.nearWay && this.state === 'normal' && this.grounded && !this.cart) { input.consume('up'); game.openTravel(); return; }
+    if (H.up && M.has('song') && !M.nearWay && this.state === 'normal' && !this.inWater && !this.cart) { this.songHold += dt; if (this.songHold > 0.45 && !this.sang) { this.sang = true; M.sing(); } }
+    else { this.songHold = 0; this.sang = false; }
+    this.stillT = (!dir && this.grounded && Math.abs(this.vs) < 0.5 && !action) ? this.stillT + dt : 0;
+    if (this.state === 'grip') return this.stepGrip(dt, dir, H);
     if (this.state === 'vine') return this.stepVine(dt, dir, H, input);
     if (this.state === 'grapple') return this.stepGrapple(dt);
     if (this.cart) return this.stepCart(dt, H);
@@ -163,10 +170,16 @@ export class Player {
         game.fx.burst(game.path.world(this.s, this.y + 0.1, 0), 0xe0d0b0, 6, 3, 0.6, 0.4, 0);
         if (this.mount === 'frog') game.shake(0.1);
       } else if (this.mount === 'frog' && this.wallT > 0) {
-        vyr = 18; this.vs = -this.wallD * 11; this.facing = -this.wallD; this.jumpBuf = 0; this.wallT = 0; game.audio.play('bigjump');
+        vyr = 18; this.vs = -this.wallD * 11; this.facing = -this.wallD; this.jumpBuf = 0; this.wallT = 0; game.audio.play('bigjump'); this.leapReady = true; M.chainEvent();
         game.fx.burst(game.path.world(this.s + this.wallD * this.hw, this.y + 1, 0), 0x80ff90, 10, 4, 0.6, 0.4, 0);
       } else if (this.mount === 'bird' && this.birdTime > 0) {
-        vyr = Math.max(vyr, 10.5); this.jumpBuf = 0; game.audio.play('flap'); this.flapT = 0.3;
+        if (M.has('leap') && this.leapReady && this.animT - this.lastFlap < 0.3) { // Sunflare: double-tap
+          vyr = 19; this.birdTime += 3; this.leapReady = false; game.audio.play('leap'); M.chainEvent();
+          game.fx.burst(game.path.world(this.s, this.y + 1, 0), 0xffb040, 36, 10, 0.8, 0.8, 0); game.hud.toast('<b>Sunflare!</b> Sola catches her second wind', 1.5);
+        } else { vyr = Math.max(vyr, 10.5); game.audio.play('flap'); this.flapT = 0.3; }
+        this.lastFlap = this.animT; this.jumpBuf = 0;
+      } else if (freshJump && this.leapReady && M.has('leap') && this.airT > 0.06) {
+        vyr = this.leap(dir); this.jumpBuf = 0;
       }
     }
 
@@ -204,9 +217,14 @@ export class Player {
     if (this.wallDir && !this.grounded) { this.wallT = 0.14; this.wallD = this.wallDir; }
     // landing
     if (prevAir && this.grounded) this.onLand(prevVy);
-    if (this.grounded) this.rollJump = false;
+    if (this.grounded) { this.rollJump = false; this.leapReady = true; }
+    if (!this.mount && M.has('grip') && this.g === 1 && !this.grounded && this.wallDir && this.wallSolid && this.wallSolid.moss && this.vy < 7 && this.state === 'normal') { this.state = 'grip'; this.gripD = this.wallDir; this.leapReady = true; this.slamming = false; game.audio.play('vine'); }
+    else if (!M.has('grip') && this.wallSolid && this.wallSolid.moss && !this.mossHinted) { this.mossHinted = true; game.toast('The glowing moss pulses under Kiri\u2019s paws… but won\u2019t hold. Not yet.', 3.5); }
     // falling death
-    if (this.y < -52 || this.y > 320) game.killPlayer('Fell!');
+    if (this.y < (this.y < -100 || this.deepZone ? -180 : -52) || this.y > 340) game.killPlayer('Fell!');
+    this.deepZone = this.y < -100;
+    if (this.grounded) this.skyZone = this.y > 280 ? 285 : this.y > 150 ? 185 : 0;
+    if (this.skyZone && this.y < this.skyZone && this.state !== 'dead') { this.skyZone = 0; game.killPlayer('Kiri tumbles out of the sky…'); }
   }
   move(dt) {
     const E = this.game.entities;
@@ -236,9 +254,44 @@ export class Player {
     const c = this.center;
     for (const w of this.game.level.water) if (this.s > w.s0 && this.s < w.s1 && c > w.y0 && c < w.y1) {
       if (!this.inWater) { this.game.audio.play('splash'); this.game.fx.burst(this.game.path.world(this.s, w.y1, 0), 0xc0f0ff, 20, 6, 0.6, 0.6, -12); this.slamming = false; this.rollT = 0; this.chargeT = 0; if (this.g === -1) this.g = 1; }
-      this.waterTop = w.y1; return true;
+      this.waterTop = w.y1; this.leapReady = true; return true;
     }
     return false;
+  }
+  leap(dir) {
+    const game = this.game, M = game.magic;
+    this.leapReady = false; this.slamming = false;
+    let vyr = 13.5;
+    const w = game.path.world(this.s, this.y + 0.6, 0);
+    if (this.mount === 'beast') { vyr = 8; this.chargeT = 0.45; this.vs = this.facing * 20; game.toast('<b>Horn Comet!</b>', 1); game.shake(0.3); }
+    else if (this.mount === 'frog') { vyr = 20; }
+    else if (this.mount === 'fish') { vyr = 14; }
+    else if (dir) { this.vs = dir * Math.max(Math.abs(this.vs), 10.5); this.facing = dir; }
+    game.audio.play('leap'); M.chainEvent();
+    const f = game.path.frame(this.s);
+    game.fx.ring(w, this.mount === 'beast' ? 0xffc080 : 0xbff4ff, 18, 5, 0.45, new THREE.Vector3(f.tx, 0, f.tz), new THREE.Vector3(f.nx, 0, f.nz));
+    game.fx.burst(w, 0xffffff, 8, 3, 0.5, 0.4, -4);
+    this.squash = -0.35; this.leapSpin = 1;
+    return vyr;
+  }
+  stepGrip(dt, dir, H) {
+    const game = this.game, w = this.gripD;
+    this.facing = w;
+    if (this.jumpBuf > 0) {
+      this.jumpBuf = 0; this.state = 'normal'; this.vy = 15; this.vs = -w * 9.5; this.facing = -w; this.leapReady = true;
+      game.audio.play('jump'); game.magic.chainEvent(); game.fx.burst(game.path.world(this.s + w * this.hw, this.y + 0.8, 0), 0x8affc0, 10, 4, 0.5, 0.4, 0); return;
+    }
+    if (dir === -w) { this.state = 'normal'; this.vs = -w * 3; return; }
+    this.vy = H.up ? 4.5 : H.down ? -7 : -0.7;
+    this.vs = w * 0.6;
+    this.move(dt);
+    if (this.grounded) { this.state = 'normal'; return; }
+    if (!this.wallDir || !this.wallSolid || !this.wallSolid.moss) { this.state = 'normal'; if (this.vy > 0 || H.up) { this.vy = 10; this.vs = w * 4; } }
+    if (Math.random() < dt * 6 && Math.abs(this.vy) > 1) game.fx.spawn(game.path.world(this.s + w * this.hw, this.y + 0.3, 0.3), new THREE.Vector3(0, -1, 0), 0x8affc0, 0.3, 0.5, 0);
+  }
+  applyCosmetics() {
+    if (!this.game.magic.cosmetic.scarf) return;
+    this.model.traverse((o) => { if (o.isMesh && o.material.color && o.material.color.getHex() === 0x2fbfae) { o.material.color.setHex(0xffc030); o.material.emissive = new THREE.Color(0x805000); o.material.emissiveIntensity = 0.8; } });
   }
   tongue() {
     const game = this.game, E = game.entities;
@@ -256,7 +309,7 @@ export class Player {
     const ds = t.s - this.s, dy = (t.y - 1.4) - this.y, d = Math.hypot(ds, dy);
     const sp = 32;
     this.tongueTo = t;
-    if (d < 1.0) { this.state = 'normal'; this.vy = 15; this.vs = this.facing * 6; this.grapT = null; this.game.audio.play('bigjump'); this.game.fx.burst(this.game.path.world(t.s, t.y, 0), 0xff70c0, 14, 5, 0.6, 0.5, 0); return; }
+    if (d < 1.0) { this.state = 'normal'; this.vy = 15; this.leapReady = true; this.game.magic.chainEvent(); this.vs = this.facing * 6; this.grapT = null; this.game.audio.play('bigjump'); this.game.fx.burst(this.game.path.world(t.s, t.y, 0), 0xff70c0, 14, 5, 0.6, 0.5, 0); return; }
     this.vs = ds / d * sp; this.vy = dy / d * sp; this.facing = ds >= 0 ? 1 : -1;
     const ps = this.s, py = this.y;
     this.move(dt);
@@ -268,7 +321,7 @@ export class Player {
     const ang = Math.atan2(this.s - v.s, v.y - (this.y + this.h * 0.85));
     v.ang = Math.max(-1.3, Math.min(1.3, ang));
     v.av = (this.vs * Math.cos(v.ang) + this.vy * Math.sin(v.ang)) / r;
-    this.slamming = false; this.rollT = 0; this.jumpBuf = 0;
+    this.slamming = false; this.rollT = 0; this.jumpBuf = 0; this.leapReady = true; this.game.magic.chainEvent();
     this.game.audio.play('vine'); this.game.stats.vines++;
   }
   stepVine(dt, dir, H, input) {
@@ -350,7 +403,7 @@ export class Player {
         this.chain++;
         this.vy = game.input.held.jump || this.slamming ? 17.5 : 12;
         if (this.slamming) { this.slamming = false; this.vy = 19; }
-        this.grounded = false; this.squash = -0.35; this.hitstop = 0.05;
+        this.grounded = false; this.squash = -0.35; this.hitstop = 0.05; this.leapReady = true; game.magic.chainEvent();
         game.audio.play('stomp', this.chain);
         if (this.chain >= 3) { game.toast(`${this.chain}× bounce chain!`, 1.2); for (let i = 0; i < this.chain - 2; i++) game.addGlims(1, P.world(e.s, e.y + 1, 0)); }
         continue;
@@ -366,7 +419,7 @@ export class Player {
       if (this.g !== 1 || this.vy > 0.5 || Math.abs(b.s - this.s) > 1.3 + this.hw * 0.5) continue;
       if (this.y < b.y - 0.05 || this.y > b.y + 1.6) continue;
       this.vy = b.power * (this.slamming ? 1.15 : 1) * (this.mount === 'frog' ? 1.15 : 1);
-      this.slamming = false; this.grounded = false; this.rollT = 0; b.squash = 1; this.squash = -0.4;
+      this.slamming = false; this.grounded = false; this.rollT = 0; b.squash = 1; this.squash = -0.4; this.leapReady = true; game.magic.chainEvent();
       game.audio.play('bounce'); game.fx.burst(P.world(b.s, b.y + 1, 0), b.kind === 'shroom' ? 0x60d0ff : 0xff80b0, 16, 6, 0.6, 0.6, -6);
     }
     // vines
@@ -438,7 +491,10 @@ export class Player {
     const speed = Math.abs(this.vs);
     const air = !this.grounded;
     const runPhase = (this._rp = (this._rp || 0) + dt * (4 + speed * 1.3));
-    if (this.state === 'vine') { armZ = 2.9; legA = Math.sin(t * 3) * 0.3; ud.body.rotation.z = -this.vine.ang; }
+    if (this.state === 'grip') { armZ = 2.7; legA = Math.sin(t * 8) * (Math.abs(this.vy) > 1 ? 0.6 : 0.1); ud.body.rotation.z = 0.15; }
+    else if (this.songHold > 0 && this.grounded) { armZ = 2.2 + Math.sin(t * 6) * 0.3; ud.head.rotation.z = 0.35; bob = Math.sin(t * 5) * 0.03; if (Math.random() < dt * 20) game.fx.spawn(P.world(this.s, this.y + 1.8, 0), new THREE.Vector3((Math.random() - 0.5) * 2, 2, 0), 0xa0f0ff, 0.35, 0.8, 0); }
+    else if (this.leapSpin > 0) { this.leapSpin -= dt * 3; ud.body.rotation.z = -(1 - this.leapSpin) * Math.PI * 2 * this.facing * 0 - (1 - this.leapSpin) * Math.PI * 2; ud.body.position.y = 0.6; legA = 1.2; armA = 1; }
+    else if (this.state === 'vine') { armZ = 2.9; legA = Math.sin(t * 3) * 0.3; ud.body.rotation.z = -this.vine.ang; }
     else if (riding || this.cart) { legA = 1.1; armA = 0; armZ = this.cart && air ? 2.8 : 0.6; }
     else if (this.rollT > 0 || this.rollJump) { ud.body.rotation.z = -(this._roll = (this._roll || 0) + dt * 22); ud.body.position.y = 0.55; ud.body.scale?.set(1, 1, 1); legA = 1.6; armA = 1.5; }
     else if (this.slamming) { ud.body.rotation.z = -(this._roll = (this._roll || 0) + dt * 30); ud.body.position.y = 0.55; legA = 1.5; armA = 1.2; }
@@ -552,6 +608,23 @@ export class Player {
         u.core.material.emissiveIntensity = 2 + Math.sin(t * 5) * 0.8;
         break;
     }
+    // personality: happy hops, nerves around danger, idle habits
+    c.hop = Math.max(0, (c.hop || 0) - dt * 2);
+    if (c.hop > 0) u.body.position.y += Math.sin(c.hop * Math.PI) * 0.5;
+    const al = c.alert || 0;
+    if (c.kind === 'frog') u.body.scale.multiplyScalar(1 - al * 0.12);
+    if (c.kind === 'beast' && u.head) u.head.rotation.z -= al * 0.35;
+    if (c.kind === 'bird' && al > 0.3) u.wings.forEach((w, i) => w.rotation.x += (i ? 1 : -1) * Math.sin(t * 30) * 0.15 * al);
+    if (c.kind === 'fish' && al > 0.3) u.body.rotation.z += Math.sin(t * 25) * 0.04 * al;
+    const it = this.stillT;
+    if (it > 2.5) {
+      const ph = (it - 2.5) % 6;
+      if (c.kind === 'beast') { if (ph < 1.6) { u.head.rotation.z = -0.5 + Math.sin(t * 10) * 0.08; if (Math.random() < dt * 5) this.game.fx.spawn(this.game.path.world(this.s + this.facing * 1.6, this.y + 0.4, 0), new THREE.Vector3(this.facing * 1.5, 0.5, 0), 0xe0e0e0, 0.4, 0.5, 0); } else if (ph > 4) u.tail.rotation.z = 1 + Math.sin(t * 16) * 0.5; }
+      if (c.kind === 'frog') { if (ph > 3 && ph < 3.4) { u.tongue.visible = true; u.tongue.position.set(1.3, 1.6, 0); u.tongue.rotation.z = -1.2; u.tongue.scale.set(1, 1.4 * Math.sin((ph - 3) / 0.4 * Math.PI), 1); } else u.tongue.visible = false; if (ph > 3.4 && ph < 4) u.body.scale.y *= 1 + Math.sin((ph - 3.4) * 10) * 0.08; }
+      if (c.kind === 'bird' && ph < 2) { u.head.rotation.y = Math.PI * 0.7; u.head.rotation.z = 0.3 + Math.sin(t * 12) * 0.1; u.wings[0].rotation.x = -0.5; }
+      if (c.kind === 'fish' && ph < 1) u.body.rotation.x = ph * Math.PI * 2;
+      if (c.kind === 'oru') u.rings.forEach((r, i) => r.scale.setScalar(1 + Math.sin(t * 2 + i) * 0.25));
+    } else if (c.kind === 'frog') u.tongue.visible = false;
   }
   tick(dt) { if (this.mount === 'bird') this.birdTime -= dt; }
 }
