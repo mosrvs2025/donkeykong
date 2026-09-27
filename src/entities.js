@@ -42,15 +42,17 @@ export class Entities {
   buildDynamicSolids() {
     this.dyn = [];
     for (const o of this.solids) {
-      if (!(o.move || o.collapse || o.crack || o.echo) || o.ghost) continue;
+      if (!(o.move || o.collapse || o.crack || o.echo || o.finale) || o.ghost) continue;
       o.depth = o.collapse ? 3.2 : (o.crack ? 4.6 : 4.2);
       const g = solidMesh(this.path, o);
       if (o.crack) { // visible cracks
         const cm = new THREE.MeshBasicMaterial({ color: 0x1a1008 });
         for (let i = 0; i < 5; i++) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.9 + Math.random(), 0.05), cm); c.position.set((Math.random() - 0.5) * 0.8, 0.4 + i * (o.y1 - o.y0) / 5, 2.33); c.rotation.z = (Math.random() - 0.5) * 1.5; g.add(c); }
         if (o.crack === 'swim') g.children[0].material = surfMat('ruin', 0x0a2a30);
+        if (o.crack === 'song') { g.clear(); const h = o.y1 - o.y0; for (let i = 0; i < 9; i++) { const sp = new THREE.Mesh(new THREE.ConeGeometry(0.45 + Math.random() * 0.4, h * (0.5 + Math.random() * 0.6), 5), new THREE.MeshStandardMaterial({ color: 0x3a1450, emissive: 0x8a20c0, emissiveIntensity: 0.9, flatShading: true, roughness: 0.3 })); sp.position.set((Math.random() - 0.5) * 1.6, h * 0.4, (Math.random() - 0.5) * 3.4); sp.rotation.z = (Math.random() - 0.5) * 0.5; g.add(sp); } const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.7, 0), new THREE.MeshStandardMaterial({ color: 0, emissive: 0xff40c0, emissiveIntensity: 2.5 })); core.position.y = h * 0.5; g.add(core); o.core = core; }
       }
       if (o.echo) { const rune = new THREE.Mesh(new THREE.BoxGeometry(o.s1 - o.s0 - 0.4, 0.12, 0.1), glowMat(0x40ffd0, 1)); rune.position.set(0, (o.y1 - o.y0) - 0.1, 2.12); g.add(rune); o.rune = rune; o.cur = 0; }
+      if (o.finale) { o.active = false; g.visible = false; }
       this.group.add(g); o.mesh = g; o.t = 0; this.dyn.push(o);
     }
   }
@@ -76,6 +78,7 @@ export class Entities {
         if (o.state === 0) this.path.place(o.mesh, (o.s0 + o.s1) / 2, o.y0);
       }
       if (o.crack && !o.active && o.mesh.visible) { o.mesh.visible = false; }
+      if (o.core) o.core.rotation.y += dt * 2;
       o.dS = o.s0 - ps0; o.dY = o.y1 - py1;
       if ((o.move || o.echo) && o.mesh) this.path.place(o.mesh, (o.s0 + o.s1) / 2, o.y0);
     }
@@ -84,7 +87,7 @@ export class Entities {
     if (!o.active) return;
     o.active = false; o.mesh.visible = false;
     const c = this.path.world((o.s0 + o.s1) / 2, (o.y0 + o.y1) / 2, 0);
-    this.game.fx.burst(c, 0xb8a078, 40, 12, 1.2, 1.1, -20);
+    this.game.fx.burst(c, o.crack === 'song' ? 0xd070ff : 0xb8a078, 40, 12, 1.2, 1.1, -20);
     this.game.fx.burst(c, 0xffffff, 16, 8, 0.8, 0.5, 0);
     this.game.audio.play('smash'); this.game.shake(0.6);
     // debris chunks
@@ -146,8 +149,8 @@ export class Entities {
         const c = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 8), new THREE.MeshStandardMaterial({ color: 0xffd040, emissive: 0x805000 })); c.scale.y = 0.5; c.position.y = 0.65; top.add(c);
         const st = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.6, 6), new THREE.MeshStandardMaterial({ color: 0x3a8a30 })); st.position.y = 0.3; g.add(st);
       }
-      this.place(g, b.s, b.y); this.group.add(g);
-      return { ...b, g, top, squash: 0 };
+      this.place(g, b.s, b.y); this.group.add(g); if (b.finale) g.visible = false;
+      return { ...b, g, top, squash: 0, hidden: !!b.finale };
     });
   }
   // ───────── vines
@@ -272,8 +275,8 @@ export class Entities {
       const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.4, 0), glowMat(0xff70c0, 2)); g.add(core);
       const ring = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.06, 6, 24), glowMat(0xff70c0, 1.5)); g.add(ring);
       for (let i = 0; i < 5; i++) { const pt = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.7, 4), new THREE.MeshStandardMaterial({ color: 0x40a040 })); const a = i / 5 * Math.PI * 2; pt.position.set(Math.cos(a) * 0.5, Math.sin(a) * 0.5, 0); pt.rotation.z = a - Math.PI / 2; g.add(pt); }
-      this.place(g, gp.s, gp.y); this.group.add(g);
-      return { ...gp, g, ring };
+      this.place(g, gp.s, gp.y); this.group.add(g); if (gp.bondOnly) g.visible = false;
+      return { ...gp, g, ring, hidden: !!gp.bondOnly };
     });
     // updraft columns
     this.updrafts = this.level.updrafts.map((u) => {

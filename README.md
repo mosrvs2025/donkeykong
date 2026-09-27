@@ -42,6 +42,14 @@ The Rootwild → Canopy of Hands → The Weeping Ruins → The Glowdeep → Sunw
 
 Debug: `?autostart&abilities` grants all three abilities.
 
+## Round three: everything connects
+- **The finale is the surprise.** The Lumen Seed was never an object. Taking it wakes a Colossus sleeping beneath the temple. It offers Kiri its palm, and the last act is a climb up its body that uses every ability: moss climbs, song-melted blight, ghostwood, bounce spores, and dodging its other hand as it sweeps across. Companions you've met follow you and wait for you at the top.
+- **Three endings.** *The Seed Awakens*, *The World Remembers* (all abilities, 5+ echoes and 2+ bonds make all of Thornwild bloom at dawn), and *Starfall* (find everything). The ending poem is built from the echoes you found. The end screen lists cryptic hints about what's still out there.
+- **Hollowjaw** is a lantern serpent in the Glowdeep pit that can't be killed. You can bounce along its back, ram it with Grumbo, avoid it along the ceiling with Oru, or sing it to sleep three times. Once asleep, its body stays behind as a bridge and its light permanently brightens the cave.
+- **Companion bonds**: five charms, each claimable only by bringing that companion back to an earlier place. Grumbo's is behind a wall at the very start. Boing's is up the hookblooms above the ghostwood. Sola's is on the highest perch. Nuu's is sealed at the bottom of the Starwell. Oru's is on the mine ceiling. Bonds change the finale: with Boing's bond, hookblooms give a shortcut up the climb, and with Sola's, she catches you if you fall.
+- **Mastery**: Comet Leap (roll, jump, then leap) and Lumen Float (hold the song in mid-air) are undocumented. Other additions: bouncing along Hollowjaw's back, a run timer with your best time saved, and **Wisp Mode** after your first clear (start with every ability awake).
+- **Fixed**: a scale bug that made the Glowdeep render black.
+
 ## Code layout
 - `src/level.js`: the whole level as data, in route space (s = distance along the path, y = height)
 - `src/path.js`: the curved route through the 3D world
@@ -50,6 +58,7 @@ Debug: `?autostart&abilities` grants all three abilities.
 - `src/entities.js`: enemies, collectibles, interactables, the boulder chase
 - `src/world.js`: terrain, vegetation, landmarks, sky, and water
 - `src/camera.js`: the zone-based camera director and scripted shots
+- `src/encounters.js`: Hollowjaw and the Colossus finale
 - `src/magic.js`: abilities, shrines, waystones, ghostwood, echoes, trials, Mossback, hidden worlds, companion personality
 - `src/fx.js`, `src/audio.js`: particles and fully synthesized sound and music
 

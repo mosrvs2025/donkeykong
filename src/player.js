@@ -41,7 +41,7 @@ export class Player {
   mountOn(c) {
     const game = this.game;
     if (this.comp && this.comp !== c) this.dismount(false);
-    c.state = 'ridden'; this.comp = c; this.mount = c.kind; this.g = 1;
+    c.state = 'ridden'; this.comp = c; this.mount = c.kind; this.g = 1; c.hop = 1; this.squash = 0.35;
     this.applyMount();
     if (this.grounded) this.vy = 6;
     if (c.kind === 'bird') this.birdTime = 26;
@@ -86,7 +86,7 @@ export class Player {
     if (this.hitstop > 0) { this.hitstop -= dt; return; }
     this.invuln = Math.max(0, this.invuln - dt); this.rollCool -= dt; this.flipCool -= dt; this.remountCool -= dt; this.hurtT -= dt;
     this.dropThrough -= dt; this.wallT -= dt; this.tongueT -= dt;
-    if (this.state === 'dead') { this.deadT += dt; if (this.deadT > 1.1) game.respawn(); return; }
+    if (this.state === 'dead') { this.deadT += dt; if (this.deadT > 0.8) game.respawn(); return; }
     if (this.state === 'cutscene') { this.vs = approach(this.vs, 0, 20 * dt); this.move(dt); return; }
     const H = input.held;
     const dir = (H.right ? 1 : 0) - (H.left ? 1 : 0);
@@ -98,7 +98,9 @@ export class Player {
 
     const M = game.magic;
     if (input.peek('up') && M.nearWay && this.state === 'normal' && this.grounded && !this.cart) { input.consume('up'); game.openTravel(); return; }
-    if (H.up && M.has('song') && !M.nearWay && this.state === 'normal' && !this.inWater && !this.cart) { this.songHold += dt; if (this.songHold > 0.45 && !this.sang) { this.sang = true; M.sing(); } }
+    if (!H.up) this.upLock = false;
+    if (this.state === 'grip' || this.state === 'vine') this.upLock = true;
+    if (H.up && !this.upLock && M.has('song') && !M.nearWay && this.state === 'normal' && !this.inWater && !this.cart) { this.songHold += dt; if (this.songHold > 0.45 && !this.sang) { this.sang = true; M.sing(); } }
     else { this.songHold = 0; this.sang = false; }
     this.stillT = (!dir && this.grounded && Math.abs(this.vs) < 0.5 && !action) ? this.stillT + dt : 0;
     if (this.state === 'grip') return this.stepGrip(dt, dir, H);
@@ -195,13 +197,16 @@ export class Player {
       else if (this.mount === 'bird') { if (!this.grounded && !this.slamming) { this.slamming = true; vyr = -30; this.vs = this.facing * 8; game.audio.play('flap'); } }
       else if (this.mount === 'oru') {
         if (this.flipCool <= 0) {
-          const inCave = this.s > 905 + O && this.s < 1062 + O;
+          const inCave = this.s > 905 + O && this.s < 1100 + O;
           if (inCave || this.g === -1) { this.g *= -1; vyr = -vyr * 0.3 + 2; this.flipCool = 0.35; this.grounded = false; game.audio.play('flip'); game.stats.flips++; game.fx.burst(game.path.world(this.s, this.center, 0), 0xb080ff, 30, 7, 0.7, 0.6, 0); }
           else { game.toast('Oru hums… it needs ancient stone overhead to invert.', 2.5); this.flipCool = 1; }
         }
       }
     }
     this.vy = vyr * this.g;
+    // undocumented: holding the song in mid-air lets the light hold Kiri up for a breath
+    if (H.up && M.has('song') && !this.grounded && !this.mount && !this.inWater && this.vy < 0 && (this.floatT || 0) < 0.8) { this.vy = Math.max(this.vy, -2.6); this.floatT = (this.floatT || 0) + dt; if (Math.random() < dt * 30) game.fx.spawn(game.path.world(this.s, this.y + 0.2, 0), new THREE.Vector3(0, -1, 0), 0xa0f0ff, 0.35, 0.6, 0); if (!game.stats.float) { game.stats.float = true; game.hud.toast('The song holds Kiri up…', 2); } }
+    if (this.grounded) this.floatT = 0;
     if (this.mount === 'oru' && this.g === -1 && this.y > 75) { this.g = 1; }
 
     // ── integrate
@@ -266,6 +271,11 @@ export class Player {
     if (this.mount === 'beast') { vyr = 8; this.chargeT = 0.45; this.vs = this.facing * 20; game.toast('<b>Horn Comet!</b>', 1); game.shake(0.3); }
     else if (this.mount === 'frog') { vyr = 20; }
     else if (this.mount === 'fish') { vyr = 14; }
+    else if (this.rollJump) { // undocumented: leaping out of a roll-jump becomes a Comet Leap
+      const d = dir || this.facing; this.vs = d * Math.max(Math.abs(this.vs) + 3, 17.5); this.facing = d; vyr = 11.5;
+      if (!game.stats.comet) { game.stats.comet = true; game.hud.toast('<b>Comet Leap!</b> (roll, jump, leap)', 2.5); }
+      game.fx.burst(w, 0xffd070, 20, 7, 0.6, 0.6, 0);
+    }
     else if (dir) { this.vs = dir * Math.max(Math.abs(this.vs), 10.5); this.facing = dir; }
     game.audio.play('leap'); M.chainEvent();
     const f = game.path.frame(this.s);
@@ -297,7 +307,7 @@ export class Player {
     const game = this.game, E = game.entities;
     if (this.tongueT > 0) return;
     let best = null, bd = 11.5;
-    for (const gp of E.grapples) { const d = Math.hypot(gp.s - this.s, gp.y - (this.y + 1.4)); const fwd = (gp.s - this.s) * this.facing > -2; if (d < bd && d > 2.2 && fwd && gp.y > this.y - 1 && gp !== this.lastGrap) { bd = d; best = gp; } }
+    for (const gp of E.grapples) { if (gp.hidden) continue; const d = Math.hypot(gp.s - this.s, gp.y - (this.y + 1.4)); const fwd = (gp.s - this.s) * this.facing > -2; if (d < bd && d > 2.2 && fwd && gp.y > this.y - 1 && gp !== this.lastGrap) { bd = d; best = gp; } }
     game.audio.play('tongue');
     this.tongueT = 0.35;
     if (best) { this.state = 'grapple'; this.grapT = best; this.lastGrap = best; this.tongueTo = best; this.slamming = false; return; }
@@ -416,7 +426,7 @@ export class Player {
     if (this.cart) { this.cartInteract(); return; }
     // bounce plants
     for (const b of E.bouncers) {
-      if (this.g !== 1 || this.vy > 0.5 || Math.abs(b.s - this.s) > 1.3 + this.hw * 0.5) continue;
+      if (b.hidden || this.g !== 1 || this.vy > 0.5 || Math.abs(b.s - this.s) > 1.3 + this.hw * 0.5) continue;
       if (this.y < b.y - 0.05 || this.y > b.y + 1.6) continue;
       this.vy = b.power * (this.slamming ? 1.15 : 1) * (this.mount === 'frog' ? 1.15 : 1);
       this.slamming = false; this.grounded = false; this.rollT = 0; b.squash = 1; this.squash = -0.4; this.leapReady = true; game.magic.chainEvent();

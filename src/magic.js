@@ -51,14 +51,14 @@ export class Magic {
     this.path = path; this.level = level; this.scene = scene;
     this.group = new THREE.Group(); scene.add(this.group);
     this.abilities = new Set(); this.t = 0;
-    this.echoes = new Set(); this.trialsWon = new Set(); this.noticed = new Set();
+    this.echoes = new Set(); this.trialsWon = new Set(); this.noticed = new Set(); this.bonds = new Set();
     this.chain = 0; this.bestChain = 0; this.groundT = 0; this.quiet = 0;
     this.cosmetic = { scarf: false, trail: false };
     this.emotes = [];
     this.emoteTex = { '!': emoteTexture('!', '#ffd84a'), '♥': emoteTexture('♥', '#ff7a9a'), '?': emoteTexture('?', '#9fe8ff'), '♪': emoteTexture('♪', '#a0ffd0'), 'z': emoteTexture('z', '#c8d0ff'), '✦': emoteTexture('✦', '#ffe7a0') };
     this.buildShrines(); this.buildWaystones(); this.buildDoors(); this.buildGhosts(); this.buildEchoes();
     this.buildTrials(); this.buildCritters(); this.buildDawnblooms(); this.buildMossback(); this.buildFragments();
-    this.buildStarwell(); this.buildGrove(); this.buildSwarm();
+    this.buildStarwell(); this.buildGrove(); this.buildSwarm(); this.buildBonds();
   }
   has(a) { return this.abilities.has(a); }
   get awaken() { return this.abilities.size + this.game.entities.shards.filter((s) => s.taken).length + this.echoes.size * 0.5; }
@@ -326,6 +326,42 @@ export class Magic {
     for (let i = 0; i < 14; i++) { const f = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), m); f.visible = false; this.group.add(f); this.swarm.push({ f, ph: Math.random() * 6, r: 1 + Math.random() * 1.5, sp: 0.6 + Math.random() }); }
   }
 
+  // ───────────────── bond charms: each can only be claimed by riding its companion to a place from the past
+  buildBonds() {
+    const COL = { beast: 0x7aa0ff, frog: 0x60ff90, bird: 0xff7050, fish: 0x60e8ff, oru: 0xc080ff };
+    this.bondItems = this.level.bonds.map((b) => {
+      const g = new THREE.Group();
+      const charm = new THREE.Mesh(new THREE.TorusKnotGeometry(0.32, 0.1, 48, 8), new THREE.MeshStandardMaterial({ color: COL[b.kind], emissive: COL[b.kind], emissiveIntensity: 1.3, metalness: 0.4, roughness: 0.3 }));
+      charm.position.y = 1; g.add(charm);
+      const halo = new THREE.Mesh(new THREE.RingGeometry(0.6, 0.7, 32), new THREE.MeshBasicMaterial({ color: COL[b.kind], transparent: true, opacity: 0.6, side: THREE.DoubleSide })); halo.position.y = 1; g.add(halo);
+      this.place(g, b.s, b.y, 0);
+      return { ...b, g, charm, halo, taken: false, warned: false };
+    });
+  }
+  collectBond(b) {
+    const game = this.game;
+    b.taken = true; this.bonds.add(b.kind);
+    const MEM = {
+      beast: 'Grumbo nudges the charm with his horn. It smells like the den he grew up in. He leans against Kiri and does not move for a long time.',
+      frog: 'Boing swallows a firefly, then very carefully does not swallow the charm. She croaks a song that sounds almost like the Lumen motif.',
+      bird: 'Sola tucks the charm into Kiri’s scarf, fluffs up, and pretends she found it herself.',
+      fish: 'Nuu brings the charm up from the bottom of the sky, spinning with joy. For a moment the whole lake ripples in time with her.',
+      oru: 'Oru turns the charm over and over. Its rings slow down, and for the first time it hums a note Kiri can almost understand.',
+    };
+    game.hud.story(MEM[b.kind], `Bond ${this.bonds.size} / 5`);
+    game.audio.play('echo'); game.audio.motif(2, 0.6); this.quietFor = 5;
+    game.fx.burst(this.path.world(b.s, b.y + 1, 0), 0xffffff, 40, 6, 0.6, 1.4, 0);
+    game.hud.bonds(this.bonds);
+    this.celebrate();
+  }
+  rescueFromFinale() {
+    const game = this.game, p = game.player;
+    p.vy = 24; p.vs = 0; p.invuln = 1; p.leapReady = true;
+    const bird = game.entities.companions.find((c) => c.kind === 'bird');
+    if (bird) { bird.hop = 1; this.emote(p.model, '♥', 1.5); }
+    game.hud.banner('SOLA!', 'bonded friends don’t let you fall', 2.5); game.camPunch(0.6);
+    game.fx.burst(this.path.world(p.s, p.y + 1, 0), 0xff8060, 40, 9, 0.7, 1, -4);
+  }
   // ───────────────── emotes & companion personality
   emote(obj, ch, dur = 1.6) {
     let e = this.emotes.find((x) => x.obj === obj);
@@ -351,6 +387,8 @@ export class Magic {
     if (groups.size && !game.stats.ghostSeen) { game.stats.ghostSeen = true; game.hud.toast('Ghostwood! It won’t last — climb!', 3); }
     for (const d of this.doors) if (!d.open && Math.abs(d.s - p.s) < 16 && Math.abs(d.y - p.y) < 10) { d.open = true; game.audio.motif(2); game.hud.banner('THE DOOR REMEMBERS', 'a way down that was always there', 3.5); game.shake(0.3); this.emote(p.model, '!', 1.5); }
     for (const b of this.dawn) if (Math.abs(b.s - p.s) < R) b.sung = 1;
+    for (const o of game.entities.solids) if (o.crack === 'song' && o.active && Math.abs((o.s0 + o.s1) / 2 - p.s) < 9 && Math.abs((o.y0 + o.y1) / 2 - p.y) < 8) { o.broken = true; game.entities.breakSolid(o); game.hud.toast('The blight melts at the sound of the song.', 2); }
+    game.hollowjaw?.onSong(p.s, p.y + 1);
     const cp = p.comp; if (cp) { cp.hop = 1; this.emote(cp.model, '♪', 1.6); }
     for (const x of game.entities.companions) if (x.state === 'idle' && Math.abs(x.s - p.s) < R) { x.hop = 1; this.emote(x.model, '♪', 1.6); }
     // the song soothes nearby critters: snapjaws fall asleep for a moment
@@ -385,6 +423,7 @@ export class Magic {
     const game = this.game;
     tr.state = 'won'; this.trialsWon.add(tr.id);
     game.audio.motif(4); game.flash(0.5); this.celebrate();
+    game.stats.trialTimes = game.stats.trialTimes || {}; game.stats.trialTimes[tr.id] = tr.t;
     if (tr.reward === 'scarf') { this.cosmetic.scarf = true; game.hud.banner('WIND TRIAL I', 'Kiri’s scarf turns to sunlight', 4); }
     else { this.cosmetic.trail = true; game.hud.banner('WIND TRIAL II', 'stardust follows Kiri now', 4); }
     const last = tr.rings[tr.rings.length - 1];
@@ -446,6 +485,14 @@ export class Magic {
       e.mote.position.y = 2.6 + Math.sin(t * 2 + e.idx) * 0.2; e.sig.rotation.z = t * 0.5;
       if (e.floating) e.g.position.y += Math.sin(t * 1.5) * 0.004;
       if (Math.abs(e.s - p.s) < 1.3 + p.hw && e.y < p.y + p.h + 0.5 && e.y + 2.2 > p.y) this.collectEcho(e);
+    }
+    // bond charms
+    for (const b of this.bondItems) {
+      if (b.taken) { b.g.visible = false; continue; }
+      b.charm.rotation.y = t * 1.5; b.charm.rotation.x = t * 0.7; b.halo.lookAt(game.camera.position);
+      const near = Math.abs(b.s - p.s) < 1.4 + p.hw && Math.abs(b.y - p.y) < (b.kind === 'oru' ? 3.5 : 2.6);
+      if (near && p.mount === b.kind) this.collectBond(b);
+      else if (near && !b.warned) { b.warned = true; const nm = { beast: 'Grumbo', frog: 'Boing', bird: 'Sola', fish: 'Nuu', oru: 'Oru' }[b.kind]; game.hud.toast(`This charm hums with ${nm}’s memories. Bring ${nm} here.`, 3); this.emote(p.model, '?', 1.5); }
     }
     // trials look
     for (const tr of this.trials) tr.rings.forEach((r, i) => {

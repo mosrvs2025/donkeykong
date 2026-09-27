@@ -65,3 +65,22 @@ button:active{transform:translateY(3px);box-shadow:0 3px 0 #a4450f}
 .tv{font-family:inherit;font-size:18px;padding:10px 20px;border-radius:14px;border:1px solid #6fffd855;background:#0b2a24;color:#cfffee;cursor:pointer;box-shadow:none}
 .tv.sel{background:#1f5a4c;border-color:#6fffd8;color:#fff}
 .tv:disabled{opacity:.35}
+
+#bonds{display:flex;gap:4px}
+.bd{width:10px;height:10px;border-radius:50%;background:#fff2;display:block}
+.bd.on.beast{background:#7aa0ff;box-shadow:0 0 8px #7aa0ff}.bd.on.frog{background:#60ff90;box-shadow:0 0 8px #60ff90}.bd.on.bird{background:#ff7050;box-shadow:0 0 8px #ff7050}.bd.on.fish{background:#60e8ff;box-shadow:0 0 8px #60e8ff}.bd.on.oru{background:#c080ff;box-shadow:0 0 8px #c080ff}
+#hud.wisp #timer{color:#bff4ff;font-size:20px;opacity:1}
+button.alt{background:linear-gradient(#bff4ff,#5ab8e8);color:#062030;box-shadow:0 6px 0 #1a5a80,0 10px 30px #5ab8e855}
+#end{overflow-y:auto;align-items:flex-start}
+#end .title-inner{padding-block:48px}
+.poem{margin:18px auto;max-width:34ch;text-align:left}
+.pl{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:19px;color:#fff0d8;margin:6px 0;line-height:1.35}
+.pl.dim{color:#fff5;text-align:center}
+.pl.ninth{color:#bff4ff;text-align:center;margin-top:14px;font-size:22px}
+.best{font-size:14px;color:#8fffc0;letter-spacing:.2em;text-transform:uppercase;margin-left:8px}
+.dimt{opacity:.6;font-size:14px}
+.miss{margin-top:16px;padding:12px 16px;border:1px solid #ffffff22;border-radius:14px;background:#0003}
+.miss p{font-style:italic;opacity:.85;margin:4px 0;font-size:16px}
+.unlock{margin-top:14px;color:#bff4ff}
+#glim-count.bump{animation:bump .25s}
+@keyframes bump{50%{transform:scale(1.35);color:#bfffd8}}

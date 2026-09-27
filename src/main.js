@@ -12,7 +12,10 @@ import { CameraDirector } from './camera.js';
 import { FX } from './fx.js';
 import { Input } from './input.js';
 import { Audio } from './audio.js';
-import { Magic, ABILITIES } from './magic.js';
+import { Magic, ABILITIES, ECHO_LINES } from './magic.js';
+import { Hollowjaw, Finale } from './encounters.js';
+const store = { get(k) { try { return localStorage.getItem('thornwild.' + k); } catch { return null; } }, set(k, v) { try { localStorage.setItem('thornwild.' + k, v); } catch { /* storage unavailable */ } } };
+const DAWN = { top: 0x5a8ad8, hor: 0xffd0a0, fog: 0xe8c8a8, dens: 0.0032, hs: 0xfff0d0, hg: 0x5a4a30, sun: 0xffe0b0, si: 2.8, pc: 0xfff0a0, exp: 1.05, moon: 0.3, stars: 0.2 };
 
 const $ = (id) => document.getElementById(id);
 const isMobile = matchMedia('(pointer:coarse)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -21,12 +24,13 @@ const params = new URLSearchParams(location.search);
 class HUD {
   constructor(game) { this.game = game; this.toastT = 0; this.bannerT = 0; }
   hearts(n, max) { $('hearts').innerHTML = Array.from({ length: max }, (_, i) => `<div class="heart ${i < n ? '' : 'empty'}"></div>`).join(''); }
-  glims(n) { $('glim-count').textContent = n; }
+  glims(n) { const el = $('glim-count'); el.textContent = n; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   shards(list) { $('shards').innerHTML = list.map((s) => `<div class="shard ${s.star ? 'star' : ''} ${s.taken ? 'got' : ''}"></div>`).join(''); }
   mount(txt) { const el = $('mount'); if (txt) { el.innerHTML = txt; el.classList.add('on'); } else el.classList.remove('on'); }
   toast(html, dur = 3) { const el = $('toast'); el.innerHTML = html; el.classList.add('on'); this.toastT = dur; }
   banner(name, sub, dur = 3) { const el = $('banner'); el.innerHTML = `${name}${sub ? `<small>${sub}</small>` : ''}`; el.classList.add('on'); this.bannerT = dur; }
   abilities(set) { $('abilities').innerHTML = ['leap', 'song', 'grip'].map((k) => `<div class="ab ${set.has(k) ? 'on' : ''}" title="${ABILITIES[k].name}">${ABILITIES[k].icon}</div>`).join(''); }
+  bonds(set) { $('bonds').innerHTML = ['beast', 'frog', 'bird', 'fish', 'oru'].map((k) => `<i class="bd ${set.has(k) ? 'on' : ''} ${k}"></i>`).join(''); }
   echoes(n) { $('echoes').textContent = n ? `❋ ${n}/8` : ''; }
   chain(n) { const el = $('chain'); if (n >= 3) { el.textContent = `airborne ×${n}`; el.classList.add('on'); } else el.classList.remove('on'); }
   prompt(t) { const el = $('prompt'); if (t) { el.textContent = t; el.classList.add('on'); } else el.classList.remove('on'); }
@@ -86,6 +90,7 @@ class Game {
     this.entities = new Entities(this);
     this.player = new Player(this);
     this.magic = new Magic(this);
+    this.hollowjaw = new Hollowjaw(this); this.finale = new Finale(this);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
     this.checkpoint = { s: this.level.start.s, y: this.level.start.y };
@@ -109,6 +114,8 @@ class Game {
       }
     };
     $('start-btn').onclick = () => this.start();
+    if (store.get('cleared')) { const b = $('wisp-btn'); b.classList.remove('hidden'); b.onclick = () => { this.wisp = true; for (const a of ['leap', 'song', 'grip']) this.magic.abilities.add(a); this.magic.shrines.forEach((x) => x.done = true); this.hud.abilities(this.magic.abilities); this.start(); $('hud').classList.add('wisp'); }; }
+    const best = +store.get('best.normal'); if (best) $('loading').textContent += ` · best ${Math.floor(best / 60)}:${Math.floor(best % 60).toString().padStart(2, '0')}`;
     $('resume-btn').onclick = () => this.togglePause();
     this.director.update(0.016, this.player, true);
     this.ready = true; $('loading').textContent = isMobile ? 'touch controls enabled' : 'press Enter or click Play';
@@ -207,7 +214,8 @@ class Game {
     const max = p.maxHearts;
     p.cart = null; p.reset(this.checkpoint.s, this.checkpoint.y + 0.1); p.maxHearts = max; p.hearts = max; p.invuln = 1.2;
     this.hud.hearts(p.hearts, p.maxHearts); this.hud.mount(null);
-    E.resetChase(); E.resetCart(); E.resetEnemies(); this.magic.reset(); p.applyCosmetics();
+    E.resetChase(); E.resetCart(); E.resetEnemies(); this.magic.reset(); this.hollowjaw.reset(); this.finale.reset(); p.applyCosmetics();
+    this.fx.burst(this.path.world(p.s, p.y + 1, 0), 0xfff0c0, 24, 4, 0.6, 0.8, 2); p.squash = 0.4;
     this.audio.intensity = 0;
     this.director.update(0.016, p, true); this.snapTheme = true;
     $('fade').style.opacity = 0;
@@ -232,37 +240,75 @@ class Game {
   onCartEnd() { this.audio.intensity = 0.2; }
   onChaseStart() { this.audio.intensity = 1; this.audio.play('rumble'); this.banner('RUN!', 'the temple wakes'); this.shake(1); }
   onChaseEnd() { this.audio.intensity = 0.2; this.audio.play('smash'); this.shake(1.2); this.toast('Phew…', 1.5); }
-  finish() {
-    const p = this.player; p.state = 'cutscene'; if (p.comp) p.comp.state = 'ridden';
-    this.audio.motif(4); setTimeout(() => this.audio.play('win'), 3200); this.audio.intensity = 0;
-    const A = this.entities.altar;
-    const c = this.path.world(A.s, A.y + 3, 0);
-    this.director.play({ dur: 7, hold: true,
-      pos: (u) => { const a = -0.6 + u * 1.6; const f = this.path.frame(A.s); return new THREE.Vector3(c.x + (f.nx * Math.cos(a) + f.tx * Math.sin(a)) * (11 - u * 3), c.y + 1 + u * 3, c.z + (f.nz * Math.cos(a) + f.tz * Math.sin(a)) * (11 - u * 3)); },
-      look: () => c.clone() });
-    this.banner('THE LUMEN SEED', 'the old sun wakes');
-    let t = 0; const seed = A.seed;
-    const iv = setInterval(() => {
-      t += 0.05; seed.position.y = 3 + t * 1.2; seed.scale.setScalar(1 + t * 0.4);
-      this.fx.burst(this.path.world(A.s, A.y + seed.position.y, 0), [0xffe080, 0x80ffc0, 0xffffff][Math.floor(Math.random() * 3)], 4, 6, 0.8, 1.2, 0);
-      if (this.world.sunDisc) this.world.sunDisc.core.material.emissiveIntensity = 0.6 + t * 1.2;
-      if (t > 4.2) { clearInterval(iv); this.flash(1); setTimeout(() => this.showEnd(), 900); }
-    }, 50);
+  finish() { this.finale.start(); }
+  ending() {
+    if (this.endSeq) return;
+    const S = this.stats, M = this.magic, E = this.entities, p = this.player;
+    const shards = E.shards.filter((x) => x.taken && !x.star).length, star = !!E.shards.find((x) => x.star)?.taken;
+    const worlds = S.secrets.has('starwell') && S.secrets.has('grove');
+    const truth = shards === 5 && star && M.echoes.size === 8 && M.trialsWon.size === 2 && worlds && M.bonds.size === 5 && S.hollowjaw;
+    const tier = truth ? 2 : (M.abilities.size === 3 && M.echoes.size >= 5 && M.bonds.size >= 2) ? 1 : 0;
+    this.endSeq = { t: 0, tier, fired: {} };
+    p.state = 'cutscene'; if (p.comp) p.dismount(false);
+    this.audio.intensity = 0; M.quietFor = 30;
+    const c = this.finale.seedAt.clone(), f = this.path.frame(this.level.crown.s);
+    this.director.play({ dur: 14, hold: true,
+      pos: (u) => { const a = -0.7 + u * 2.2, r = 12 + u * 30; return new THREE.Vector3(c.x + (f.nx * Math.cos(a) + f.tx * Math.sin(a)) * r, c.y + 2 + u * 14, c.z + (f.nz * Math.cos(a) + f.tz * Math.sin(a)) * r); },
+      look: (u) => c.clone().add(new THREE.Vector3(0, u * 10, 0)) });
+    // everyone Kiri befriended is waiting at the top
+    let k = 0;
+    for (const cp of E.companions) if (S.met[cp.kind]) { cp.state = 'idle'; cp.s = this.level.crown.s - 8 + k * 3.5 + (k > 1 ? 4 : 0); cp.y = this.level.crown.y; cp.t = 0; cp.hop = 1; k++; }
   }
-  showEnd() {
+  runEnding(dt) {
+    const Q = this.endSeq; if (!Q) return;
+    Q.t += dt; const once = (key, fn) => { if (!Q.fired[key]) { Q.fired[key] = true; fn(); } };
+    const seed = this.finale.crownSeed, M = this.magic;
+    if (seed) { seed.position.y += dt * Math.min(3, Q.t * 0.6); seed.scale.setScalar(1 + Q.t * 0.15); if (Math.random() < dt * 30) this.fx.burst(seed.position, [0xffe080, 0x80ffc0, 0xffffff][Math.floor(Math.random() * 3)], 3, 5, 0.8, 1.4, 0); }
+    once('m', () => this.audio.motif(4));
+    if (Q.t > 1.5) once('c', () => { for (const cp of this.entities.companions) if (cp.state === 'idle') { cp.hop = 1; M.emote(cp.model, M.bonds.has(cp.kind) ? '♥' : '♪', 3); } });
+    if (Q.t > 3) once('f', () => { this.flash(0.9); this.finale.heart.material.emissiveIntensity = 6; this.finale.eyes.forEach((e) => e.material.emissiveIntensity = 5);
+      if (Q.tier >= 1) { this.dawn = true; M.dawn.forEach((b) => b.sung = 1); this.hud.banner('THE WORLD REMEMBERS', 'every flower in Thornwild opens at once', 4); }
+      else this.hud.banner('THE SEED AWAKENS', 'carried into the night by something ancient', 4); });
+    if (Q.t > 4) once('w', () => this.audio.play('win'));
+    if (Q.tier === 2) {
+      if (Q.t > 6.5) once('whale', () => { const W = M.whale.W; this.whaleFly = { t: 0 }; W.scale.setScalar(1.4); M.stars.visible = true; this.hud.banner('STARFALL', 'the starwhale rises from the lake beneath the world', 5); this.audio.motif(4, 0.8); });
+      if (this.whaleFly) { const wf = this.whaleFly; wf.t += dt; const W = M.whale.W; const s = this.level.crown.s - 120 + wf.t * 22; W.position.copy(this.path.world(s, 120 + Math.sin(wf.t * 0.5) * 10 + wf.t * 3, -110)); W.rotation.set(0, this.path.yaw(s), 0.1); M.whale.eye.material.emissiveIntensity = 3; M.stars.position.set(0, 0, 0); }
+    }
+    if (Q.t > (Q.tier === 2 ? 16 : 11)) once('end', () => this.showEnd(Q.tier));
+  }
+  showEnd(tier = 0) {
     this.state = 'end';
-    const S = this.stats, E = this.entities;
-    const shards = E.shards.filter((s) => s.taken && !s.star).length, star = E.shards.find((s) => s.star)?.taken;
-    const mins = Math.floor(S.time / 60), secs = Math.floor(S.time % 60).toString().padStart(2, '0');
-    const met = Object.keys(S.met).length;
-    $('end-inner').innerHTML = `<div class="kicker">the adventure ends… for now</div><h1 style="font-size:clamp(32px,7vw,64px);white-space:normal">THE SEED AWAKENS</h1>
-      <p class="lore">Kiri carries the Lumen Seed into the light. Somewhere below, the Colossus opens its other eye.</p>
-      <p class="big">${S.glims} / ${E.totalGlims} glims</p>
-      <p>Sun Shards: <b>${shards} / 5</b> ${star ? ' · <b style="color:#d0a0ff">Star Heart ✦</b>' : ''}</p>
-      <p>Secrets found: <b>${S.secrets.size} / ${SECRETS.length}</b> · Companions met: <b>${met} / 5</b></p>
-      <p>Echoes: <b>${this.magic.echoes.size} / 8</b> · Abilities: <b>${this.magic.abilities.size} / 3</b> · Wind Trials: <b>${this.magic.trialsWon.size} / 2</b></p>
-      <p>Longest airborne chain: ${this.magic.bestChain} · Critters bopped: ${S.enemies} · Falls: ${S.deaths} · Time: ${mins}:${secs}</p>
-      <div style="margin-top:22px"><button onclick="location.reload()">Play again</button></div>`;
+    const S = this.stats, E = this.entities, M = this.magic;
+    const shards = E.shards.filter((x) => x.taken && !x.star).length, star = E.shards.find((x) => x.star)?.taken;
+    const fmt = (t) => `${Math.floor(t / 60)}:${Math.floor(t % 60).toString().padStart(2, '0')}`;
+    const mode = this.wisp ? 'wisp' : 'normal';
+    const prev = +store.get('best.' + mode) || 0; const isBest = !prev || S.time < prev;
+    if (isBest) store.set('best.' + mode, S.time.toFixed(1));
+    const firstClear = !store.get('cleared'); store.set('cleared', '1');
+    if (tier === 2) store.set('starfall', '1');
+    const titles = [['THE SEED AWAKENS', 'The Colossus carries the Lumen Seed into the night. Thornwild turns over in its sleep.'],
+      ['THE WORLD REMEMBERS', 'Thornwild wakes all at once, like a held breath let go. The Sunwright faces open their eyes.'],
+      ['STARFALL', 'The starwhale rises from the lake beneath the world and swims into the sky. Somewhere, very far away, someone says Kiri\u2019s name.']][tier];
+    const poem = ECHO_LINES.map((l, i) => M.echoes.has(i) ? `<p class="pl">${l}</p>` : '<p class="pl dim">· · ·</p>').join('') + (tier === 2 ? '<p class="pl ninth">You were never a visitor to Thornwild. Welcome home, little lantern.</p>' : '');
+    const miss = [];
+    if (!S.secrets.has('starwell')) miss.push('A door at the very beginning still hums a melody.');
+    if (!S.mossback) miss.push('Something sleeps at the bottom of the first chasm.');
+    if (!S.hollowjaw) miss.push('Hollowjaw still hunts in the dark. It is only tired.');
+    if (!S.secrets.has('grove')) miss.push('Ghosts of branches wait above the canopy.');
+    const bm = { beast: 'Grumbo remembers a wall near where you woke.', frog: 'Boing keeps staring above the ghostwood.', bird: 'Sola\u2019s favorite perch is higher than it looks.', fish: 'Nuu wants to see the bottom of the sky.', oru: 'Oru hums at ceilings you never looked at.' };
+    for (const k in bm) if (!M.bonds.has(k)) miss.push(bm[k]);
+    if (M.trialsWon.size < 2) miss.push('The wind still has rings to give.');
+    if (M.echoes.size < 8) miss.push(`${8 - M.echoes.size} echoes are still whispering.`);
+    if (tier < 2 && !miss.length) miss.push('You found everything… so why hasn\u2019t the lake beneath the world stirred? Look at your Sun Shards.');
+    $('end-inner').innerHTML = `<div class="kicker">${this.wisp ? 'wisp mode · ' : ''}ending ${tier + 1} of 3</div><h1 style="font-size:clamp(32px,7vw,64px);white-space:normal">${titles[0]}</h1>
+      <p class="lore">${titles[1]}</p>
+      <div class="poem">${poem}</div>
+      <p class="big">${fmt(S.time)} ${isBest ? '<span class="best">new best</span>' : `<span class="dimt">best ${fmt(prev)}</span>`}</p>
+      <p>${S.glims}/${E.totalGlims} glims · Sun Shards ${shards}/5${star ? ' ✦' : ''} · Echoes ${M.echoes.size}/8 · Bonds ${M.bonds.size}/5 · Trials ${M.trialsWon.size}/2 · Secrets ${S.secrets.size}/${SECRETS.length}</p>
+      <p class="dimt">longest airborne chain ${M.bestChain} · falls ${S.deaths}</p>
+      ${miss.length ? `<div class="miss"><div class="kicker">still out there</div>${miss.slice(0, 4).map((m) => `<p>${m}</p>`).join('')}</div>` : ''}
+      ${firstClear ? '<p class="unlock">Wisp Mode unlocked: begin again with every ability awake, and find the routes you couldn\u2019t before.</p>' : ''}
+      <div style="margin-top:18px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap"><button onclick="location.reload()">Play again</button></div>`;
     $('end').classList.remove('hidden'); $('banner').classList.remove('on'); $('toast').classList.remove('on'); $('hud').classList.add('hidden'); $('touch').classList.add('hidden');
   }
   // ───────────── theme blending
@@ -289,6 +335,10 @@ class Game {
     let T = THEMES[t];
     if (sky) T = { ...T, fog: 0xa8c8e8, dens: 0.004, exp: 0.85, top: 0x3a80e0, hor: 0xd8e8ff };
     if (t === 3 && p.y > 12.5) T = { ...T, fog: 0x1a0a30, dens: 0.012, hs: 0x9070ff, si: 0.6 };
+    else if (t === 3 && this.stats.hollowjaw) T = { ...T, fog: 0x0a1a20, dens: 0.02, hs: 0x60c0b0, si: 0.55, exp: 1.4 };
+    const wk = Math.min(1, this.magic.awaken / 10);
+    if (t <= 2 && wk > 0) T = { ...T, exp: T.exp + wk * 0.08, si: T.si * (1 + wk * 0.15) };
+    if (this.dawn) T = DAWN;
     this.applyTheme(T, this.snapTheme ? 1 : 1 - Math.exp(-dt * 1.2)); this.snapTheme = false;
     this.audio.theme = t; this.audio.wake = this.magic.awaken;
     // sun & shadow camera follow the player
@@ -323,7 +373,7 @@ class Game {
     const h = 1 / 120;
     for (let i = 0; i < secs * 120; i++) {
       this.input.update();
-      this.entities.update(h); this.magic.step(h); this.player.step(h, this.input); this.player.tick(h); this.player.interact(h);
+      this.entities.update(h); this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.player.step(h, this.input); this.player.tick(h); this.player.interact(h);
       if (i === 0) this.input.endFrame();
     }
     const p = this.player; return { s: +(p.s - O).toFixed(2), y: +p.y.toFixed(2), vs: +p.vs.toFixed(2), vy: +p.vy.toFixed(2), st: p.state, g: p.grounded, mount: p.mount, cart: !!p.cart, glims: this.stats.glims, hearts: p.hearts, deaths: this.stats.deaths, water: p.inWater };
@@ -345,7 +395,7 @@ class Game {
       let n = 0;
       while (this.acc >= h && n < 8) {
         this.entities.update(h);
-        this.magic.step(h);
+        this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h);
         this.player.step(h, this.input);
         this.player.tick(h);
         this.player.interact(h);
@@ -358,7 +408,7 @@ class Game {
       this.player.idleT = 0;
     } else this.entities.update(dt);
     this.player.render(dt);
-    this.magic.update(dt);
+    this.magic.update(dt); this.hollowjaw.update(dt, this.time); this.finale.update(dt, this.time); this.runEnding(dt);
     this.world.update(this.time, dt);
     this.updateAtmosphere(dt);
     this.director.update(dt, this.player);

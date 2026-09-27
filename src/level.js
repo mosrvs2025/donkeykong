@@ -13,7 +13,7 @@ export function buildLevel() {
     solids: [], slopes: [], water: [], vines: [], bouncers: [], glims: [], shards: [], cages: [], enemies: [],
     grapples: [], updrafts: [], checkpoints: [], portals: [], blooms: [], totems: [], carts: [], chases: [],
     altar: null, cams: [], themes: [], banners: [], signs: [], hints: [],
-    shrines: [], waystones: [], doors: [], echoes: [], trials: [], critters: [], blooms2: [], mossback: null, notices: [],
+    shrines: [], waystones: [], doors: [], echoes: [], trials: [], critters: [], blooms2: [], mossback: null, notices: [], bonds: [], finaleBlights: [],
   };
   let id = 0;
   const solid = (s0, s1, y0, y1, mat = 'stone', extra = {}) => { const o = { id: id++, s0: s0 + O, s1: s1 + O, y0, y1, mat, ...extra }; L.solids.push(o); return o; };
@@ -342,6 +342,70 @@ export function buildLevel() {
   line(290, 300, 301.5, 301.5, 5); arc(326, 339, 306, 3, 6);
   cam(270, 370, { dist: 20, height: 3.5, fov: 52, yMin: 250, yMax: 360 });
   // Trial echo glyphs appear when trials are won (idx 3 & 6), placed by the trial system
+
+  // ═════════════════════ ROUND THREE: bonds, Hollowjaw, and the Colossus ═════════════════════
+  const bond = (s, y, kind) => L.bonds.push({ s: s + O, y, kind });
+  // Grumbo's bond: a cracked wall just behind where Kiri wakes up
+  solid(-24, -22.6, 0, 3.2, 'stone', { crack: 'beast' });
+  solid(-46, -22.6, 3.2, 4.4, 'stone');
+  solid(-47.4, -46, 0, 3.2, 'stone');
+  line(-6, -20, 1, 1, 5);
+  bond(-36, 0, 'beast');
+  notice(-20, 1, 'beast', 'Grumbo snorts at the wall behind where Kiri woke. He remembers something.');
+  // Boing's bond: hookblooms above the ghostwood, only a tongue can reach the perch
+  grapple(317, 26); grapple(322, 34.5);
+  oneway(328, 338, 41, 'leaf');
+  bond(333, 41, 'frog');
+  notice(316, 30, 'frog', 'Boing’s throat puffs. Hookblooms, high above the ghostwood!');
+  // Sola's bond: the cloud perch above the bird gap
+  bond(472, 39, 'bird');
+  // Nuu's bond: sealed at the bottom of the Starwell lake
+  solid(99, 100.5, -172, -165, 'glyph', { crack: 'swim' });
+  solid(100.5, 113, -165, -164, 'glyph');
+  solid(113, 114.5, -172, -165, 'glyph');
+  bond(107, -172, 'fish');
+  notice(95, -160, 'fish', 'Nuu dives and circles — there is a seal on the lakebed.');
+  // Oru's bond: on the mine ceiling, where no one looks
+  bond(1086, 6.4, 'oru');
+  notice(1070, 0, 'oru', 'Oru hums at the mine ceiling.');
+  // Hollowjaw lives in the Glowdeep pit
+  L.hollowjaw = { s0: 958 + O, s1: 1014 + O, base: -26, peak: 6, period: 5.2 };
+  cam(955, 1016, { dist: 19, height: 2, fov: 56, yMax: 12 });
+
+  // ───────────────────── FINALE: the Colossus climb (appears when the Seed is taken) ─────────────────────
+  const F = { finale: true };
+  const fplat = (s0, s1, y, mat = 'colossus', th = 1.2) => solid(s0, s1, y - th, y, mat, F);
+  const fone = (s0, s1, y) => solid(s0, s1, y - 0.5, y, 'colossus', { ...F, oneway: true });
+  const fmoss = (s0, s1, y0, y1) => solid(s0, s1, y0, y1, 'moss', { ...F, moss: true });
+  const blight = (s0, s1, y0, y1) => { const b = solid(s0, s1, y0, y1, 'blight', { ...F, crack: 'song' }); L.finaleBlights.push(b); };
+  L.palm = { s: 1547 + O, y: -16.4, toY: 14, half: 5 };
+  // the forearm
+  fmoss(1553, 1555, 14, 30);
+  fplat(1555, 1575, 30);
+  blight(1561, 1563, 30, 38);
+  bouncer(1572, 30, 25, 'shroom'); L.bouncers[L.bouncers.length - 1].finale = true;
+  fone(1558, 1568, 39.5);
+  // ghostwood to the shoulder
+  solid(1548, 1557, 39.9, 40.5, 'ghost', { ghost: 'g2', finale: true });
+  fplat(1538, 1548, 40.5);
+  fmoss(1536, 1538, 40.5, 58);
+  fplat(1522, 1538, 58);
+  blight(1528, 1530, 58, 65);
+  // the swinging hand sweeps across the shoulder lane (y 58–61)
+  L.hand = { s0: 1490 + O, s1: 1545 + O, y: 58, period: 6.5 };
+  fplat(1514, 1520, 61.3); fone(1523, 1529, 64.6); fone(1514, 1520, 67.9);
+  fplat(1526, 1548, 71);
+  // the face
+  fmoss(1548, 1550, 71, 90);
+  fplat(1550, 1566, 90);
+  blight(1556, 1558, 90, 97);
+  bouncer(1563, 90, 32, 'shroom'); L.bouncers[L.bouncers.length - 1].finale = true;
+  fplat(1536, 1560, 104, 'colossus', 2);
+  L.crown = { s: 1548 + O, y: 104 };
+  L.finaleCps = [[1548, 14], [1563, 39.5], [1530, 58.1], [1538, 71], [1553, 90]].map(([a, b]) => ({ s: a + O, y: b }));
+  // Boing's gift: hookblooms that skip the shoulder (only if Kiri and Boing are bonded)
+  L.grapples.push({ s: 1553 + O, y: 48, bondOnly: 'frog' }, { s: 1545 + O, y: 57, bondOnly: 'frog' }, { s: 1537 + O, y: 66, bondOnly: 'frog' });
+  cam(1500, 1580, { dist: 26, height: 3, fov: 55, yMin: 5, yMax: 130 });
 
   L.start = { s: 4 + O, y: 0 };
   L.endS = 1560 + O;

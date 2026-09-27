@@ -19,7 +19,7 @@ const MAT_DEF = {
   ruin: { top: 'ruin', side: 'ruin' }, cliff: { top: 'grass', side: 'cliff' }, sand: { top: 'sand', side: 'sand' },
   cave: { top: 'cave', side: 'cave' }, mine: { top: 'mine', side: 'mine' }, temple: { top: 'temple', side: 'temple' },
   glyph: { top: 'glyph', side: 'glyph', emissive: 0x0a3a38 }, crystal: { top: 'crystal', side: 'crystal', emissive: 0x3a1a70 },
-  moss: { top: 'grass', side: 'mossw', emissive: 0x0a2a12 }, cloud: { top: 'cloud', side: 'cloud', emissive: 0x10141c }, rail: { top: 'rail', side: 'rail' },
+  colossus: { top: 'colossus', side: 'colossus', emissive: 0x100c04 }, blight: { top: 'blight', side: 'blight', emissive: 0x2a0838 }, moss: { top: 'grass', side: 'mossw', emissive: 0x0a2a12 }, cloud: { top: 'cloud', side: 'cloud', emissive: 0x10141c }, rail: { top: 'rail', side: 'rail' },
 };
 const matCache = {};
 export function surfMat(texName, emissive) {
@@ -166,7 +166,7 @@ export class World {
   buildSolids() {
     const sb = new StripBuilder(this.path);
     for (const o of this.level.solids) {
-      if (o.move || o.collapse || o.crack || o.echo || o.ghost) continue;
+      if (o.move || o.collapse || o.crack || o.echo || o.ghost || o.finale) continue;
       const deep = o.ground || o.y1 - o.y0 > 6;
       const d0 = deep ? -5 : -2.4, d1 = deep ? 3.6 : 2.4;
       const yb = Math.max(o.y0, o.y1 - 60);
@@ -260,7 +260,7 @@ export class World {
     const r = rand(42), L = this.path.length, q = this.q;
     const trunks = [], blobs = [], ferns = [], rocks = [], shrooms = [], crystals = [], grass = [], stal = [], hang = [], palms = [];
     const V = (s, y, d) => this.path.world(s, y, d);
-    const S = (x, y, z) => new THREE.Vector3(x, y, z ?? x);
+    const S = (x, y, z) => new THREE.Vector3(x, y ?? x, z ?? x);
     const col = new THREE.Color();
     for (let s = -60; s < L; s += 1.3 / q) {
       const th = this.themeAt(s), base = this.baseAt(s), gnd = this.groundAt(s);
@@ -324,12 +324,10 @@ export class World {
     this.inst(hangGeo, swayMat(new THREE.MeshStandardMaterial({ color: 0x2f5a20 }), 0.0), hang);
     // glowing things
     const shroomGeo = new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2); shroomGeo.scale(1, 0.6, 1); shroomGeo.translate(0, 1, 0);
-    const sm = this.inst(shroomGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.5 }), shrooms);
-    if (sm) { sm.material.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance *= vColor.rgb;'); }; }
+    this.inst(shroomGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }), shrooms);
     const stem = new THREE.CylinderGeometry(0.15, 0.2, 1, 5); stem.translate(0, 0.5, 0);
     this.inst(stem, new THREE.MeshStandardMaterial({ color: 0xd8d0c0 }), shrooms);
-    const cm = this.inst(new THREE.OctahedronGeometry(0.6, 0).scale(1, 1.5, 1), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.7, roughness: 0.2, metalness: 0.1, flatShading: true }), crystals);
-    if (cm) { cm.material.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance *= vColor.rgb;'); }; }
+    this.inst(new THREE.OctahedronGeometry(0.6, 0).scale(1, 1.5, 1), new THREE.MeshBasicMaterial({ color: 0xffffff }), crystals);
     const stalGeo = new THREE.ConeGeometry(0.5, 1, 6); stalGeo.translate(0, 0.5, 0);
     this.inst(stalGeo, new THREE.MeshStandardMaterial({ map: getTex('cave'), roughness: 1 }), stal);
   }
