@@ -434,7 +434,7 @@ export class Player {
       game.audio.play('bounce'); game.fx.burst(P.world(b.s, b.y + 1, 0), b.kind === 'shroom' ? 0x60d0ff : 0xff80b0, 16, 6, 0.6, 0.6, -6);
     }
     // vines
-    if (!this.mount && this.state === 'normal' && !this.grounded) {
+    if (!this.mount && this.state === 'normal' && !this.grounded && this.airT > 0.12) {
       const cy = this.y + this.h * 0.7;
       for (const v of E.vines) {
         if (v.cool > 0 || Math.abs(v.s - this.s) > v.len + 2) continue;

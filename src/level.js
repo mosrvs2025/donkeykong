@@ -285,7 +285,7 @@ export function buildLevel() {
   echo(112, 22, 0);
   line(104, 118, 23.5, 23.5, 5);
   // The sleeping Mossback lies at the bottom of the vine chasm
-  L.mossback = { s: 234 + O, y: -7.2, toS: 251 + O, toY: 2.4, half: 6.5 };
+  L.mossback = { s: 234 + O, y: -7.2, toS: 251 + O, toY: 1.0, half: 6.5 };
   line(226, 231, -1, -5, 4);
   // Ghostwood: faint outlines above the canopy — only the Lumen Song makes them real
   ghost(297, 303, 19.9, 'g1'); ghost(306, 312, 23.2, 'g1'); ghost(297, 303, 26.5, 'g1'); ghost(306, 312, 29.8, 'g1');
