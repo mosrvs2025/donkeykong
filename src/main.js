@@ -117,6 +117,7 @@ class Game {
     if (store.get('cleared')) { const b = $('wisp-btn'); b.classList.remove('hidden'); b.onclick = () => { this.wisp = true; for (const a of ['leap', 'song', 'grip']) this.magic.abilities.add(a); this.magic.shrines.forEach((x) => x.done = true); this.hud.abilities(this.magic.abilities); this.start(); $('hud').classList.add('wisp'); }; }
     const best = +store.get('best.normal'); if (best) $('loading').textContent += ` · best ${Math.floor(best / 60)}:${Math.floor(best % 60).toString().padStart(2, '0')}`;
     $('resume-btn').onclick = () => this.togglePause();
+    this.resize();
     this.director.update(0.016, this.player, true);
     this.ready = true; $('loading').textContent = isMobile ? 'touch controls enabled' : 'press Enter or click Play';
     this.last = performance.now();
@@ -127,7 +128,11 @@ class Game {
     if (params.has('autostart')) this.start(true);
   }
   resize() {
-    this.camera.aspect = innerWidth / innerHeight; this.camera.updateProjectionMatrix();
+    this.camera.aspect = innerWidth / innerHeight;
+    // in portrait with touch controls, frame Kiri in the upper part of the screen, above the thumbs
+    if (this.input.isTouch && innerHeight > innerWidth) this.camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.1, innerWidth, innerHeight);
+    else this.camera.clearViewOffset();
+    this.camera.updateProjectionMatrix();
     this.renderer.setSize(innerWidth, innerHeight); this.composer.setSize(innerWidth, innerHeight);
   }
   start(skipIntro) {

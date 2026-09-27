@@ -29,10 +29,17 @@ export class CameraDirector {
     const hasLY = z.lookY !== undefined && z.lookY !== null;
     this.p.lookYw += ((hasLY ? 1 : 0) - this.p.lookYw) * k; if (hasLY) this.p.lookYv = z.lookY;
     // lead in the direction of motion
-    const targetLead = pl.facing * this.p.look + pl.vs * 0.22;
+    // narrow screens (phones in portrait, cover screens): pull back and shorten the lead so Kiri stays in view
+    const aspect = this.cam.aspect;
+    this.narrow = Math.min(1.7, Math.max(1, 1.3 / aspect));
+    const leadK = Math.min(1, aspect / 1.5);
+    let targetLead = (pl.facing * this.p.look + pl.vs * 0.22) * leadK;
+    const halfW = this.p.dist * this.narrow * Math.tan(this.p.fov * Math.PI / 360) * aspect;
+    targetLead = Math.max(-halfW * 0.3, Math.min(halfW * 0.3, targetLead));
     this.lead += (targetLead - this.lead) * (1 - Math.exp(-dt * 2.2));
     const ts = pl.s + this.lead;
     this.fs = snap ? ts : this.fs + (ts - this.fs) * (1 - Math.exp(-dt * 6));
+    if (Math.abs(this.fs - ts) > halfW * 0.25) this.fs = ts + Math.sign(this.fs - ts) * halfW * 0.25;
     // vertical: soft follow, quicker when falling far below
     const ty = pl.y + (pl.g === -1 ? pl.h - 1 : 1.2);
     const dy = ty - this.fy;
@@ -41,7 +48,7 @@ export class CameraDirector {
     // pull back during long airtime (big jumps, bounce plants, gliding)
     this.air += ((!pl.grounded && pl.state === 'normal' && !pl.inWater ? Math.min(1, Math.max(0, (pl.airT - 0.4))) : 0) - this.air) * (1 - Math.exp(-dt * 2));
     this.punch = Math.max(0, this.punch - dt);
-    const dist = this.p.dist + this.air * 5 - Math.sin(Math.min(1, this.punch) * Math.PI) * this.p.dist * 0.35;
+    const dist = (this.p.dist + this.air * 5 - Math.sin(Math.min(1, this.punch) * Math.PI) * this.p.dist * 0.35) * this.narrow;
     const f = this.path.frame(this.fs);
     const cy = Math.cos(this.p.yaw), sy = Math.sin(this.p.yaw);
     const dx = f.nx * cy + f.tx * sy, dz = f.nz * cy + f.tz * sy;

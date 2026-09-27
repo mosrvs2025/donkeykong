@@ -36,16 +36,32 @@ button:active{transform:translateY(3px);box-shadow:0 3px 0 #a4450f}
 #end-inner p{margin:6px 0;font-size:18px}
 #end-inner .big{font-size:28px;color:#ffd46a}
 #touch{position:fixed;inset:0;pointer-events:none;z-index:5}
-.tbtn{position:absolute;pointer-events:auto;width:76px;height:76px;border-radius:50%;background:#ffffff22;border:2px solid #ffffff44;display:flex;align-items:center;justify-content:center;font-size:30px;backdrop-filter:blur(3px)}
+.tbtn{position:absolute;pointer-events:auto;width:var(--b);height:var(--b);border-radius:50%;background:#ffffff22;border:2px solid #ffffff44;display:flex;align-items:center;justify-content:center;font-size:30px;backdrop-filter:blur(3px)}
 .tbtn.on{background:#ffffff55}
-.tbtn.small{width:56px;height:56px;font-size:22px}
-.tbtn.big{width:96px;height:96px;font-size:38px}
-#t-left{left:18px;bottom:calc(28px + env(safe-area-inset-bottom))}
-#t-right{left:108px;bottom:calc(28px + env(safe-area-inset-bottom))}
-#t-down{left:78px;bottom:calc(112px + env(safe-area-inset-bottom))}
-#t-up{left:78px;bottom:calc(178px + env(safe-area-inset-bottom))}
-#t-jump{right:22px;bottom:calc(30px + env(safe-area-inset-bottom))}
-#t-act{right:130px;bottom:calc(40px + env(safe-area-inset-bottom))}
+#touch{--b:clamp(46px,17vmin,76px);--s:calc(var(--b)*.74);--g:clamp(8px,2.5vmin,18px);--bb:calc(var(--g) + env(safe-area-inset-bottom))}
+.tbtn{font-size:calc(var(--b)*.4)}
+.tbtn.small{width:var(--s);height:var(--s);font-size:calc(var(--s)*.4)}
+.tbtn.big{width:calc(var(--b)*1.25);height:calc(var(--b)*1.25);font-size:calc(var(--b)*.5)}
+#t-left{left:var(--g);bottom:var(--bb)}
+#t-right{left:calc(var(--g)*2 + var(--b));bottom:var(--bb)}
+#t-down{left:calc(var(--g)*1.5 + var(--b)*.63);bottom:calc(var(--bb) + var(--b) + var(--g))}
+#t-up{left:calc(var(--g)*1.5 + var(--b)*.63);bottom:calc(var(--bb) + var(--b) + var(--s) + var(--g)*2)}
+#t-jump{right:var(--g);bottom:var(--bb)}
+#t-act{right:calc(var(--g)*2 + var(--b)*1.25);bottom:calc(var(--bb) + var(--b)*.15)}
+/* short landscape screens: up/down go beside the arrows instead of stacking above them */
+@media (max-height:420px) and (orientation:landscape){
+  #t-down{left:calc(var(--g)*3 + var(--b)*2);bottom:var(--bb)}
+  #t-up{left:calc(var(--g)*3 + var(--b)*2);bottom:calc(var(--bb) + var(--s) + var(--g))}
+}
+@media (max-width:480px){
+  #hud{gap:8px;font-size:16px;flex-wrap:wrap;padding-left:10px;padding-right:10px}
+  .heart{transform:scale(.8);margin:-2px}
+  .ab{width:20px;height:20px;font-size:12px}
+  #mount small{display:none}
+  #banner{font-size:clamp(22px,9vw,40px)}
+  #toast{font-size:14px;bottom:auto;top:18%}
+  #story p{font-size:20px}
+}
 
 #abilities{display:flex;gap:6px}
 .ab{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;background:#0005;color:#fff3;border:1px solid #fff2}
