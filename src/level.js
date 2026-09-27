@@ -1,0 +1,264 @@
+// Level layout for "The Lumen Seed". All gameplay coordinates are (s, y):
+// s = distance along the route, y = height. Everything here is data; world.js renders it.
+export const PATH_POINTS = [
+  [-80, 0], [0, 0], [80, -6], [150, 12], [215, -18], [262, -80], [300, -140], [370, -168], [440, -150], [505, -175],
+  [548, -240], [600, -292], [680, -305], [752, -272], [805, -212], [868, -180], [945, -196], [1015, -240], [1065, -305],
+  [1135, -350], [1215, -342], [1280, -300], [1335, -240], [1410, -210], [1490, -226], [1560, -270], [1620, -330], [1660, -400],
+];
+
+export const O = 80; // path offset so level s=0 sits at the second control point
+
+export function buildLevel() {
+  const L = {
+    solids: [], slopes: [], water: [], vines: [], bouncers: [], glims: [], shards: [], cages: [], enemies: [],
+    grapples: [], updrafts: [], checkpoints: [], portals: [], blooms: [], totems: [], carts: [], chases: [],
+    altar: null, cams: [], themes: [], banners: [], signs: [], hints: [],
+  };
+  let id = 0;
+  const solid = (s0, s1, y0, y1, mat = 'stone', extra = {}) => { const o = { id: id++, s0: s0 + O, s1: s1 + O, y0, y1, mat, ...extra }; L.solids.push(o); return o; };
+  const ground = (s0, s1, y, mat = 'grass') => solid(s0, s1, y - 40, y, mat, { ground: true });
+  const plat = (s0, s1, y, mat = 'wood', th = 1, extra = {}) => solid(s0, s1, y - th, y, mat, extra);
+  const oneway = (s0, s1, y, mat = 'leaf') => solid(s0, s1, y - 0.5, y, mat, { oneway: true });
+  const mplat = (s0, s1, y, ds, dy, period, mat = 'ruin', phase = 0) => solid(s0, s1, y - 0.8, y, mat, { move: { ds, dy, period, phase } });
+  const collapse = (s0, s1, y, n, mat = 'plank') => { const w = (s1 - s0) / n; for (let i = 0; i < n; i++) solid(s0 + i * w + 0.08, s0 + (i + 1) * w - 0.08, y - 0.45, y, mat, { collapse: true }); };
+  const slope = (s0, s1, ya, yb, mat = 'grass', extra = {}) => L.slopes.push({ s0: s0 + O, s1: s1 + O, ya, yb, mat, ...extra });
+  const water = (s0, s1, y0, y1) => L.water.push({ s0: s0 + O, s1: s1 + O, y0, y1 });
+  const vine = (s, y, len) => L.vines.push({ s: s + O, y, len });
+  const bouncer = (s, y, power = 24, kind = 'flower') => L.bouncers.push({ s: s + O, y, power, kind });
+  const glim = (s, y) => L.glims.push({ s: s + O, y });
+  const line = (s0, s1, y0, y1, n) => { for (let i = 0; i < n; i++) { const t = n === 1 ? 0.5 : i / (n - 1); glim(s0 + (s1 - s0) * t, y0 + (y1 - y0) * t); } };
+  const arc = (s0, s1, y, h, n) => { for (let i = 0; i < n; i++) { const t = i / (n - 1); glim(s0 + (s1 - s0) * t, y + Math.sin(t * Math.PI) * h); } };
+  const ring = (s, y, r, n) => { for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; glim(s + Math.cos(a) * r, y + Math.sin(a) * r); } };
+  const shard = (s, y, idx, star = false) => L.shards.push({ s: s + O, y, idx, star });
+  const cage = (kind, s, y) => L.cages.push({ kind, s: s + O, y });
+  const enemy = (kind, s, y, range = 6, extra = {}) => L.enemies.push({ kind, s: s + O, y, range, ...extra });
+  const grapple = (s, y) => L.grapples.push({ s: s + O, y });
+  const updraft = (s0, s1, y0, y1) => L.updrafts.push({ s0: s0 + O, s1: s1 + O, y0, y1 });
+  const checkpoint = (s, y) => L.checkpoints.push({ s: s + O, y });
+  const portal = (s, y, ts, ty, kind) => L.portals.push({ s: s + O, y, ts: ts + O, ty, kind });
+  const cam = (s0, s1, o) => L.cams.push({ s0: s0 + O, s1: s1 + O, ...o });
+  const theme = (s0, t, name, sub) => { L.themes.push({ s: s0 + O, t }); if (name) L.banners.push({ s: s0 + O, name, sub }); };
+  const hint = (s0, s1, text, cond) => L.hints.push({ s0: s0 + O, s1: s1 + O, text, cond });
+
+  // ───────────────────── A. THE ROOTWILD (jungle floor) ─────────────────────
+  theme(-80, 0, 'The Rootwild', 'where the old roads sleep');
+  cam(-40, 24, { dist: 24, height: 7, yaw: -0.28, fov: 48, look: 6 });
+  ground(-60, 40, 0);
+  hint(2, 18, 'Hold <b>Space</b> longer to jump higher', 'jump');
+  line(10, 30, 1.2, 1.2, 6);
+  ground(40, 70, 1.6);
+  enemy('snapjaw', 56, 1.6, 8);
+  hint(40, 60, 'Bounce on critters — or <b>Shift</b> to roll through them');
+  ground(76, 225, 0);
+  arc(69, 77, 2.2, 3, 5);
+  bouncer(90, 0, 24);
+  oneway(86, 100, 8);
+  line(88, 98, 9, 9, 5);
+  enemy('snapjaw', 106, 0, 7);
+  enemy('spikeback', 118, 0, 5);
+  hint(112, 124, 'Spikebacks can\'t be stomped. Jump over!');
+  cage('beast', 132, 0);
+  // Hollow mesa: cracked wall hides a relic room (needs the Horned Beast)
+  solid(160, 190, 2.4, 3.3, 'stone');
+  solid(160, 161.4, 0, 2.4, 'stone', { crack: 'beast' });
+  solid(188.6, 190, 0, 2.4, 'stone');
+  line(154, 159, 1, 1, 3);
+  line(163, 176, 1.1, 1.1, 7);
+  shard(182, 1.3, 0);
+  line(165, 185, 4.6, 4.6, 6);
+  checkpoint(196, 0);
+  enemy('buzzmoth', 206, 3.2, 3);
+  enemy('snapjaw', 214, 0, 6);
+  // vine swing over the first chasm
+  vine(233, 10.5, 7.4); vine(244, 11, 7.4); vine(255, 10.5, 7.4);
+  hint(222, 234, 'Jump into vines to grab · press Space to let go');
+  arc(226, 238, 5.5, 2.5, 5); arc(238, 249, 5.5, 2.5, 5); arc(249, 260, 5.5, 2.5, 5);
+  solid(260, 300, -40, 3, 'bark');
+  // climb the great tree
+  cam(255, 305, { dist: 19, height: 6, fov: 52 });
+  bouncer(272, 3, 26);
+  oneway(277, 286, 5.8); oneway(288, 296, 8.5); oneway(277, 286, 11.2); oneway(288, 296, 13.9);
+  line(272, 272, 6, 6, 1); line(272, 272, 9, 9, 1); glim(282, 12.4); glim(292, 15);
+
+  // ───────────────────── B. CANOPY OF HANDS ─────────────────────
+  theme(262, 1, 'Canopy of Hands', 'a thousand-year-old grove');
+  cam(305, 440, { dist: 19, height: 2.5, fov: 50 });
+  plat(296, 322, 16.6, 'bark', 1.4);
+  enemy('snapjaw', 312, 16.6, 7);
+  collapse(322, 344, 16.6, 9);
+  line(324, 342, 18, 18, 7);
+  hint(320, 330, 'The bridge won\'t hold. Keep moving!');
+  plat(344, 374, 16.6, 'bark', 1.4);
+  cage('frog', 356, 16.6);
+  // secret high route: frog tongue grapples up to a hidden branch + sky portal
+  grapple(378, 25); grapple(387, 30.5); grapple(396, 36);
+  line(374, 378, 20, 23, 3);
+  oneway(398, 422, 35.4, 'leaf');
+  shard(410, 36.8, 1);
+  portal(418, 37, 413, 201, 'sky');
+  cam(398, 424, { dist: 24, height: 3, fov: 50, yMin: 30, yMax: 60 });
+  // main route
+  plat(380, 392, 15, 'bark', 1.2);
+  enemy('snapjaw', 386, 15, 4);
+  mplat(395, 400, 15.4, 0, 4, 3.6);
+  mplat(403, 408, 17.4, 4, 0, 3.2);
+  plat(414, 442, 18.6, 'bark', 1.4);
+  cage('bird', 430, 18.6);
+  checkpoint(420, 18.6);
+  // bird gap: foot route across floating ruins, or soar up top
+  cam(440, 520, { dist: 23, height: 5, fov: 52 });
+  mplat(446, 451, 18.4, 5, 0, 3);
+  mplat(461, 466, 17.4, 0, 3, 2.6, 'ruin', 1);
+  collapse(472, 478, 18.2, 2, 'ruin');
+  plat(484, 490, 16.2, 'ruin', 1); bouncer(487, 16.2, 22);
+  plat(494, 500, 19.2, 'ruin', 1);
+  mplat(505, 510, 18.4, 4, 0, 3, 'ruin', 0.5);
+  enemy('buzzmoth', 456, 22.5, 1.2); enemy('buzzmoth', 463, 24.5, 1.2); enemy('buzzmoth', 470, 26.5, 1.2);
+  line(457, 471, 29, 32, 5);
+  updraft(450, 455, 17, 44); updraft(478, 483, 14, 44); updraft(500, 505, 14, 40);
+  oneway(466, 478, 39, 'leaf');
+  ring(472, 42.5, 2.2, 8);
+  arc(452, 466, 36, 5, 7); arc(480, 500, 36, 6, 8);
+  plat(516, 540, 17, 'bark', 1.4);
+  slope(540, 580, 17, 2, 'grass');
+  solid(540, 580, -40, 1.8, 'stone');
+  line(545, 575, 16, 4, 8);
+
+  // ───────────────────── C. WEEPING RUINS (river + waterfalls) ─────────────────────
+  theme(560, 2, 'The Weeping Ruins', 'the river remembers');
+  cam(580, 705, { dist: 18, height: 3.5, yaw: 0.14, fov: 52 });
+  ground(580, 600, 2, 'ruin');
+  checkpoint(586, 2);
+  cage('fish', 595, 2);
+  water(600, 705, -10, 0);
+  ground(600, 705, -10, 'sand');
+  hint(596, 610, 'Dive in! <b>↑↓</b> to swim · <b>Shift</b> to dash');
+  const pillars = [[608, 614, 2.6], [620, 626, 3.2], [632, 638, 2.6], [644, 650, 3.4], [656, 662, 2.8], [668, 674, 3.4], [680, 686, 2.8], [692, 700, 3.2]];
+  for (const [a, b, y] of pillars) plat(a, b, y, 'ruin', 1.1);
+  enemy('buzzmoth', 629, 6, 1.5); enemy('buzzmoth', 653, 6.5, 1.5); enemy('snapjaw', 671, 3.4, 2);
+  enemy('eel', 616, -5, 8); enemy('eel', 676, -6, 10);
+  // sunken shrine: a barrier only the River Otter can burst
+  solid(641, 662, -3.2, -2.2, 'ruin');
+  solid(640, 641.5, -10, -3.2, 'ruin', { crack: 'swim' });
+  solid(660.5, 662, -10, -3.2, 'ruin');
+  line(626, 639, -6, -7.5, 5);
+  line(644, 656, -8.5, -8.5, 6);
+  shard(652, -8.3, 3);
+  // cliff with a cave hidden behind the waterfall
+  solid(700, 706, -40, 5.6, 'ruin');
+  ground(706, 740, 0, 'ruin');
+  solid(716, 740, 4, 11, 'cliff');
+  oneway(707, 713, 8.3, 'ruin');
+  solid(740, 792, -40, 11, 'cliff', { ground: true });
+  line(718, 736, 1.1, 1.1, 8);
+  shard(737, 1.4, 2);
+  // signature mechanic #1: Echo Totem shifts the ruins
+  cam(730, 850, { dist: 21, height: 5.5, fov: 52 });
+  L.totems.push({ s: 752 + O, y: 11, group: 'e1' });
+  hint(744, 766, 'Echo Totem — <b>slam</b> it (Shift in mid-air) to wake the ruins');
+  solid(770, 775, 10.4, 11, 'glyph', { echo: { g: 'e1', dy: 2.6 } });
+  solid(778, 783, 10.4, 11, 'glyph', { echo: { g: 'e1', dy: 5.2 } });
+  solid(786, 791, 10.4, 11, 'glyph', { echo: { g: 'e1', dy: 7.8 } });
+  solid(793, 812, -40, 21.4, 'cliff', { ground: true });
+  checkpoint(798, 21.4);
+  // signature mechanic #2: Lumen Bloom grows a bridge of light
+  L.blooms.push({ s: 806 + O, y: 21.4, b0: 812 + O, b1: 848 + O, by: 21.4 });
+  hint(800, 812, 'Lumen Bloom — touch it and run across the light!');
+  line(814, 846, 23, 23, 9);
+  plat(848, 858, 21.4, 'cliff', 3);
+  slope(858, 900, 21.4, -5, 'cliff');
+  solid(858, 900, -40, -6, 'cliff');
+  cam(856, 902, { dist: 12, height: 2.5, yaw: -0.4, fov: 62, look: 6 });
+
+  // ───────────────────── D. THE GLOWDEEP (cave) ─────────────────────
+  theme(862, 3, 'The Glowdeep', 'something vast is breathing');
+  cam(902, 1060, { dist: 14, height: 2.2, fov: 54 });
+  ground(900, 962, -5, 'cave');
+  solid(905, 965, 9, 40, 'cave');
+  checkpoint(906, -5);
+  cage('oru', 924, -5);
+  hint(916, 932, 'An ancient Oru... it hums with inverted light');
+  bouncer(944, -5, 22, 'shroom');
+  enemy('spikeback', 936, -5, 3);
+  line(940, 948, -1, 3, 4);
+  // the great pit — foot route across pillars & shrooms
+  solid(968, 972, -40, -3.5, 'cave'); bouncer(970, -3.5, 25, 'shroom');
+  mplat(977, 982, -2.5, 6, 0, 3.4, 'crystal');
+  solid(992, 997, -40, -1.5, 'cave');
+  enemy('buzzmoth', 1000, 2, 1.5);
+  solid(1003, 1007, -40, -3.2, 'cave');
+  ground(1012, 1060, -5, 'cave');
+  // falling on purpose leads to a hidden grotto below
+  ground(976, 1012, -22, 'cave');
+  line(975, 978, -8, -18, 4);
+  line(982, 1004, -21, -21, 9);
+  enemy('snapjaw', 994, -22, 6);
+  bouncer(1008, -22, 38, 'shroom');
+  // ceiling with a hole: Oru's inverted gravity leads up into the Colossus
+  solid(965, 990, 9, 12, 'cave');
+  solid(1000, 1040, 9, 12, 'cave');
+  solid(1040, 1062, 9, 40, 'cave');
+  solid(960, 966, 12, 60, 'cave');
+  solid(1040, 1046, 12, 60, 'cave');
+  solid(960, 1046, 58, 64, 'cave');
+  hint(955, 975, 'Riding Oru: <b>Shift</b> flips gravity', 'oru');
+  line(990, 1000, 7, 7, 3);
+  plat(1004, 1013, 35, 'crystal', 0.8);
+  shard(1008.5, 37, 5, true);
+  shard(1030, 55.5, 4);
+  line(970, 1035, 56.5, 56.5, 14);
+  ring(1022, 30, 3, 10);
+  cam(962, 1044, { dist: 36, height: 0, fov: 55, yMin: 12.5, yMax: 60, lookY: 35 });
+
+  // ───────────────────── E. SUNWRIGHT MINE (cart ride) ─────────────────────
+  theme(1048, 4, 'Sunwright Mine', 'hold on tight');
+  ground(1060, 1098, -5, 'mine');
+  solid(1062, 1100, 9, 40, 'cave');
+  checkpoint(1068, -5);
+  enemy('snapjaw', 1078, -5, 5);
+  L.carts.push({ s: 1090 + O, y: -5, endS: 1360 + O });
+  hint(1082, 1094, 'Hop in the cart! Space to jump the gaps');
+  const trk = (a, b, ya, yb) => slope(a, b, ya, yb, 'rail', { rail: true });
+  trk(1098, 1130, -5, -5);
+  trk(1130, 1170, -5, -18);
+  trk(1170, 1190, -18, -15);
+  trk(1204, 1235, -16, -24);
+  trk(1235, 1245, -24, -20);
+  trk(1262, 1292, -22, -22);
+  trk(1292, 1302, -22, -18);
+  trk(1320, 1360, -20, -20);
+  arc(1190, 1204, -14, 5, 6); arc(1245, 1262, -19, 6, 7); arc(1302, 1320, -17, 6, 7);
+  line(1135, 1165, -3, -15, 6); line(1265, 1290, -20, -20, 6);
+  enemy('snapjaw', 1275, -22, 0.1);
+  cam(1098, 1362, { dist: 9.5, height: 2.4, yaw: -0.62, fov: 70, look: 10, cart: true });
+
+  // ───────────────────── F. HEART OF THE SEED (collapsing temple escape) ─────────────────────
+  theme(1356, 5, 'Heart of the Seed', 'RUN');
+  ground(1360, 1400, -20, 'temple');
+  checkpoint(1366, -20);
+  L.chases.push({ s0: 1374 + O, start: 1350 + O, end: 1500 + O, speed: 9.4 });
+  cam(1368, 1502, { dist: 13, height: 3, yaw: 0.55, fov: 60, look: 2, chase: true });
+  ground(1405, 1420, -18.6, 'temple');
+  collapse(1420, 1436, -18.6, 5, 'temple');
+  ground(1436, 1460, -18.6, 'temple');
+  enemy('snapjaw', 1446, -18.6, 5);
+  solid(1462, 1470, -40, -16.4, 'temple');
+  solid(1475, 1500, -40, -16.4, 'temple');
+  enemy('spikeback', 1488, -16.4, 3);
+  line(1402, 1404, -17, -17, 1); arc(1459, 1476, -15, 3, 6);
+  ground(1507, 1560, -16.4, 'temple');
+  arc(1500, 1507, -14.5, 2.5, 4);
+  L.altar = { s: 1538 + O, y: -16.4 };
+  cam(1502, 1560, { dist: 17, height: 4.5, fov: 50 });
+
+  // ───────────────────── BONUS: Sky Shrine ─────────────────────
+  plat(404, 414, 201, 'cloud', 1.5); plat(418, 425, 203.5, 'cloud', 1.5); plat(429, 436, 206, 'cloud', 1.5); plat(440, 452, 204, 'cloud', 1.5);
+  ring(416, 208, 3, 10); ring(433, 211, 3, 10); arc(404, 452, 203, 9, 16);
+  bouncer(432, 206, 26);
+  portal(450, 205.6, 425, 20.6, 'return');
+  cam(390, 470, { dist: 26, height: 4, fov: 52, yMin: 150, yMax: 260 });
+
+  L.start = { s: 4 + O, y: 0 };
+  L.endS = 1560 + O;
+  return L;
+}
