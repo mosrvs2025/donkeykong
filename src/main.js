@@ -26,7 +26,7 @@ class HUD {
   hearts(n, max) { $('hearts').innerHTML = Array.from({ length: max }, (_, i) => `<div class="heart ${i < n ? '' : 'empty'}"></div>`).join(''); }
   glims(n) { const el = $('glim-count'); el.textContent = n; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   shards(list) { $('shards').innerHTML = list.map((s) => `<div class="shard ${s.star ? 'star' : ''} ${s.taken ? 'got' : ''}"></div>`).join(''); }
-  mount(txt) { const el = $('mount'); if (txt) { el.innerHTML = txt; el.classList.add('on'); } else el.classList.remove('on'); }
+  mount(txt) { $('t-off').classList.toggle('hidden', !(txt && this.game.player.comp)); const el = $('mount'); if (txt) { el.innerHTML = txt; el.classList.add('on'); } else el.classList.remove('on'); }
   toast(html, dur = 3) { const el = $('toast'); el.innerHTML = html; el.classList.add('on'); this.toastT = dur; }
   banner(name, sub, dur = 3) { const el = $('banner'); el.innerHTML = `${name}${sub ? `<small>${sub}</small>` : ''}`; el.classList.add('on'); this.bannerT = dur; }
   abilities(set) { $('abilities').innerHTML = ['leap', 'song', 'grip'].map((k) => `<div class="ab ${set.has(k) ? 'on' : ''}" title="${ABILITIES[k].name}">${ABILITIES[k].icon}</div>`).join(''); }
@@ -367,7 +367,7 @@ class Game {
     }
     // mount indicator
     if (p.mount === 'bird') this.hud.mount(`🪶 SOLA ${Math.max(0, Math.ceil(p.birdTime))}s`);
-    else if (p.mount) this.hud.mount({ beast: '🐗 GRUMBO', frog: '🐸 BOING', fish: '🦦 NUU', oru: '🔮 ORU' }[p.mount] + ' <small>(↓+Shift to hop off)</small>');
+    else if (p.mount) this.hud.mount({ beast: '🐗 GRUMBO', frog: '🐸 BOING', fish: '🦦 NUU', oru: '🔮 ORU' }[p.mount] + ' <small>(C or ↓+Shift to hop off)</small>');
     else if (p.cart) this.hud.mount('⛏ MINE CART'); else this.hud.mount(null);
     if (p.mount === 'bird' && p.birdTime < 5 && p.birdTime > 4.9) this.toast('Sola is getting tired…', 2);
   }

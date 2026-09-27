@@ -100,3 +100,7 @@ button.alt{background:linear-gradient(#bff4ff,#5ab8e8);color:#062030;box-shadow:
 .unlock{margin-top:14px;color:#bff4ff}
 #glim-count.bump{animation:bump .25s}
 @keyframes bump{50%{transform:scale(1.35);color:#bfffd8}}
+
+#t-off{right:var(--g);bottom:calc(var(--bb) + var(--b)*1.25 + var(--g));flex-direction:column;background:#ff9a4a33;border-color:#ffb070aa;line-height:1}
+#t-off span{font-size:9px;letter-spacing:.05em;margin-top:2px;text-transform:uppercase}
+@media (max-height:420px) and (orientation:landscape){ #t-off{right:calc(var(--g)*3 + var(--b)*2.25 + var(--s)*.2);bottom:calc(var(--bb) + var(--b)*1.05)} }

@@ -49,7 +49,7 @@ export class Player {
     const first = !game.stats.met[c.kind];
     game.stats.met[c.kind] = true;
     game.banner(c.def.name, c.def.title);
-    game.toast(c.def.tip, 5);
+    game.toast(c.def.tip + (game.input.isTouch ? '<br><small>Tap ⏏ to hop off</small>' : ''), 5);
     game.fx.burst(game.path.world(this.s, this.y + 1, 0), 0xfff0a0, 30, 8, 0.8, 0.8, -4);
     if (first) game.camPunch(0.8);
   }
@@ -94,7 +94,8 @@ export class Player {
     if (freshJump) { this.jumpBuf = 0.13; input.consume('jump'); }
     else this.jumpBuf -= dt;
     let action = input.consume('action');
-    if (action && H.down && this.comp && !this.cart) { this.dismount(false); action = false; }
+    const off = input.consume('dismount');
+    if (this.comp && !this.cart && (off || (action && H.down))) { this.dismount(false); action = false; }
 
     const M = game.magic;
     if (input.peek('up') && M.nearWay && this.state === 'normal' && this.grounded && !this.cart) { input.consume('up'); game.openTravel(); return; }

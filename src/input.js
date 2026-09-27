@@ -1,15 +1,15 @@
 // Unified keyboard + touch input. Exposes held state and edge-triggered presses.
 export class Input {
   constructor() {
-    this.held = { left: false, right: false, up: false, down: false, jump: false, action: false };
+    this.held = { left: false, right: false, up: false, down: false, jump: false, action: false, dismount: false };
     this.pressed = {};
-    this.touch = { left: false, right: false, up: false, down: false, jump: false, action: false };
-    this.keys = { left: false, right: false, up: false, down: false, jump: false, action: false };
+    this.touch = { left: false, right: false, up: false, down: false, jump: false, action: false, dismount: false };
+    this.keys = { left: false, right: false, up: false, down: false, jump: false, action: false, dismount: false };
     this.onKey = null;
     const map = {
       ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
       ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
-      Space: 'jump', KeyZ: 'jump', ShiftLeft: 'action', ShiftRight: 'action', KeyX: 'action', KeyJ: 'action',
+      Space: 'jump', KeyZ: 'jump', ShiftLeft: 'action', ShiftRight: 'action', KeyX: 'action', KeyJ: 'action', KeyC: 'dismount',
     };
     addEventListener('keydown', (e) => {
       const k = map[e.code];
@@ -19,7 +19,7 @@ export class Input {
     addEventListener('keyup', (e) => { const k = map[e.code]; if (k) this.keys[k] = false; });
     addEventListener('blur', () => { for (const k in this.keys) this.keys[k] = false; });
     this.isTouch = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
-    const ids = { 't-left': 'left', 't-right': 'right', 't-up': 'up', 't-down': 'down', 't-jump': 'jump', 't-act': 'action' };
+    const ids = { 't-left': 'left', 't-right': 'right', 't-up': 'up', 't-down': 'down', 't-jump': 'jump', 't-act': 'action', 't-off': 'dismount' };
     const active = new Map(); // pointerId -> key
     const setFrom = () => {
       for (const k in this.touch) this.touch[k] = false;
@@ -27,7 +27,7 @@ export class Input {
       for (const id in ids) document.getElementById(id)?.classList.toggle('on', this.touch[ids[id]]);
     };
     const hit = (x, y) => {
-      const el = document.elementFromPoint(x, y);
+      const el = document.elementFromPoint(x, y)?.closest('.tbtn');
       return el && ids[el.id];
     };
     const onDown = (e) => {
