@@ -72,9 +72,9 @@ export class Player {
     if (this.invuln > 0 || this.state === 'dead' || this.state === 'cutscene') return;
     if (this.cart) return game.killPlayer(reason);
     game.shake(0.5); game.audio.play('hurt');
-    if (this.comp) { this.dismount(true, -this.facing); this.invuln = 1.5; this.vy = 12; return; }
+    if (this.comp && !game.flight) { this.dismount(true, -this.facing); this.invuln = 1.5; this.vy = 12; return; }
     this.hearts--; this.invuln = 1.7; this.hurtT = 0.5;
-    this.vs = -this.facing * 7; this.vy = 10 * this.g; this.state = 'normal'; this.rollT = 0;
+    this.vs = -this.facing * 7; this.vy = 10 * this.g; this.state = 'normal'; this.rollT = 0; this.dashT = 0;
     game.hud.hearts(this.hearts, this.maxHearts);
     if (this.hearts <= 0) game.killPlayer(reason);
   }
@@ -95,7 +95,7 @@ export class Player {
     else this.jumpBuf -= dt;
     let action = input.consume('action');
     const off = input.consume('dismount');
-    if (this.comp && !this.cart && (off || (action && H.down))) { this.dismount(false); action = false; }
+    if (this.comp && !this.cart && !game.flight && (off || (action && H.down))) { this.dismount(false); action = false; }
 
     const M = game.magic;
     if (input.peek('up') && M.nearWay && this.state === 'normal' && this.grounded && !this.cart) { input.consume('up'); game.openTravel(); return; }
@@ -115,12 +115,13 @@ export class Player {
     this.inWater = this.checkWater();
 
     // ── horizontal control
-    const swimming = this.inWater && !(this.mount === 'fish');
-    const fishSwim = this.inWater && this.mount === 'fish';
+    const tide = game.forms.has('tide') && !this.mount;
+    const swimming = this.inWater && !(this.mount === 'fish') && !tide;
+    const fishSwim = this.inWater && (this.mount === 'fish' || tide);
     let run = m.run;
     if (swimming) run = 6;
-    if (fishSwim) run = 13;
-    if (this.mount === 'bird' && !this.grounded) run = 12;
+    if (fishSwim) run = tide ? 11 : 13;
+    if (this.mount === 'bird' && !this.grounded) run = game.flight ? 13 : 12;
     const charging = this.chargeT > 0, rolling = this.rollT > 0, dashing = this.dashT > 0;
     if (dir) this.facing = rolling || charging || dashing ? this.facing : dir;
     if (rolling) { this.rollT -= dt; if (this.grounded) this.vs = approach(this.vs, this.facing * 10, 8 * dt); }
@@ -157,6 +158,11 @@ export class Player {
       vyr -= G * dt;
       if (this.mount === 'bird' && !this.grounded) {
         if (this.birdTime > 0 && input.held.jump && vyr < -2.2) vyr = -2.2; // glide
+        if (game.flight) { // Skyward Isles: free flight
+          const upd = (H.up ? 1 : 0) - (H.down ? 1 : 0);
+          vyr = approach(vyr + G * dt, upd ? upd * 10 : -1.2, 32 * dt);
+          if (this.dashT > 0) { this.dashT -= dt; this.vs = this.facing * 24; vyr = 0; }
+        }
       }
       vyr = Math.max(vyr, -32);
     }
@@ -195,6 +201,7 @@ export class Player {
         if (this.grounded && this.chargeT <= 0) { this.chargeT = 0.75; game.audio.play('roll'); game.shake(0.25); }
         else if (!this.grounded && !this.slamming) { this.slamming = true; vyr = -30; }
       } else if (this.mount === 'frog') { this.tongue(); }
+      else if (this.mount === 'bird' && game.flight) { if (!(this.dashT > 0)) { this.dashT = 0.4; game.audio.play('leap'); game.fx.burst(game.path.world(this.s, this.y + 1, 0), 0xffffff, 14, 6, 0.5, 0.4, 0); } }
       else if (this.mount === 'bird') { if (!this.grounded && !this.slamming) { this.slamming = true; vyr = -30; this.vs = this.facing * 8; game.audio.play('flap'); } }
       else if (this.mount === 'oru') {
         if (this.flipCool <= 0) {
@@ -223,13 +230,14 @@ export class Player {
     if (this.wallDir && !this.grounded) { this.wallT = 0.14; this.wallD = this.wallDir; }
     // landing
     if (prevAir && this.grounded) this.onLand(prevVy);
-    if (this.grounded) { this.rollJump = false; this.leapReady = true; }
+    if (this.grounded) { this.rollJump = false; this.leapReady = true; this.firstLeapDone = false; }
     if (!this.mount && M.has('grip') && this.g === 1 && !this.grounded && this.wallDir && this.wallSolid && this.wallSolid.moss && this.vy < 7 && this.state === 'normal') { this.state = 'grip'; this.gripD = this.wallDir; this.leapReady = true; this.slamming = false; game.audio.play('vine'); }
     else if (!M.has('grip') && this.wallSolid && this.wallSolid.moss && !this.mossHinted) { this.mossHinted = true; game.toast('The glowing moss pulses under Kiri\u2019s paws… but won\u2019t hold. Not yet.', 3.5); }
     // falling death
-    if (this.y < (this.y < -100 || this.deepZone ? -180 : -52) || this.y > 340) game.killPlayer('Fell!');
+    const zk = game.zoneKillY(this);
+    if (zk !== null ? this.y < zk : (this.y < (this.y < -100 || this.deepZone ? -180 : -52) || this.y > 340)) game.killPlayer('Fell!');
     this.deepZone = this.y < -100;
-    if (this.grounded) this.skyZone = this.y > 280 ? 285 : this.y > 150 ? 185 : 0;
+    if (this.grounded) this.skyZone = this.y > 400 ? 0 : this.y > 280 ? 285 : this.y > 150 ? 185 : 0;
     if (this.skyZone && this.y < this.skyZone && this.state !== 'dead') { this.skyZone = 0; game.killPlayer('Kiri tumbles out of the sky…'); }
   }
   move(dt) {
@@ -239,7 +247,7 @@ export class Player {
   onHitSolid(o, d, axis) {
     const E = this.game.entities;
     if (o.crack === 'beast' && this.mount === 'beast' && (this.chargeT > 0 || Math.abs(this.vs) > 11) && axis === 'x') { E.breakSolid(o); this.game.stats.walls++; this.hitstop = 0.06; return true; }
-    if (o.crack === 'swim' && this.mount === 'fish' && this.dashT > 0) { E.breakSolid(o); this.game.stats.walls++; this.hitstop = 0.06; return true; }
+    if (o.crack === 'swim' && (this.mount === 'fish' || (this.game.forms.has('tide') && !this.mount)) && this.dashT > 0) { E.breakSolid(o); this.game.stats.walls++; this.hitstop = 0.06; return true; }
     if (o.crack && axis === 'x' && Math.abs(this.vs) > 5 && !this._crackHint) { this._crackHint = true; this.game.toast(o.crack === 'beast' ? 'This wall is cracked… something strong could smash it.' : 'A cracked seal… something fast could burst through.', 3); }
     return false;
   }
@@ -266,7 +274,9 @@ export class Player {
   }
   leap(dir) {
     const game = this.game, M = game.magic;
-    this.leapReady = false; this.slamming = false;
+    if (game.forms.has('sky') && !this.usedSecondLeap && !this.firstLeapDone) { this.firstLeapDone = true; } else { this.leapReady = false; }
+    if (this.firstLeapDone && this.leapReady === true && game.forms.has('sky')) { this.usedSecondLeap = false; }
+    this.slamming = false;
     let vyr = 13.5;
     const w = game.path.world(this.s, this.y + 0.6, 0);
     if (this.mount === 'beast') { vyr = 8; this.chargeT = 0.45; this.vs = this.facing * 20; game.toast('<b>Horn Comet!</b>', 1); game.shake(0.3); }
@@ -404,9 +414,10 @@ export class Player {
       if (!e.alive) continue;
       const eb = { s: e.s, y: e.y, hw: e.hw, h: e.h };
       if (!overlap(box, eb)) continue;
-      const killer = this.chargeT > 0 || this.cart || (this.mount === 'fish' && this.dashT > 0) || (this.mount === 'bird' && this.slamming);
-      if (killer && (e.kind !== 'eel' || this.mount === 'fish' || this.cart)) { E.killEnemy(e, this.facing * 6, 12); game.audio.play('stomp', this.chain++); this.hitstop = 0.04; continue; }
-      if (e.kind === 'eel') { this.hurt('Zapped!'); continue; }
+      const swimDash = this.dashT > 0 && (this.mount === 'fish' || (game.forms.has('tide') && !this.mount) || game.flight);
+      const killer = this.chargeT > 0 || this.cart || swimDash || (this.mount === 'bird' && this.slamming);
+      if (killer && ((e.kind !== 'eel' && e.kind !== 'jelly') || swimDash || this.cart)) { E.killEnemy(e, this.facing * 6, 12); game.audio.play('stomp', this.chain++); this.hitstop = 0.04; continue; }
+      if (e.kind === 'eel' || e.kind === 'jelly') { this.hurt(e.kind === 'jelly' ? 'Stung!' : 'Zapped!'); continue; }
       const above = this.g === 1 && falling && this.y > e.y + e.h * 0.35;
       if (above) {
         if (e.kind === 'spikeback' && this.mount !== 'beast') { this.vy = 13; this.hurt('Ouch, spikes!'); continue; }

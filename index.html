@@ -22,6 +22,9 @@
   <div id="timer"></div>
 </div>
 <div id="chain"></div>
+<div id="bossbar"></div>
+<div id="clear"></div>
+<div id="map" class="hidden"></div>
 <div id="prompt"></div>
 <div id="story"><p id="story-text"></p><small id="story-sub"></small></div>
 <div id="travel" class="hidden"><div class="travel-inner"><div class="kicker">Sunwright Waystones</div><h2>Where to?</h2><div id="travel-list"></div><small>↑↓ choose · Space travel · Esc close</small></div></div>
@@ -36,6 +39,7 @@
     <h2>The Lumen Seed</h2>
     <p class="lore">The Sunwright machines fell silent a thousand years ago.<br/>Their seed still glows somewhere beneath the canopy.</p>
     <button id="start-btn">Play</button> <button id="wisp-btn" class="hidden alt">Wisp Mode</button>
+    <div><button id="new-btn" class="hidden linkbtn">start a new game</button></div>
     <div class="controls">
       <div><b>←→ / A D</b> run</div>
       <div><b>Space</b> jump (hold = higher)</div>
@@ -47,7 +51,7 @@
     <div id="loading">growing the jungle…</div>
   </div>
 </div>
-<div id="pause" class="screen hidden"><div class="title-inner"><h2>Paused</h2><button id="resume-btn">Resume</button></div></div>
+<div id="pause" class="screen hidden"><div class="title-inner"><h2>Paused</h2><button id="resume-btn">Resume</button><div style="margin-top:14px"><button id="map-btn" class="alt">World map</button></div></div></div>
 <div id="end" class="screen hidden"><div class="title-inner" id="end-inner"></div></div>
 <div id="touch" class="hidden">
   <div id="t-left" class="tbtn">◀</div>
@@ -56,6 +60,7 @@
   <div id="t-up" class="tbtn small">▲</div>
   <div id="t-act" class="tbtn">⚡</div>
   <div id="t-jump" class="tbtn big">⤒</div>
+  <div id="t-pause">❚❚</div>
   <div id="t-off" class="tbtn small hidden">⏏<span>hop off</span></div>
 </div>
 <script type="module" src="/src/main.js"></script>

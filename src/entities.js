@@ -186,16 +186,16 @@ export class Entities {
   }
   // ───────── enemies
   buildEnemies() {
-    const make = { snapjaw: Models.makeSnapjaw, spikeback: Models.makeSpikeback, buzzmoth: Models.makeBuzzmoth, eel: Models.makeEel };
+    const make = { snapjaw: Models.makeSnapjaw, spikeback: Models.makeSpikeback, buzzmoth: Models.makeBuzzmoth, eel: Models.makeEel, jelly: makeJelly };
     this.enemies = this.level.enemies.map((e) => {
       const model = make[e.kind](); this.group.add(model);
-      const size = { snapjaw: [0.55, 1.0], spikeback: [0.6, 1.1], buzzmoth: [0.55, 0.9], eel: [1.3, 0.8] }[e.kind];
+      const size = { snapjaw: [0.55, 1.0], spikeback: [0.6, 1.1], buzzmoth: [0.55, 0.9], eel: [1.3, 0.8], jelly: [0.8, 1.3] }[e.kind];
       this.place(model, e.s, e.y);
       return { ...e, model, homeS: e.s, homeY: e.y, dir: 1, alive: true, hw: size[0], h: size[1], t: Math.random() * 6, dead: 0, vy: 0, stun: 0 };
     });
   }
-  resetEnemies() {
-    for (const e of this.enemies) { if (!e.alive && e.dead > 1.5) { e.alive = true; e.s = e.homeS; e.y = e.homeY; e.dead = 0; e.model.visible = true; e.model.rotation.set(0, 0, 0); e.model.scale.setScalar(1); } }
+  resetEnemies(all) {
+    for (const e of this.enemies) { if (!e.alive && (all || e.dead > 1.5)) { e.alive = true; e.s = e.homeS; e.y = e.homeY; e.dead = 0; e.model.visible = true; e.model.rotation.set(0, 0, 0); e.model.scale.setScalar(1); } }
   }
   updateEnemies(dt) {
     const pl = this.game.player;
@@ -231,6 +231,10 @@ export class Entities {
         this.place(m, e.s, e.y - 0.3);
         const face = Math.cos(e.t * 0.9) > 0 ? 0 : Math.PI; m.rotation.y += face + (pl.s < e.s ? Math.PI : 0) * 0;
         ud.wings.forEach((w, i) => w.rotation.x = Math.sin(e.t * 40) * 0.9 * (i ? -1 : 1));
+      } else if (e.kind === 'jelly') {
+        e.y = e.homeY + Math.sin(e.t * 1.1) * e.range; e.s = e.homeS + Math.sin(e.t * 0.4) * 1.5;
+        this.place(m, e.s, e.y); const pulse = 1 + Math.sin(e.t * 4) * 0.12; ud.body.scale.set(pulse, 2 - pulse, pulse);
+        ud.legs.forEach((l, i) => l.rotation.z = Math.sin(e.t * 4 + i) * 0.3);
       } else if (e.kind === 'eel') {
         const ph = e.t * 0.7; e.s = e.homeS + Math.sin(ph) * e.range; e.y = e.homeY + Math.sin(e.t * 2) * 0.6;
         this.place(m, e.s, e.y); m.rotation.y += Math.cos(ph) > 0 ? 0 : Math.PI;
@@ -454,4 +458,14 @@ export class Entities {
   }
   resetChase() { for (const c of this.chases) { c.state = 'idle'; c.g.visible = false; c.s = c.start; } }
   resetCart() { for (const c of this.carts) { c.used = false; c.s = c.homeS; c.y = c.homeY; this.place(c.g, c.s, c.y); c.g.rotation.x = 0; c.body.rotation.z = 0; c.g.visible = true; } }
+}
+
+function makeJelly() {
+  const root = new THREE.Group(); const b = new THREE.Group(); root.add(b);
+  const bell = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xff80e0, emissive: 0xc040b0, emissiveIntensity: 1.2, transparent: true, opacity: 0.8 }));
+  bell.position.y = 0.9; b.add(bell);
+  const legs = [];
+  for (let i = 0; i < 6; i++) { const t = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.02, 1.6, 4), new THREE.MeshStandardMaterial({ color: 0, emissive: 0xffa0f0, emissiveIntensity: 1.5 })); const a = i / 6 * Math.PI * 2; const pv = new THREE.Group(); pv.position.set(Math.cos(a) * 0.5, 0.9, Math.sin(a) * 0.5); t.position.y = -0.8; pv.add(t); b.add(pv); legs.push(pv); }
+  root.userData = { body: b, legs };
+  return root;
 }

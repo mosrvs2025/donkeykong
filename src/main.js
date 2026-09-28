@@ -14,6 +14,9 @@ import { Input } from './input.js';
 import { Audio } from './audio.js';
 import { Magic, ABILITIES, ECHO_LINES } from './magic.js';
 import { Hollowjaw, Finale } from './encounters.js';
+import { BossManager, BOSSES } from './bosses.js';
+import { WorldMap, LEVELS, levelById } from './map.js';
+import { Worlds } from './worlds.js';
 const store = { get(k) { try { return localStorage.getItem('thornwild.' + k); } catch { return null; } }, set(k, v) { try { localStorage.setItem('thornwild.' + k, v); } catch { /* storage unavailable */ } } };
 const DAWN = { top: 0x5a8ad8, hor: 0xffd0a0, fog: 0xe8c8a8, dens: 0.0032, hs: 0xfff0d0, hg: 0x5a4a30, sun: 0xffe0b0, si: 2.8, pc: 0xfff0a0, exp: 1.05, moon: 0.3, stars: 0.2 };
 
@@ -31,6 +34,7 @@ class HUD {
   banner(name, sub, dur = 3) { const el = $('banner'); el.innerHTML = `${name}${sub ? `<small>${sub}</small>` : ''}`; el.classList.add('on'); this.bannerT = dur; }
   abilities(set) { $('abilities').innerHTML = ['leap', 'song', 'grip'].map((k) => `<div class="ab ${set.has(k) ? 'on' : ''}" title="${ABILITIES[k].name}">${ABILITIES[k].icon}</div>`).join(''); }
   bonds(set) { $('bonds').innerHTML = ['beast', 'frog', 'bird', 'fish', 'oru'].map((k) => `<i class="bd ${set.has(k) ? 'on' : ''} ${k}"></i>`).join(''); }
+  bossBar(hp, name) { const el = $('bossbar'); if (!hp) { el.classList.remove('on'); return; } el.innerHTML = `<span>${name}</span><b>${'◆'.repeat(hp)}${'◇'.repeat(3 - hp)}</b>`; el.classList.add('on'); }
   echoes(n) { $('echoes').textContent = n ? `❋ ${n}/8` : ''; }
   chain(n) { const el = $('chain'); if (n >= 3) { el.textContent = `airborne ×${n}`; el.classList.add('on'); } else el.classList.remove('on'); }
   prompt(t) { const el = $('prompt'); if (t) { el.textContent = t; el.classList.add('on'); } else el.classList.remove('on'); }
@@ -91,6 +95,10 @@ class Game {
     this.player = new Player(this);
     this.magic = new Magic(this);
     this.hollowjaw = new Hollowjaw(this); this.finale = new Finale(this);
+    this.bosses = new BossManager(this); this.map = new WorldMap(this); this.worlds = new Worlds(this);
+    this.forms = new Set(); this.levelWalls = [0, 1].map(() => { const w = { s0: 0, s1: 0, y0: -2000, y1: 2000, active: false, dS: 0, dY: 0 }; this.entities.solids.push(w); return w; });
+    this.progress = { unlocked: ['rootwild'], levels: {} };
+    this.loadSave();
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
     this.checkpoint = { s: this.level.start.s, y: this.level.start.y };
@@ -104,6 +112,7 @@ class Game {
       if (code === 'KeyM') this.audio.toggleMute();
       if ((code === 'KeyP' || code === 'Escape') && (this.state === 'play' || this.state === 'paused')) this.togglePause();
       if ((code === 'Enter' || code === 'Space') && this.state === 'title' && this.ready) this.start();
+      if (this.state === 'map') this.map.key(code);
       if (this.state === 'travel') {
         const L = this.magic.waystones;
         const mv = (d) => { let i = this.travelSel; for (let k = 0; k < L.length; k++) { i = (i + d + L.length) % L.length; if (L[i].lit) break; } this.travelSel = i; this.renderTravel(); };
@@ -117,6 +126,10 @@ class Game {
     if (store.get('cleared')) { const b = $('wisp-btn'); b.classList.remove('hidden'); b.onclick = () => { this.wisp = true; for (const a of ['leap', 'song', 'grip']) this.magic.abilities.add(a); this.magic.shrines.forEach((x) => x.done = true); this.hud.abilities(this.magic.abilities); this.start(); $('hud').classList.add('wisp'); }; }
     const best = +store.get('best.normal'); if (best) $('loading').textContent += ` · best ${Math.floor(best / 60)}:${Math.floor(best % 60).toString().padStart(2, '0')}`;
     $('resume-btn').onclick = () => this.togglePause();
+    $('t-pause').addEventListener('pointerdown', (e) => { e.preventDefault(); if (this.state === 'play' || this.state === 'paused') this.togglePause(); });
+    $('map-btn').onclick = () => { this.state = 'play'; this.leaveToMap(); };
+    $('new-btn').onclick = () => { store.set('save', ''); location.reload(); };
+    if (this.hasSave) { $('start-btn').textContent = 'Continue'; $('new-btn').classList.remove('hidden'); }
     this.resize();
     this.director.update(0.016, this.player, true);
     this.ready = true; $('loading').textContent = isMobile ? 'touch controls enabled' : 'press Enter or click Play';
@@ -125,7 +138,7 @@ class Game {
     window.__game = this; // debugging / automated tests
     if (params.has('s')) { const s = +params.get('s') + O, y = +(params.get('y') || 0); this.player.reset(s, y); this.checkpoint = { s, y }; this.director.update(0.016, this.player, true); this.snapTheme = true; }
     if (params.has('abilities')) { for (const a of ['leap', 'song', 'grip']) this.magic.abilities.add(a); this.magic.shrines.forEach((x) => x.done = true); this.hud.abilities(this.magic.abilities); }
-    if (params.has('autostart')) this.start(true);
+    if (params.has('autostart')) { this.start(true); const lvq = params.get('level'); if (lvq) this.enterLevel(levelById(lvq)); }
   }
   resize() {
     this.camera.aspect = innerWidth / innerHeight;
@@ -138,10 +151,11 @@ class Game {
   start(skipIntro) {
     if (this.state !== 'title') return;
     this.audio.init(); this.audio.resume(); this.audio.musicOn = true;
-    $('title').classList.add('hidden'); $('hud').classList.remove('hidden');
-    if (this.input.isTouch) $('touch').classList.remove('hidden');
+    $('title').classList.add('hidden');
+    if (!skipIntro) { this.state = 'map'; this.map.show(); return; }
+    $('hud').classList.remove('hidden'); if (this.input.isTouch) $('touch').classList.remove('hidden');
     this.state = 'play';
-    if (!skipIntro) {
+    if (false) {
       // opening shot: sweep down from the Mother Tree's canopy to Kiri
       const top = this.path.world(230 + O, 95, 110), mid = this.path.world(50 + O, 22, 45);
       const lookTree = this.path.world(300 + O, 110, -48);
@@ -153,7 +167,116 @@ class Game {
       this.bannerSeen.add(0);
     }
   }
-  openTravel() {
+  // ───────────── levels & the world map
+  enterLevel(lv, buddy) {
+    const p = this.player, O2 = O;
+    this.currentLevel = lv; this.state = 'play'; this.endSeq = null;
+    $('hud').classList.remove('hidden'); if (this.input.isTouch) $('touch').classList.remove('hidden');
+    if (p.comp) p.dismount(false);
+    p.cart = null; p.reset(lv.start[0] + O2, lv.start[1] + 0.1);
+    this.checkpoint = { s: p.s, y: p.y }; this.levelTime = 0;
+    const [L, R] = this.levelWalls;
+    Object.assign(L, { s0: lv.wall + O2 - 2, s1: lv.wall + O2, active: true });
+    if (lv.end != null && !lv.mode) Object.assign(R, { s0: lv.end + O2 + 3, s1: lv.end + O2 + 5, active: true }); else R.active = false;
+    this.entities.resetEnemies(true); this.entities.resetChase(); this.entities.resetCart();
+    this.flight = lv.mode === 'fly';
+    if (lv.mode === 'swim' && !this.forms.has('tide')) { this.forms.add('tide'); setTimeout(() => { this.hud.banner('TIDE FORM', 'Kiri adapts to the deep', 4); this.hud.toast('Swim freely with the arrows · <b>Shift</b> to dash · currents carry you', 5); this.audio.motif(2); }, 700); }
+    else setTimeout(() => this.hud.banner(lv.name.toUpperCase(), lv.sub, 3.5), 500);
+    const comps = this.entities.companions;
+    if (this.flight) { const bird = comps.find((c) => c.kind === 'bird'); this.stats.met.bird = true; bird.cage.visible = false; bird.state = 'idle'; p.mountOn(bird); p.birdTime = 1e9; this.hud.toast('Sola carries Kiri into the sky. <b>↑↓</b> steer · <b>Space</b> flap · <b>Shift</b> dash', 5); }
+    else if (buddy) { const c = comps.find((x) => x.kind === buddy); if (c) { c.cage.visible = false; c.state = 'idle'; p.mountOn(c); } }
+    this.hud.hearts(p.hearts, p.maxHearts); this.snapTheme = true; this.director.update(0.016, p, true);
+    this.audio.intensity = 0.2; this.last = performance.now();
+    if (lv.id === 'rootwild' && !this.progress.introSeen) {
+      this.progress.introSeen = true;
+      const top = this.path.world(230 + O, 95, 110), mid = this.path.world(50 + O, 22, 45), lookTree = this.path.world(300 + O, 110, -48);
+      this.director.play({ dur: 5.5, blendOut: true, pos: (u) => top.clone().lerp(mid, Math.min(1, u * 1.4)), look: (u) => lookTree.clone().lerp(this.path.world(this.player.s, 1, 0), Math.min(1, u * 1.3)) });
+    }
+  }
+  leaveToMap() {
+    const p = this.player; if (p.comp) p.dismount(false); p.cart = null;
+    if (this.bosses.busy) this.bosses.end(false);
+    this.levelWalls.forEach((w) => w.active = false); this.flight = false; this.currentLevel = null;
+    this.state = 'map'; $('hud').classList.add('hidden'); $('touch').classList.add('hidden'); $('pause').classList.add('hidden');
+    this.saveGame(); this.map.show();
+  }
+  checkLevelEnd() {
+    const lv = this.currentLevel, p = this.player;
+    if (!lv || lv.end == null || lv.mode || p.state !== 'normal' || this.bosses.busy || this.clearing) return;
+    if (p.s < lv.end + O - 0.5 || Math.abs(p.y - lv.endY) > 25) return;
+    if (lv.boss === 'hollowjaw') {
+      if (this.hollowjaw.state !== 'asleep') { p.s -= 1.5; p.vs = -6; this.hud.toast('Hollowjaw still hunts in the pit behind you. Sing it to sleep to pass.', 3); return; }
+      this.bosses.defeated.add('hollowjaw'); return this.completeLevel();
+    }
+    if (lv.boss && !this.bosses.defeated.has(lv.boss)) return this.toArena(lv.boss);
+    this.completeLevel();
+  }
+  toArena(id) {
+    const A = this.level.arenas[id], p = this.player;
+    $('fade').style.opacity = 1; p.state = 'cutscene'; this.audio.play('portal');
+    setTimeout(() => {
+      p.s = A.s - A.w + 6; p.y = A.y + 0.1; p.vs = 0; p.vy = 0; p.state = 'normal'; p.g = 1;
+      this.checkpoint = { s: p.s, y: p.y, arena: id };
+      this.snapTheme = true; this.director.update(0.016, p, true); $('fade').style.opacity = 0;
+      setTimeout(() => this.bosses.start(id), 600);
+    }, 500);
+  }
+  onBossDefeated(id) {
+    const lv = this.currentLevel; if (!lv) return;
+    this.addGlims(15, this.path.world(this.player.s, this.player.y + 2, 0));
+    this.magic.celebrate();
+    setTimeout(() => this.completeLevel(), 1200);
+  }
+  completeLevel() {
+    const lv = this.currentLevel; if (!lv || this.clearing) return;
+    this.clearing = true;
+    const p = this.player; p.state = 'cutscene'; p.vs = 0;
+    const st = (this.progress.levels[lv.id] ||= {});
+    st.clear = true; if (lv.boss && this.bosses.defeated.has(lv.boss)) st.boss = true;
+    st.best = st.best ? Math.min(st.best, this.levelTime) : this.levelTime;
+    this.map.unlock(lv.id);
+    let extra = '';
+    if (lv.grants === 'sky' && !this.forms.has('sky')) { this.forms.add('sky'); extra = '<p class="unlock">Kiri evolves: <b>SKY FORM</b>. Wisp Leap now works twice in mid-air, everywhere.</p>'; }
+    if (lv.grants === 'tide') extra = '<p class="unlock">Tide Form stays with Kiri. Somewhere in the Weeping Ruins, a sealed stone waits for a dash.</p>';
+    this.audio.play('win'); this.audio.motif(3);
+    const t = this.levelTime;
+    $('clear').innerHTML = `<div class="kicker">level clear</div><h2>${lv.name}</h2><p>${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')} · ${this.stats.glims} glims · ${this.magic.echoes.size}/8 echoes · ${this.magic.bonds.size}/5 bonds</p>${extra}`;
+    $('clear').classList.add('on');
+    this.saveGame();
+    setTimeout(() => { $('clear').classList.remove('on'); this.clearing = false; this.leaveToMap(); }, extra ? 4200 : 2800);
+  }
+  zoneKillY(p) {
+    if (p.y > 700) return 745;
+    if (p.y > 400) return 430;
+    if (p.y < -250) return -470;
+    return null;
+  }
+  saveGame() {
+    const M = this.magic, E = this.entities, S = this.stats;
+    const data = { progress: this.progress, abilities: [...M.abilities], echoes: [...M.echoes], bonds: [...M.bonds], trials: [...M.trialsWon], met: S.met,
+      shards: E.shards.filter((x) => x.taken).map((x) => x.idx), secrets: [...S.secrets], forms: [...this.forms], glims: S.glims, bosses: [...this.bosses.defeated],
+      mossback: !!S.mossback, hollowjaw: !!S.hollowjaw, cosmetic: M.cosmetic, maxHearts: this.player.maxHearts, time: S.time };
+    store.set('save', JSON.stringify(data));
+  }
+  loadSave() {
+    let d; try { d = JSON.parse(store.get('save') || 'null'); } catch { d = null; }
+    if (!d) return;
+    const M = this.magic, E = this.entities, S = this.stats;
+    this.progress = d.progress || this.progress;
+    (d.abilities || []).forEach((a) => M.abilities.add(a)); M.shrines.forEach((x) => { if (M.abilities.has(x.ability)) x.done = true; });
+    (d.echoes || []).forEach((i) => M.echoes.add(i)); M.echoStones.forEach((e) => { if (M.echoes.has(e.idx)) e.taken = true; });
+    (d.bonds || []).forEach((k) => M.bonds.add(k)); M.bondItems.forEach((b) => { if (M.bonds.has(b.kind)) b.taken = true; });
+    (d.trials || []).forEach((i) => { M.trialsWon.add(i); const tr = M.trials.find((x) => x.id === i); if (tr) tr.state = 'won'; });
+    Object.assign(S.met, d.met || {}); for (const c of E.companions) if (S.met[c.kind]) { c.cage.visible = false; c.state = 'idle'; }
+    E.shards.forEach((x) => { if ((d.shards || []).includes(x.idx)) { x.taken = true; x.g.visible = false; } });
+    (d.secrets || []).forEach((x) => S.secrets.add(x)); (d.forms || []).forEach((x) => this.forms.add(x)); (d.bosses || []).forEach((x) => this.bosses.defeated.add(x));
+    S.glims = d.glims || 0; S.time = d.time || 0; S.mossback = d.mossback; if (d.hollowjaw) { this.hollowjaw.start(); this.hollowjaw.sleep(); this.hud.banner('', '', 0.01); }
+    Object.assign(M.cosmetic, d.cosmetic || {}); this.player.maxHearts = d.maxHearts || 3; this.player.hearts = this.player.maxHearts; this.player.applyCosmetics();
+    this.hud.abilities(M.abilities); this.hud.echoes(M.echoes.size); this.hud.bonds(M.bonds); this.hud.glims(S.glims); this.hud.shards(E.shards); this.hud.hearts(this.player.hearts, this.player.maxHearts);
+    this.hasSave = true;
+  }
+  openTravel() { this.leaveToMap(); }
+  openTravelOld() {
     const list = this.magic.waystones; this.travelSel = Math.max(0, list.indexOf(this.magic.nearWay));
     const render = () => { $('travel-list').innerHTML = list.map((w, i) => `<button class="tv ${i === this.travelSel ? 'sel' : ''}" data-i="${i}" ${w.lit ? '' : 'disabled'}>${w.lit ? w.name : '· · ·'}${w === this.magic.nearWay ? ' (here)' : ''}</button>`).join(''); $('travel-list').querySelectorAll('.tv').forEach((b) => b.onclick = () => this.travelTo(+b.dataset.i)); };
     this.renderTravel = render; render();
@@ -220,6 +343,8 @@ class Game {
     p.cart = null; p.reset(this.checkpoint.s, this.checkpoint.y + 0.1); p.maxHearts = max; p.hearts = max; p.invuln = 1.2;
     this.hud.hearts(p.hearts, p.maxHearts); this.hud.mount(null);
     E.resetChase(); E.resetCart(); E.resetEnemies(); this.magic.reset(); this.hollowjaw.reset(); this.finale.reset(); p.applyCosmetics();
+    const restartBoss = this.bosses.active?.id; if (restartBoss) { this.bosses.end(false); setTimeout(() => this.bosses.start(restartBoss), 900); }
+    if (this.flight) { const bird = this.entities.companions.find((c) => c.kind === 'bird'); bird.state = 'idle'; p.mountOn(bird); p.birdTime = 1e9; }
     this.fx.burst(this.path.world(p.s, p.y + 1, 0), 0xfff0c0, 24, 4, 0.6, 0.8, 2); p.squash = 0.4;
     this.audio.intensity = 0;
     this.director.update(0.016, p, true); this.snapTheme = true;
@@ -335,7 +460,11 @@ class Game {
     if (p.y > 150) t = 1;
     if (p.y < -100) t = 6;
     if (p.y > 250) t = 7;
+    if (p.y > 400 && p.y < 700 && this.currentLevel) t = this.currentLevel.theme;
+    if (p.y < -250) t = 8;
+    if (p.y > 700) t = 9;
     const sky = p.y > 150 && p.y < 250;
+    if (t === 8 || t === 9) this.audio.theme = t === 8 ? 2 : 1;
     this.currentTheme = t;
     let T = THEMES[t];
     if (sky) T = { ...T, fog: 0xa8c8e8, dens: 0.004, exp: 0.85, top: 0x3a80e0, hor: 0xd8e8ff };
@@ -345,7 +474,7 @@ class Game {
     if (t <= 2 && wk > 0) T = { ...T, exp: T.exp + wk * 0.08, si: T.si * (1 + wk * 0.15) };
     if (this.dawn) T = DAWN;
     this.applyTheme(T, this.snapTheme ? 1 : 1 - Math.exp(-dt * 1.2)); this.snapTheme = false;
-    this.audio.theme = t; this.audio.wake = this.magic.awaken;
+    this.audio.theme = t >= 8 ? (t === 8 ? 6 : 1) : t; this.audio.wake = this.magic.awaken;
     // sun & shadow camera follow the player
     const w = this.path.world(p.s, p.y, 0);
     this.sun.position.set(w.x + 30, w.y + 60, w.z + 20); this.sun.target.position.copy(w);
@@ -378,7 +507,7 @@ class Game {
     const h = 1 / 120;
     for (let i = 0; i < secs * 120; i++) {
       this.input.update();
-      this.entities.update(h); this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.player.step(h, this.input); this.player.tick(h); this.player.interact(h);
+      this.entities.update(h); this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h); this.player.step(h, this.input); this.player.tick(h); this.player.interact(h);
       if (i === 0) this.input.endFrame();
     }
     const p = this.player; return { s: +(p.s - O).toFixed(2), y: +p.y.toFixed(2), vs: +p.vs.toFixed(2), vy: +p.vy.toFixed(2), st: p.state, g: p.grounded, mount: p.mount, cart: !!p.cart, glims: this.stats.glims, hearts: p.hearts, deaths: this.stats.deaths, water: p.inWater };
@@ -387,7 +516,7 @@ class Game {
     requestAnimationFrame((t) => this.loop(t));
     this.frames = (this.frames || 0) + 1;
     let dt = Math.max(0, Math.min(0.05, (now - this.last) / 1000)); this.last = now;
-    if (this.state === 'paused' || this.state === 'travel') { this.input.endFrame(); return; }
+    if (this.state === 'paused' || this.state === 'travel' || this.state === 'map') { this.input.endFrame(); if (this.state === 'map') { this.world.update(this.time += 0.016, 0.016); this.composer.render(); } return; }
     this.time += dt;
     const playing = this.state === 'play';
     this.input.update();
@@ -400,7 +529,7 @@ class Game {
       let n = 0;
       while (this.acc >= h && n < 8) {
         this.entities.update(h);
-        this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h);
+        this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h);
         this.player.step(h, this.input);
         this.player.tick(h);
         this.player.interact(h);
@@ -413,7 +542,8 @@ class Game {
       this.player.idleT = 0;
     } else this.entities.update(dt);
     this.player.render(dt);
-    this.magic.update(dt); this.hollowjaw.update(dt, this.time); this.finale.update(dt, this.time); this.runEnding(dt);
+    this.magic.update(dt); this.hollowjaw.update(dt, this.time); this.finale.update(dt, this.time); this.bosses.update(dt, this.time); this.worlds.update(dt, this.time); this.runEnding(dt); this.checkLevelEnd();
+    if (this.state === 'play' && this.player.state !== 'cutscene') this.levelTime = (this.levelTime || 0) + dt;
     this.world.update(this.time, dt);
     this.updateAtmosphere(dt);
     this.director.update(dt, this.player);

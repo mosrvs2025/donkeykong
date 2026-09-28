@@ -13,7 +13,7 @@ export function buildLevel() {
     solids: [], slopes: [], water: [], vines: [], bouncers: [], glims: [], shards: [], cages: [], enemies: [],
     grapples: [], updrafts: [], checkpoints: [], portals: [], blooms: [], totems: [], carts: [], chases: [],
     altar: null, cams: [], themes: [], banners: [], signs: [], hints: [],
-    shrines: [], waystones: [], doors: [], echoes: [], trials: [], critters: [], blooms2: [], mossback: null, notices: [], bonds: [], finaleBlights: [],
+    shrines: [], waystones: [], doors: [], echoes: [], trials: [], critters: [], blooms2: [], mossback: null, notices: [], bonds: [], finaleBlights: [], arenas: {}, currents: [], storms: [], bounds: [],
   };
   let id = 0;
   const solid = (s0, s1, y0, y1, mat = 'stone', extra = {}) => { const o = { id: id++, s0: s0 + O, s1: s1 + O, y0, y1, mat, ...extra }; L.solids.push(o); return o; };
@@ -406,6 +406,71 @@ export function buildLevel() {
   // Boing's gift: hookblooms that skip the shoulder (only if Kiri and Boing are bonded)
   L.grapples.push({ s: 1553 + O, y: 48, bondOnly: 'frog' }, { s: 1545 + O, y: 57, bondOnly: 'frog' }, { s: 1537 + O, y: 66, bondOnly: 'frog' });
   cam(1500, 1580, { dist: 26, height: 3, fov: 55, yMin: 5, yMax: 130 });
+
+  // ═════════════════════ ROUND FOUR: levels, boss arenas, and two new worlds ═════════════════════
+  // Boss arenas float in their own pocket of the world (y ≈ 450), one per area.
+  const arena = (id, sc, mat, wall, extra = {}) => {
+    const y = 450;
+    ground(sc - 32, sc + 32, y, mat);
+    solid(sc - 35, sc - 32, y, y + 40, wall); solid(sc + 32, sc + 35, y, y + 40, wall);
+    L.arenas[id] = { id, s: sc + O, y, w: 32, ...extra };
+    cam(sc - 40, sc + 40, { dist: 24, height: 4, fov: 54, yMin: 420, yMax: 520 });
+    return y;
+  };
+  arena('bramble', 264, 'grass', 'bark');
+  arena('skyreaver', 535, 'bark', 'bark');
+  const wy = arena('warden', 852, 'ruin', 'ruin');
+  bouncer(852, wy, 23);
+  const cy = arena('crawler', 1362, 'mine', 'cave');
+  solid(1328, 1396, cy + 15, cy + 22, 'cave');
+
+  // ───────────────────── THE SUNKEN SANCTUM (underwater world) ─────────────────────
+  const U = -420;
+  water(290, 772, -445, -333);
+  ground(288, 774, U, 'sand');
+  solid(288, 774, -334, -296, 'cave');
+  solid(284, 290, -445, -296, 'cave'); solid(770, 776, -445, -296, 'cave');
+  solid(320, 326, U, -404, 'cliff'); solid(346, 351, U, -398, 'cliff'); solid(360, 367, -352, -334, 'cliff');
+  arc(300, 340, -392, 10, 9); line(340, 375, -372, -372, 7);
+  enemy('eel', 338, -388, 9); enemy('jelly', 356, -378, 5); enemy('jelly', 370, -392, 6);
+  checkpoint(302, U);
+  solid(380, 382, U, -334, 'ruin', { crack: 'swim' });
+  hint(372, 380, 'Tide Form — <b>Shift</b> to dash and burst the seal');
+  // the current tunnel
+  solid(400, 482, -392, -334, 'cliff'); solid(400, 482, U, -406, 'cliff');
+  L.currents.push({ s0: 398 + O, s1: 484 + O, y0: -407, y1: -391, vs: 9, vy: 0 });
+  line(402, 480, -399, -399, 14);
+  enemy('jelly', 440, -399, 4);
+  checkpoint(490, U);
+  // the drowned temple
+  for (const [a, h] of [[500, 18], [520, 26], [548, 22], [575, 30], [590, 16]]) solid(a, a + 3, U, U + h, 'ruin');
+  solid(530, 545, -365, -362, 'ruin'); solid(556, 570, -380, -377, 'ruin');
+  ring(538, -375, 3.5, 10); arc(548, 575, -372, 8, 8);
+  enemy('eel', 560, -350, 12); enemy('jelly', 510, -370, 7); enemy('jelly', 585, -360, 8);
+  L.currents.push({ s0: 596 + O, s1: 604 + O, y0: U, y1: -336, vs: 0, vy: 8 });
+  // jellyfish garden
+  for (const [a, b, r] of [[612, -380, 8], [626, -360, 10], [640, -392, 7], [654, -368, 9], [668, -384, 8], [680, -356, 7]]) enemy('jelly', a, b, r);
+  line(610, 685, -372, -372, 12);
+  checkpoint(688, U);
+  L.arenas.angler = { id: 'angler', s: 730 + O, y: U, w: 36, water: true, gate: 694 + O };
+  L.bounds.push({ id: 'angler', s0: 692 + O, s1: 694 + O, y0: -445, y1: -296 });
+  cam(285, 780, { dist: 21, height: 2, fov: 56, yMin: -460, yMax: -300 });
+
+  // ───────────────────── SKYWARD ISLES (flight world) ─────────────────────
+  const Y = 800;
+  const isle = (a, b, y) => plat(a, b, y, 'cloud', 2.5);
+  isle(196, 214, Y); isle(240, 250, Y + 10); isle(282, 292, Y - 6); isle(330, 338, Y + 20); isle(378, 396, Y + 4);
+  isle(440, 448, Y + 30); isle(500, 516, Y); isle(560, 568, Y + 16); isle(618, 636, Y + 4); isle(690, 700, Y + 24); isle(750, 766, Y + 8);
+  checkpoint(386, Y + 4); checkpoint(627, Y + 4);
+  for (const [a, b, c, d, vs, vy] of [[300, 362, Y - 12, Y + 30, 10, 0], [460, 540, Y + 2, Y + 50, 9, 2.5], [640, 700, Y - 10, Y + 12, 11, 0], [770, 810, Y - 10, Y + 40, 0, 6]])
+    L.currents.push({ s0: a + O, s1: b + O, y0: c, y1: d, vs, vy, wind: true });
+  for (const [a, b, r] of [[265, Y + 8, 3], [312, Y + 30, 3.5], [352, Y - 4, 3], [420, Y + 20, 4], [470, Y + 55, 3], [548, Y + 36, 4], [590, Y - 2, 3.5], [660, Y + 30, 4], [720, Y + 6, 3], [735, Y + 40, 3.5]])
+    L.storms.push({ s: a + O, y: b, r });
+  for (const [a, b] of [[258, Y + 20], [300, Y + 12], [345, Y + 25], [410, Y + 12], [465, Y + 40], [520, Y + 20], [575, Y + 30], [650, Y + 12], [705, Y + 36]]) enemy('buzzmoth', a, b, 2);
+  ring(230, Y + 25, 3, 8); arc(250, 330, Y + 15, 18, 14); ring(420, Y + 40, 3.5, 10); arc(500, 620, Y + 20, 25, 18); ring(600, Y + 60, 3, 8); arc(640, 760, Y + 15, 20, 16);
+  L.arenas.heron = { id: 'heron', s: 858 + O, y: Y + 10, w: 40, sky: true, gate: 818 + O };
+  L.bounds.push({ id: 'heron', s0: 815 + O, s1: 818 + O, y0: 740, y1: 900 }, { id: 'heron', s0: 900 + O, s1: 903 + O, y0: 740, y1: 900 });
+  cam(190, 910, { dist: 26, height: 3, fov: 56, yMin: 740, yMax: 900 });
 
   L.start = { s: 4 + O, y: 0 };
   L.endS = 1560 + O;

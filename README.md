@@ -50,6 +50,24 @@ Debug: `?autostart&abilities` grants all three abilities.
 - **Mastery**: Comet Leap (roll, jump, then leap) and Lumen Float (hold the song in mid-air) are undocumented. Other additions: bouncing along Hollowjaw's back, a run timer with your best time saved, and **Wisp Mode** after your first clear (start with every ability awake).
 - **Fixed**: a scale bug that made the Glowdeep render black.
 
+## Round four: a world map, levels, bosses and new worlds
+- **World map**: an illustrated chart of Thornwild. Walk Kiri between levels (arrows or tap), choose which befriended companion to bring along, and enter. Progress, abilities, relics and bosses are saved in the browser.
+- **Eight levels**, each ending at an exit. The main route: Rootwild → Canopy → Weeping Ruins → Glowdeep → Sunwright Mine → Heart of the Seed. Optional branches: Skyward Isles (after the Canopy) and the Sunken Sanctum (after the Ruins).
+- **A guardian at the end of each area**, each beaten with movement rather than attacks:
+  - **Bramble King:** jump its charges; it slams into the wall and flips over, then stomp its belly.
+  - **Skyreaver:** watch its shadow; it dives and gets stuck in the ground, then bounce on its head.
+  - **Stone Warden:** its hands slam and become platforms; climb them to strike its eye.
+  - **Hollowjaw:** sing it to sleep to pass the Glowdeep.
+  - **Forge Crawler:** make it crash, dodge falling rocks, then slam its core.
+  - **Deep Angler:** dodge its lunge; when it hits the wall its lantern droops, so dash into it.
+  - **Storm Heron:** outfly the lightning columns and ram it when it tires.
+  - **The Colossus** remains the finale.
+- **The Sunken Sanctum** is an underwater world. Kiri gains **Tide Form**: he swims freely and dashes, and currents carry him. It has jellyfish, eels, and a drowned temple. Tide Form stays afterwards, so Kiri can dash through Nuu's seal in the Weeping Ruins himself.
+- **Skyward Isles** is a flight world on Sola: steer with ↑↓, flap, dash, ride wind streams and avoid storm clouds. Clearing it evolves Kiri into **Sky Form**, which lets Wisp Leap work twice in mid-air everywhere.
+- Waystones and the pause menu return you to the map. Touch players get a pause button.
+
+Debug: `?autostart&level=<id>` starts in a level (rootwild, canopy, skyward, ruins, sunken, glowdeep, mine, heart).
+
 ## Code layout
 - `src/level.js`: the whole level as data, in route space (s = distance along the path, y = height)
 - `src/path.js`: the curved route through the 3D world
@@ -58,6 +76,9 @@ Debug: `?autostart&abilities` grants all three abilities.
 - `src/entities.js`: enemies, collectibles, interactables, the boulder chase
 - `src/world.js`: terrain, vegetation, landmarks, sky, and water
 - `src/camera.js`: the zone-based camera director and scripted shots
+- `src/map.js`: world map and level definitions
+- `src/bosses.js`: the area guardians
+- `src/worlds.js`: underwater and sky world decor, currents, storms
 - `src/encounters.js`: Hollowjaw and the Colossus finale
 - `src/magic.js`: abilities, shrines, waystones, ghostwood, echoes, trials, Mossback, hidden worlds, companion personality
 - `src/fx.js`, `src/audio.js`: particles and fully synthesized sound and music
