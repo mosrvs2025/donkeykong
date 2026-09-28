@@ -20,6 +20,7 @@ import { Worlds } from './worlds.js';
 import { Menu, store, currentSlot, loadSettings } from './menu.js';
 import { Story, CHAPTER_LINES } from './story.js';
 import { Coop } from './coop.js';
+import { Extras, medalFor, MEDAL_ICON } from './extras.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 // Cinematic finishing pass: gentle colour grading, vignette, film grain and a hint of lens fringing.
 const CineShader = {
@@ -70,6 +71,7 @@ class HUD {
   abilities(set) { $('abilities').innerHTML = ['leap', 'song', 'grip'].map((k) => `<div class="ab ${set.has(k) ? 'on' : ''}" title="${ABILITIES[k].name}">${ABILITIES[k].icon}</div>`).join(''); }
   bonds(set) { $('bonds').innerHTML = ['beast', 'frog', 'bird', 'fish', 'oru'].map((k) => `<i class="bd ${set.has(k) ? 'on' : ''} ${k}"></i>`).join(''); }
   bossBar(hp, name) { const el = $('bossbar'); if (!hp) { el.classList.remove('on'); return; } el.innerHTML = `<span>${name}</span><b>${'◆'.repeat(hp)}${'◇'.repeat(3 - hp)}</b>`; el.classList.add('on'); }
+  coins(n) { $('coins').textContent = n ? `◉ ${n}` : ''; }
   echoes(n) { $('echoes').textContent = n ? `❋ ${n}/8` : ''; }
   chain(n) { const el = $('chain'); if (n >= 3) { el.textContent = `airborne ×${n}`; el.classList.add('on'); } else el.classList.remove('on'); }
   prompt(t) { const el = $('prompt'); if (t) { el.textContent = t; el.classList.add('on'); } else el.classList.remove('on'); }
@@ -137,6 +139,7 @@ class Game {
     this.progress = { unlocked: ['rootwild'], levels: {} };
     this.loadSave();
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
+    this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
@@ -152,7 +155,9 @@ class Game {
       if ((code === 'KeyP' || code === 'Escape') && (this.state === 'play' || this.state === 'paused')) this.togglePause();
       if (this.state === 'story' && (code === 'Space' || code === 'Enter' || code === 'Escape')) this.story.next();
       if (this.state === 'title' && (code === 'ArrowDown' || code === 'ArrowUp')) { const bs = [...document.querySelectorAll('#title .menu:not(.hidden) button:not(.hidden)')]; const i = bs.indexOf(document.activeElement); const n = bs[(i + (code === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length]; n && n.focus(); }
-      if (this.state === 'map') this.map.key(code);
+      if (code === 'KeyF') this.extras.togglePhoto();
+      if (this.state === 'map' && !this.extras.shopOpen) this.map.key(code);
+      if (this.extras.shopOpen && code === 'Escape') this.extras.closeShop();
       if (this.state === 'travel') {
         const L = this.magic.waystones;
         const mv = (d) => { let i = this.travelSel; for (let k = 0; k < L.length; k++) { i = (i + d + L.length) % L.length; if (L[i].lit) break; } this.travelSel = i; this.renderTravel(); };
@@ -165,6 +170,7 @@ class Game {
     $('resume-btn').onclick = () => this.togglePause();
     $('t-pause').addEventListener('pointerdown', (e) => { e.preventDefault(); if (this.state === 'play' || this.state === 'paused') this.togglePause(); });
     $('map-btn').onclick = () => { this.state = 'play'; this.leaveToMap(); };
+    $('photo-btn').onclick = () => { this.state = 'play'; this.extras.togglePhoto(); };
     $('save-btn').onclick = () => { this.saveGame(); $('save-note').textContent = `Saved to slot ${currentSlot()}`; this.audio.play('checkpoint'); };
     $('quit-btn').onclick = () => { this.saveGame(); location.reload(); };
     this.resize();
@@ -210,7 +216,7 @@ class Game {
   }
   applySettings(S, qualityChanged) {
     this.audio.volume = S.vol / 100; this.audio.musicWanted = S.music; this.audio.applyVolume?.();
-    this.cine.uniforms.amount.value = S.post ? 1 : 0; this.cine.enabled = S.post;
+    this.cine.uniforms.amount.value = S.post ? 1 : 0; this.cine.enabled = S.post; this.assist = !!S.assist; this.slow = !!S.slow;
     if (qualityChanged) {
       const q = S.quality;
       this.renderer.setPixelRatio(Math.min(devicePixelRatio, q === 'high' ? (isMobile ? 1.5 : 2) : q === 'med' ? 1.25 : 0.85));
@@ -288,13 +294,15 @@ class Game {
     const st = (this.progress.levels[lv.id] ||= {});
     st.clear = true; if (lv.boss && this.bosses.defeated.has(lv.boss)) st.boss = true;
     st.best = st.best ? Math.min(st.best, this.levelTime) : this.levelTime;
+    const medal = medalFor(lv.id, this.levelTime); const rank = { bronze: 1, silver: 2, gold: 3 }; if (!st.medal || rank[medal] > rank[st.medal]) st.medal = medal;
+    const lc = this.extras.levelCoins(lv.id).filter((c) => c.taken).length;
     this.map.unlock(lv.id);
     let extra = '';
     if (lv.grants === 'sky' && !this.forms.has('sky')) { this.forms.add('sky'); extra = '<p class="unlock">Kiri evolves: <b>SKY FORM</b>. Wisp Leap now works twice in mid-air, everywhere.</p>'; }
     if (lv.grants === 'tide') extra = '<p class="unlock">Tide Form stays with Kiri. Somewhere in the Weeping Ruins, a sealed stone waits for a dash.</p>';
     this.audio.play('win'); this.audio.motif(3);
     const t = this.levelTime;
-    $('clear').innerHTML = `<div class="kicker">level clear</div><h2>${lv.name}</h2><p>${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')} · ${this.stats.glims} glims · ${this.magic.echoes.size}/8 echoes · ${this.magic.bonds.size}/5 bonds</p>${extra}`;
+    $('clear').innerHTML = `<div class="kicker">level clear</div><h2>${lv.name}</h2><p class="big">${MEDAL_ICON[medal]} ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}</p><p>Seed Coins ${'◉'.repeat(lc)}${'○'.repeat(3 - lc)} · ${this.stats.glims} glims · ${this.magic.echoes.size}/8 echoes · ${this.magic.bonds.size}/5 bonds</p>${extra}`;
     $('clear').classList.add('on');
     this.saveGame();
     setTimeout(() => { $('clear').classList.remove('on'); this.clearing = false; this.leaveToMap(); }, extra ? 4200 : 2800);
@@ -326,7 +334,7 @@ class Game {
     (d.secrets || []).forEach((x) => S.secrets.add(x)); (d.forms || []).forEach((x) => this.forms.add(x)); (d.bosses || []).forEach((x) => this.bosses.defeated.add(x));
     S.glims = d.glims || 0; S.time = d.time || 0; S.mossback = d.mossback; if (d.hollowjaw) { this.hollowjaw.start(); this.hollowjaw.sleep(); this.hud.banner('', '', 0.01); }
     Object.assign(M.cosmetic, d.cosmetic || {}); this.player.maxHearts = d.maxHearts || 3; this.player.hearts = this.player.maxHearts; this.player.applyCosmetics();
-    this.hud.abilities(M.abilities); this.hud.echoes(M.echoes.size); this.hud.bonds(M.bonds); this.hud.glims(S.glims); this.hud.shards(E.shards); this.hud.hearts(this.player.hearts, this.player.maxHearts);
+    this.hud.abilities(M.abilities); this.hud.echoes(M.echoes.size); this.hud.coins((this.progress.coins || []).length); this.hud.bonds(M.bonds); this.hud.glims(S.glims); this.hud.shards(E.shards); this.hud.hearts(this.player.hearts, this.player.maxHearts);
     this.hasSave = true;
   }
   openTravel() { this.leaveToMap(); }
@@ -386,6 +394,7 @@ class Game {
   killPlayer(reason) {
     const p = this.player; if (p.state === 'dead' || p.state === 'cutscene') return;
     p.state = 'dead'; p.deadT = 0; this.stats.deaths++;
+    const pw = this.path.world(p.s, p.y + 0.8, 0); this.fx.burst(pw, 0xffe0b0, 36, 7, 0.8, 0.9, -6); this.fx.burst(pw, 0xffffff, 12, 3, 1.2, 0.4, 0); p.model.visible = false;
     this.audio.play('hurt'); this.shake(0.6); this.toast(reason || 'Ouch!', 1.5);
     $('fade').style.opacity = 1;
   }
@@ -562,7 +571,7 @@ class Game {
     const h = 1 / 120;
     for (let i = 0; i < secs * 120; i++) {
       this.input.update();
-      this.entities.update(h); this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h); this.player.step(h, this.input); this.player.tick(h); this.player.interact(h);
+      this.entities.update(h); this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h); this.player.step(h, this.input); this.extras.step(h); this.player.tick(h); this.player.interact(h);
       if (i === 0) this.input.endFrame();
     }
     const p = this.player; return { s: +(p.s - O).toFixed(2), y: +p.y.toFixed(2), vs: +p.vs.toFixed(2), vy: +p.vy.toFixed(2), st: p.state, g: p.grounded, mount: p.mount, cart: !!p.cart, glims: this.stats.glims, hearts: p.hearts, deaths: this.stats.deaths, water: p.inWater };
@@ -571,12 +580,14 @@ class Game {
     requestAnimationFrame((t) => this.loop(t));
     this.frames = (this.frames || 0) + 1;
     let dt = Math.max(0, Math.min(0.05, (now - this.last) / 1000)); this.last = now;
+    if (this.state === 'photo') { this.input.update(); this.extras.update(dt, this.time); this.world.update(this.time, 0); this.cine.uniforms.time.value = this.time; this.composer.render(); return; }
     if (this.state === 'story') { this.input.update(); this.story.update(dt); this.entities.update(dt); this.player.render(dt); this.magic.update(dt); this.world.update(this.time += dt, dt); this.updateAtmosphere(dt); this.fx.update(dt, this.camera.position); this.hud.update(dt); this.audio.updateMusic(); this.cine.uniforms.time.value = this.time; this.composer.render(); return; }
     if (this.state === 'paused' || this.state === 'travel' || this.state === 'map') { this.input.endFrame(); if (this.state === 'map') { this.world.update(this.time += 0.016, 0.016); this.composer.render(); } return; }
     this.time += dt;
     const playing = this.state === 'play';
     this.input.update();
     if (this.slowT > 0) { this.slowT -= dt; dt *= 0.35; }
+    if (this.slow) dt *= 0.8;
     this.glimStreakT = (this.glimStreakT || 0) - dt;
     if (playing) {
       if (this.introT > 0) { this.introT -= dt; }
@@ -587,7 +598,7 @@ class Game {
         this.entities.update(h);
         this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h);
         this.player.step(h, this.input);
-        this.coop.step(h, this.input.p2);
+        this.coop.step(h, this.input.p2); this.extras.step(h);
         this.player.tick(h);
         this.player.interact(h);
         this.acc -= h; n++;
@@ -608,7 +619,7 @@ class Game {
       const w = this.path.world(this.player.s, 2, 0), a = this.time * 0.08;
       this.camera.position.set(w.x + Math.sin(a) * 26, w.y + 8, w.z + Math.cos(a) * 26); this.camera.lookAt(w.x, w.y + 3, w.z);
     }
-    this.coop.update(dt);
+    this.coop.update(dt); this.extras.update(dt, this.time);
     this.cine.uniforms.time.value = this.time;
     this.fx.update(dt, this.camera.position);
     this.hud.update(dt);

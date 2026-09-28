@@ -21,7 +21,7 @@ export class WorldMap {
     this.cur = 'rootwild'; this.buddy = null; this.moving = null;
     this.el.addEventListener('pointerdown', (e) => {
       const n = e.target.closest('[data-node]'); if (n) { e.preventDefault(); this.tapNode(n.dataset.node); }
-      const b = e.target.closest('[data-act]'); if (b) { e.preventDefault(); if (b.dataset.act === 'buddy') this.cycleBuddy(); if (b.dataset.act === 'go') this.enter(); }
+      const b = e.target.closest('[data-act]'); if (b) { e.preventDefault(); if (b.dataset.act === 'buddy') this.cycleBuddy(); if (b.dataset.act === 'go') this.enter(); if (b.dataset.act === 'shop') this.game.extras.openShop(); }
     });
   }
   progress() { return this.game.progress; }
@@ -67,6 +67,7 @@ export class WorldMap {
     }
     if (code === 'Space' || code === 'Enter' || code === 'KeyZ') this.enter();
     if (code === 'KeyC' || code === 'KeyX' || code === 'ShiftLeft') this.cycleBuddy();
+    if (code === 'KeyV' || code === 'KeyB') this.game.extras.openShop();
   }
   enter() { if (!this.unlocked(this.cur)) return; this.hide(); this.game.enterLevel(levelById(this.cur), this.buddy); }
   render() {
@@ -77,7 +78,9 @@ export class WorldMap {
       const st = P.levels[l.id] || {}, un = this.unlocked(l.id), here = l.id === this.cur;
       const cls = `mn ${un ? 'un' : ''} ${st.clear ? 'clear' : ''} ${here ? 'here' : ''} ${l.optional ? 'opt' : ''} ${l.mode || ''}`;
       const icon = l.mode === 'swim' ? '≈' : l.mode === 'fly' ? '☁' : l.id === 'heart' ? '✦' : st.clear ? '✓' : '';
-      return `<g data-node="${l.id}" class="${cls}" transform="translate(${l.at[0]} ${l.at[1]})"><circle r="30" class="hit"/><circle r="17" class="ring"/><circle r="11" class="core"/><text class="ic" y="4">${icon}</text>${st.boss ? '<text class="crown" y="-24">♛</text>' : ''}<text class="nm" y="42">${un ? l.name : '? ? ?'}</text></g>`;
+      const cn = g.extras ? g.extras.levelCoins(l.id).filter((c) => c.taken).length : 0;
+      const md = { gold: '🥇', silver: '🥈', bronze: '🥉' }[st.medal] || '';
+      return `<g data-node="${l.id}" class="${cls}" transform="translate(${l.at[0]} ${l.at[1]})"><circle r="30" class="hit"/><circle r="17" class="ring"/><circle r="11" class="core"/><text class="ic" y="4">${icon}</text>${st.boss ? '<text class="crown" y="-24">♛</text>' : ''}${md ? `<text class="medal" x="24" y="-12">${md}</text>` : ''}<text class="nm" y="42">${un ? l.name : '? ? ?'}</text>${un ? `<text class="coins" y="57">${'◉'.repeat(cn)}${'○'.repeat(3 - cn)}</text>` : ''}</g>`;
     }).join('');
     const here = levelById(this.cur), st = P.levels[here.id] || {};
     const kiri = `<g class="kiri" transform="translate(${here.at[0]} ${here.at[1] - 22})"><circle r="8" fill="#e0873a"/><circle cx="3" cy="-2" r="1.6" fill="#111"/><path d="M-7 3 q-9 2 -10 -6" stroke="#f6dcb0" stroke-width="3" fill="none"/></g>`;
@@ -95,9 +98,10 @@ export class WorldMap {
       </svg>
       <div class="map-foot">
         <button data-act="buddy" class="alt small">Bring: ${this.buddy ? names[this.buddy] : 'nobody'}</button>
+        <button data-act="shop" class="ghost small">Pim’s Stall · ${g.stats.glims} ✦</button>
         <button data-act="go">Enter ▸</button>
       </div>
-      <p class="map-help">${g.input.isTouch ? 'Tap a level to walk there, tap again to enter' : '←→↑↓ walk · Space enter · C choose companion'}</p>
+      <p class="map-help">${g.input.isTouch ? 'Tap a level to walk there, tap again to enter' : '←→↑↓ walk · Space enter · C companion · B shop'}</p>
     </div>`;
   }
 }

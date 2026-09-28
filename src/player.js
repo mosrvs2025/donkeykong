@@ -70,6 +70,7 @@ export class Player {
   hurt(reason) {
     const game = this.game;
     if (this.invuln > 0 || this.state === 'dead' || this.state === 'cutscene') return;
+    if (game.assist) { this.invuln = 1; this.vy = 8; game.audio.play('hurt'); return; }
     if (this.cart) return game.killPlayer(reason);
     game.shake(0.5); game.audio.play('hurt');
     if (this.comp && !game.flight) { this.dismount(true, -this.facing); this.invuln = 1.5; this.vy = 12; return; }

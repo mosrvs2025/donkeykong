@@ -76,6 +76,14 @@ Debug: `?autostart&level=<id>` starts in a level (rootwild, canopy, skyward, rui
 - **Local co-op**: Player 2 is **Lumi**, a wisp who flies freely around Kiri (IJKL + O, or a second gamepad). Lumi collects glims, and her Lumen Pulse stuns critters and pops flyers. Pulsing next to Kiri refreshes Kiri's Wisp Leap and boosts Kiri upward. It also counts as a song for Hollowjaw and wakes nearby ghostwood.
 - **Gamepad support**: stick/d-pad to move, A jump, X action, Y hop off, Start pause.
 
+## Round six: the complete package
+- **Seed Coins**: three hidden in every level (24 in all), shown under each node on the world map and on the level-clear card.
+- **Pim's Travelling Stall** on the world map (press B, or tap the button): spend glims on Heart Containers, the Lumen Compass (points to the nearest Seed Coin), hats and scarf colours. The best items also need Seed Coins. Hats appear on Kiri in-game.
+- **Time medals**: gold, silver or bronze per level based on clear time, shown on the map.
+- **Photo mode** (F, or from the pause menu): freeze the action, orbit and zoom the camera, and choose Natural, Storybook, Moonlight or Vivid. The HUD hides.
+- **Assist options** in Settings: no damage, and a slower game speed.
+- **Feel**: nearby glims drift into Kiri, a burst of light when Kiri falls, and a burst when Kiri reforms at a checkpoint.
+
 ## Code layout
 - `src/level.js`: the whole level as data, in route space (s = distance along the path, y = height)
 - `src/path.js`: the curved route through the 3D world
@@ -84,6 +92,7 @@ Debug: `?autostart&level=<id>` starts in a level (rootwild, canopy, skyward, rui
 - `src/entities.js`: enemies, collectibles, interactables, the boulder chase
 - `src/world.js`: terrain, vegetation, landmarks, sky, and water
 - `src/camera.js`: the zone-based camera director and scripted shots
+- `src/extras.js`: Seed Coins, shop, hats, medals, compass, photo mode
 - `src/menu.js`, `src/story.js`, `src/coop.js`: title menus and save slots, the prologue and chapter lines, local co-op
 - `src/map.js`: world map and level definitions
 - `src/bosses.js`: the area guardians

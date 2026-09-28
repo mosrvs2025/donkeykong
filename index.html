@@ -18,6 +18,7 @@
   <div id="mount"></div>
   <div id="abilities"></div>
   <div id="echoes"></div>
+  <div id="coins"></div>
   <div id="bonds"></div>
   <span id="p2tag" class="hidden">P2 · Lumi</span>
   <div id="timer"></div>
@@ -26,6 +27,9 @@
 <div id="bossbar"></div>
 <div id="clear"></div>
 <div id="map" class="hidden"></div>
+<div id="shop" class="hidden"></div>
+<div id="photo" class="hidden"><div class="photo-bar"><span class="kicker">photo mode</span><button class="small ghost" data-f="1">Filter: Natural</button><button class="small ghost" data-z="1">Zoom</button><button class="small" data-x="1">Done</button></div><p class="photo-help">drag or ←→↑↓ to orbit · Space/Shift or wheel to zoom · F to exit</p></div>
+<div id="compass"><span>➤</span></div><div id="compass-d"></div>
 <div id="prompt"></div>
 <div id="story"><p id="story-text"></p><small id="story-sub"></small></div>
 <div id="travel" class="hidden"><div class="travel-inner"><div class="kicker">Sunwright Waystones</div><h2>Where to?</h2><div id="travel-list"></div><small>↑↓ choose · Space travel · Esc close</small></div></div>
@@ -53,12 +57,14 @@
       <label class="set">Music <input id="s-music" type="checkbox" checked></label>
       <label class="set">Graphics <select id="s-quality"><option value="low">Low (fast)</option><option value="med">Medium</option><option value="high">High</option></select></label>
       <label class="set">Film grain &amp; vignette <input id="s-post" type="checkbox" checked></label>
+      <label class="set">Assist: no damage <input id="s-assist" type="checkbox"></label>
+      <label class="set">Assist: slower game speed <input id="s-slow" type="checkbox"></label>
       <button class="ghost m-back">Back</button></div>
     <div id="menu-help" class="menu hidden"><h3>How to Play</h3>
       <div class="controls">
         <div><b>←→ / A D</b> run</div><div><b>Space</b> jump (hold = higher)</div>
         <div><b>Shift / X</b> roll · in air: slam</div><div><b>C</b> hop off a companion</div>
-        <div><b>↑</b> sing · waystones</div><div><b>P</b> pause · <b>M</b> mute</div>
+        <div><b>↑</b> sing · waystones</div><div><b>P</b> pause · <b>M</b> mute · <b>F</b> photo</div>
         <div class="span"><b>Gamepad</b>: stick/d-pad move · A jump · X action · Y hop off · Start pause</div>
         <div class="span"><b>Player 2 · Lumi the wisp</b>: <b>I J K L</b> fly · <b>O</b> lumen pulse (or a second gamepad)</div>
       </div><button class="ghost m-back">Back</button></div>
@@ -66,7 +72,7 @@
   </div>
 </div>
 <div id="intro" class="hidden"><div class="bar top"></div><div class="bar bot"></div><p id="intro-text"></p><small id="intro-skip">Space / tap to continue</small></div>
-<div id="pause" class="screen hidden"><div class="title-inner"><h2>Paused</h2><div class="menu"><button id="resume-btn">Resume</button><button id="map-btn" class="alt">World Map</button><button id="save-btn" class="ghost">Save</button><button id="quit-btn" class="ghost">Save &amp; Quit to Title</button><p id="save-note" class="dimt"></p></div></div></div>
+<div id="pause" class="screen hidden"><div class="title-inner"><h2>Paused</h2><div class="menu"><button id="resume-btn">Resume</button><button id="map-btn" class="alt">World Map</button><button id="photo-btn" class="ghost">Photo Mode</button><button id="save-btn" class="ghost">Save</button><button id="quit-btn" class="ghost">Save &amp; Quit to Title</button><p id="save-note" class="dimt"></p></div></div></div>
 <div id="end" class="screen hidden"><div class="title-inner" id="end-inner"></div></div>
 <div id="touch" class="hidden">
   <div id="t-left" class="tbtn">◀</div>

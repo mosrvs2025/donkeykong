@@ -56,6 +56,7 @@ export function makeHero() {
   // ringed tail
   const tail = []; parent = pivot(torso, -0.28, -0.2, 0);
   for (let i = 0; i < 9; i++) { const seg = sph(0.09 - i * 0.004, i % 2 ? dark : cream, 8, 6); seg.scale.set(1.4, 1, 1); seg.position.x = -0.09; parent.add(seg); const nx = pivot(parent, -0.16, 0, 0); tail.push(parent); parent = nx; }
+  root.traverse((o) => { if (o.isMesh && o.material === scarfM) o.userData.scarf = true; });
   root.userData = { body, torso, head, ears, arms, legs, tail, scarf, eyeL, eyeR };
   return root;
 }

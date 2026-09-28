@@ -41,6 +41,9 @@ export class Menu {
     $('s-music').onchange = () => { S.music = $('s-music').checked; saveSettings(S); game.applySettings(S); };
     $('s-quality').onchange = () => { S.quality = $('s-quality').value; saveSettings(S); game.applySettings(S, true); };
     $('s-post').onchange = () => { S.post = $('s-post').checked; saveSettings(S); game.applySettings(S); };
+    $('s-assist').checked = !!S.assist; $('s-slow').checked = !!S.slow;
+    $('s-assist').onchange = () => { S.assist = $('s-assist').checked; saveSettings(S); game.applySettings(S); };
+    $('s-slow').onchange = () => { S.slow = $('s-slow').checked; saveSettings(S); game.applySettings(S); };
     const best = +store.get('best.normal'); if (best) $('m-note').textContent = `best run ${Math.floor(best / 60)}:${String(Math.floor(best % 60)).padStart(2, '0')}`;
   }
   renderSlots() {
