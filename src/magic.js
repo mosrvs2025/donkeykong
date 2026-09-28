@@ -460,7 +460,7 @@ export class Magic {
       if (w.lit) { w.cap.rotation.y = t; w.cap.position.y = 3.9 + Math.sin(t * 2) * 0.1; }
       if (near && w.lit) this.nearWay = w;
     }
-    game.hud.prompt(this.nearWay && p.state === 'normal' ? '↑ Travel' : null);
+    game.hud.prompt(this.nearWay && p.state === 'normal' ? '↑ World map' : null, 'way');
     // doors
     for (const d of this.doors) {
       d.swirl.material.uniforms.t.value = t;

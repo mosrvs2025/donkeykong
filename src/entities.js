@@ -207,7 +207,7 @@ export class Entities {
         if (e.dead > 1.5) m.visible = false;
         continue;
       }
-      if (Math.abs(e.s - pl.s) > 90) continue; // sleep far away
+      if (Math.abs(e.s - pl.s) > 90 || e.frozen > 0) continue; // sleep far away (or frozen solid)
       e.t += dt;
       if (e.stun > 0) { e.stun -= dt; }
       if (e.kind === 'snapjaw' || e.kind === 'spikeback') {

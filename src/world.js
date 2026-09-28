@@ -21,7 +21,7 @@ const MAT_DEF = {
   ruin: { top: 'ruin', side: 'ruin' }, cliff: { top: 'grass', side: 'cliff' }, sand: { top: 'sand', side: 'sand' },
   cave: { top: 'cave', side: 'cave' }, mine: { top: 'mine', side: 'mine' }, temple: { top: 'temple', side: 'temple' },
   glyph: { top: 'glyph', side: 'glyph', emissive: 0x0a3a38 }, crystal: { top: 'crystal', side: 'crystal', emissive: 0x3a1a70 },
-  colossus: { top: 'colossus', side: 'colossus', emissive: 0x100c04 }, blight: { top: 'blight', side: 'blight', emissive: 0x2a0838 }, moss: { top: 'grass', side: 'mossw', emissive: 0x0a2a12 }, cloud: { top: 'cloud', side: 'cloud', emissive: 0x10141c }, rail: { top: 'rail', side: 'rail' },
+  thorn: { top: 'thorn', side: 'thorn', emissive: 0x100500 }, colossus: { top: 'colossus', side: 'colossus', emissive: 0x100c04 }, blight: { top: 'blight', side: 'blight', emissive: 0x2a0838 }, moss: { top: 'grass', side: 'mossw', emissive: 0x0a2a12 }, cloud: { top: 'cloud', side: 'cloud', emissive: 0x10141c }, rail: { top: 'rail', side: 'rail' },
 };
 const matCache = {};
 export function surfMat(texName, emissive) {
@@ -168,7 +168,7 @@ export class World {
   buildSolids() {
     const sb = new StripBuilder(this.path);
     for (const o of this.level.solids) {
-      if (o.move || o.collapse || o.crack || o.echo || o.ghost || o.finale) continue;
+      if (o.move || o.collapse || o.crack || o.echo || o.ghost || o.finale || o.block) continue;
       const deep = o.ground || o.y1 - o.y0 > 6;
       const d0 = deep ? -5 : -2.4, d1 = deep ? 3.6 : 2.4;
       const yb = Math.max(o.y0, o.y1 - 60);

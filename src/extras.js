@@ -27,6 +27,7 @@ export const SHOP = [
   { id: 'hat_explorer', name: 'Explorer Hat', desc: 'For serious ruin-divers', cost: 160, kind: 'hat' },
   { id: 'hat_crown', name: 'Sunwright Crown', desc: 'Found only by those who look everywhere', cost: 120, coins: 6, kind: 'hat' },
   { id: 'hat_moon', name: 'Moonpetal Crown', desc: 'It glows faintly, like the Grove', cost: 200, coins: 15, kind: 'hat' },
+  { id: 'hat_party', name: 'Party Hat', desc: 'Won by striking gold in a Root Hollow game', cost: 0, kind: 'hat', reward: true },
   { id: 'scarf_ember', name: 'Ember Scarf', desc: 'Warm as a forge', cost: 90, kind: 'scarf', color: 0xff6a30 },
   { id: 'scarf_tide', name: 'Tide Scarf', desc: 'Cool as the Sanctum', cost: 90, kind: 'scarf', color: 0x3ab0ff },
   { id: 'scarf_star', name: 'Starfall Scarf', desc: 'Woven from the Starwell’s sky', cost: 150, coins: 20, kind: 'scarf', color: 0xc9a0ff },
@@ -42,6 +43,7 @@ function makeHat(id) {
     const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.26, 0.12, 12, 1, true), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: id === 'hat_moon' ? 1.2 : 0.3, metalness: 0.7, roughness: 0.3, side: THREE.DoubleSide })); ring.position.y = 0.34; g.add(ring);
     for (let i = 0; i < 5; i++) { const s = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.16, 4), ring.material); const a = i / 5 * Math.PI * 2; s.position.set(Math.cos(a) * 0.24, 0.46, Math.sin(a) * 0.24); g.add(s); }
   }
+  if (id === 'hat_party') { const c = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 14), new THREE.MeshStandardMaterial({ color: 0xff5aa0, emissive: 0x401030 })); c.position.y = 0.52; g.add(c); const pom = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), new THREE.MeshStandardMaterial({ color: 0xfff060, emissive: 0x806000 })); pom.position.y = 0.8; g.add(pom); }
   return g;
 }
 
@@ -97,7 +99,7 @@ export class Extras {
   closeShop() { this.shopOpen = false; $('shop').classList.add('hidden'); this.game.map.render(); }
   renderShop(msg = '') {
     const game = this.game, P = game.progress, glims = game.stats.glims, coins = this.coinCount;
-    const rows = SHOP.filter((it) => !it.needs || P.owned.includes(it.needs)).map((it) => {
+    const rows = SHOP.filter((it) => (!it.needs || P.owned.includes(it.needs)) && (!it.reward || P.owned.includes(it.id))).map((it) => {
       const own = P.owned.includes(it.id);
       const equipped = (it.kind === 'hat' && P.hat === it.id) || (it.kind === 'scarf' && P.scarf === it.id);
       const locked = it.coins && coins < it.coins;

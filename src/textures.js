@@ -81,6 +81,9 @@ export function getTex(name) {
     case 'blight': [c, ctx] = canvas(S, S); ctx.fillStyle = '#1e0e2a'; ctx.fillRect(0, 0, S, S);
       for (let i = 0; i < 60; i++) { ctx.fillStyle = ['#3a1850', '#50206a', '#2a1038', '#7a30a0'][i % 4]; ctx.beginPath(); const x = r() * S, y = r() * S, w = 6 + r() * 14; ctx.moveTo(x, y - w * 2); ctx.lineTo(x + w, y); ctx.lineTo(x, y + w * 2); ctx.lineTo(x - w, y); ctx.fill(); }
       speckle(ctx, S, S, r, 40, ['#ff60c0', '#c080ff'], 1, 3, 0.9); break;
+    case 'thorn': [c, ctx] = canvas(S, S); ctx.fillStyle = '#2a1a10'; ctx.fillRect(0, 0, S, S);
+      for (let i = 0; i < 70; i++) { ctx.strokeStyle = ['#5a3a1a', '#3a5a20', '#6a4a22'][i % 3]; ctx.lineWidth = 3 + r() * 4; ctx.beginPath(); const x = r() * S, y = r() * S; ctx.moveTo(x, y); ctx.bezierCurveTo(x + 40 * (r() - 0.5), y + 40 * (r() - 0.5), x + 60 * (r() - 0.5), y + 60 * (r() - 0.5), x + 80 * (r() - 0.5), y + 80 * (r() - 0.5)); ctx.stroke(); }
+      speckle(ctx, S, S, r, 80, ['#e8d8b0'], 1, 3, 0.9); break;
     case 'rail': [c, ctx] = canvas(64, 64); ctx.fillStyle = '#5a3a20'; ctx.fillRect(0, 0, 64, 64); break;
     case 'glimspark': { [c, ctx] = canvas(64, 64); const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.25, 'rgba(255,255,255,0.8)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64); return (cache[name] = tex(c, false)); }
     case 'waterfall': [c, ctx] = canvas(128, 512); ctx.fillStyle = '#9fe0f0'; ctx.fillRect(0, 0, 128, 512);

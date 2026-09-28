@@ -13,7 +13,7 @@ export function buildLevel() {
     solids: [], slopes: [], water: [], vines: [], bouncers: [], glims: [], shards: [], cages: [], enemies: [],
     grapples: [], updrafts: [], checkpoints: [], portals: [], blooms: [], totems: [], carts: [], chases: [],
     altar: null, cams: [], themes: [], banners: [], signs: [], hints: [],
-    shrines: [], waystones: [], doors: [], echoes: [], trials: [], critters: [], blooms2: [], mossback: null, notices: [], bonds: [], finaleBlights: [], arenas: {}, currents: [], storms: [], bounds: [],
+    shrines: [], waystones: [], doors: [], echoes: [], trials: [], critters: [], blooms2: [], mossback: null, notices: [], bonds: [], finaleBlights: [], arenas: {}, currents: [], storms: [], bounds: [], blocks: [], hollows: [],
   };
   let id = 0;
   const solid = (s0, s1, y0, y1, mat = 'stone', extra = {}) => { const o = { id: id++, s0: s0 + O, s1: s1 + O, y0, y1, mat, ...extra }; L.solids.push(o); return o; };
@@ -471,6 +471,29 @@ export function buildLevel() {
   L.arenas.heron = { id: 'heron', s: 858 + O, y: Y + 10, w: 40, sky: true, gate: 818 + O };
   L.bounds.push({ id: 'heron', s0: 815 + O, s1: 818 + O, y0: 740, y1: 900 }, { id: 'heron', s0: 900 + O, s1: 903 + O, y0: 740, y1: 900 });
   cam(190, 910, { dist: 26, height: 3, fov: 56, yMin: 740, yMax: 900 });
+
+  // ═════════════════════ ROUND SEVEN: Lumen Blocks, thorn thickets and Root Hollows ═════════════════════
+  const block = (s, y, item) => { const o = solid(s - 0.75, s + 0.75, y, y + 1.5, 'glyph', { block: item }); L.blocks.push(o); };
+  const thorn = (s0, s1, y0, y1) => solid(s0, s1, y0, y1, 'thorn', { crack: 'fire' });
+  const hollow = (s, y, game, name) => L.hollows.push({ s: s + O, y, game, name });
+  // Rootwild: an Ember Bloom right at the start, and a thicket guarding a hollow
+  block(27, 3.9, 'glims'); block(31, 3.9, 'ember'); block(35, 3.9, 'glims');
+  block(136, 2.6, 'glims');
+  plat(140, 150, 5, 'stone', 1);
+  thorn(140, 141.4, 5, 8.6); thorn(148.6, 150, 5, 8.6);
+  hollow(145, 5, 'glimstorm', 'Glimstorm');
+  hint(126, 136, 'Brambles… something fiery could clear them.');
+  // Canopy: a Frost Lily, and a hollow by the waystone
+  block(306, 20.3, 'frost'); block(309, 20.3, 'glims');
+  hollow(432, 18.6, 'skydrop', 'Sky Drop');
+  // Ruins: a Bubble Wisp before the river, Echo Stones on the cliff
+  block(588, 6.1, 'bubble');
+  hollow(762, 11, 'echo', 'Echo Stones');
+  block(760, 15.2, 'glims'); block(744, 15.2, 'frost');
+  // Glowdeep & Mine: more fire for dark places, and a second Glimstorm hollow at night
+  block(904, -1.1, 'ember');
+  block(1072, -1.2, 'ember'); block(1075, -1.2, 'glims');
+  hollow(1030, -5, 'glimstorm', 'Glimstorm at Night');
 
   L.start = { s: 4 + O, y: 0 };
   L.endS = 1560 + O;

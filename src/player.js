@@ -71,6 +71,7 @@ export class Player {
     const game = this.game;
     if (this.invuln > 0 || this.state === 'dead' || this.state === 'cutscene') return;
     if (game.assist) { this.invuln = 1; this.vy = 8; game.audio.play('hurt'); return; }
+    if (game.powers?.power && !this.cart) { game.powers.lose(); this.vy = 9 * this.g; this.vs = -this.facing * 5; game.shake(0.3); return; }
     if (this.cart) return game.killPlayer(reason);
     game.shake(0.5); game.audio.play('hurt');
     if (this.comp && !game.flight) { this.dismount(true, -this.facing); this.invuln = 1.5; this.vy = 12; return; }
@@ -194,6 +195,7 @@ export class Player {
     }
 
     // ── action
+    if (action && game.powers.tryShoot()) action = false;
     if (action) {
       if (!this.mount) {
         if (this.grounded && this.rollCool <= 0 && !swimming) { this.rollT = 0.42; this.rollCool = 0.5; this.vs = this.facing * Math.max(Math.abs(this.vs) + 4, 15.5); game.audio.play('roll'); }
@@ -412,7 +414,7 @@ export class Player {
     // enemies
     const falling = this.vy * this.g < 0 || this.slamming;
     for (const e of E.enemies) {
-      if (!e.alive) continue;
+      if (!e.alive || e.frozen > 0) continue;
       const eb = { s: e.s, y: e.y, hw: e.hw, h: e.h };
       if (!overlap(box, eb)) continue;
       const swimDash = this.dashT > 0 && (this.mount === 'fish' || (game.forms.has('tide') && !this.mount) || game.flight);

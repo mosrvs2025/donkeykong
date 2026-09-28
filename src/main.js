@@ -21,6 +21,8 @@ import { Menu, store, currentSlot, loadSettings } from './menu.js';
 import { Story, CHAPTER_LINES } from './story.js';
 import { Coop } from './coop.js';
 import { Extras, medalFor, MEDAL_ICON } from './extras.js';
+import { Powers, POWERS } from './powerups.js';
+import { MiniGames } from './minigames.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 // Cinematic finishing pass: gentle colour grading, vignette, film grain and a hint of lens fringing.
 const CineShader = {
@@ -74,7 +76,8 @@ class HUD {
   coins(n) { $('coins').textContent = n ? `◉ ${n}` : ''; }
   echoes(n) { $('echoes').textContent = n ? `❋ ${n}/8` : ''; }
   chain(n) { const el = $('chain'); if (n >= 3) { el.textContent = `airborne ×${n}`; el.classList.add('on'); } else el.classList.remove('on'); }
-  prompt(t) { const el = $('prompt'); if (t) { el.textContent = t; el.classList.add('on'); } else el.classList.remove('on'); }
+  prompt(t, src = 'way') { (this.prompts ||= {})[src] = t; const v = Object.values(this.prompts).find(Boolean); const el = $('prompt'); if (v) { el.textContent = v; el.classList.add('on'); } else el.classList.remove('on'); }
+  power(kind) { const el = $('power'); if (kind) { el.textContent = POWERS[kind].icon; el.classList.add('on'); } else el.classList.remove('on'); }
   story(text, sub) { $('story-text').textContent = text; $('story-sub').textContent = sub; $('story').classList.add('on'); this.storyT = 6.5; }
   update(dt) {
     if (this.storyT > 0 && (this.storyT -= dt) <= 0) $('story').classList.remove('on');
@@ -140,6 +143,7 @@ class Game {
     this.loadSave();
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
+    this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero);
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
@@ -186,6 +190,7 @@ class Game {
   }
   resize() {
     this.camera.aspect = innerWidth / innerHeight;
+    if (this.minis) { this.minis.camera.aspect = this.camera.aspect; this.minis.camera.updateProjectionMatrix(); }
     // in portrait with touch controls, frame Kiri in the upper part of the screen, above the thumbs
     if (this.input.isTouch && innerHeight > innerWidth) this.camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.1, innerWidth, innerHeight);
     else this.camera.clearViewOffset();
@@ -405,7 +410,7 @@ class Game {
     const max = p.maxHearts;
     p.cart = null; p.reset(this.checkpoint.s, this.checkpoint.y + 0.1); p.maxHearts = max; p.hearts = max; p.invuln = 1.2;
     this.hud.hearts(p.hearts, p.maxHearts); this.hud.mount(null);
-    E.resetChase(); E.resetCart(); E.resetEnemies(); this.magic.reset(); this.hollowjaw.reset(); this.finale.reset(); p.applyCosmetics();
+    E.resetChase(); E.resetCart(); E.resetEnemies(); this.magic.reset(); this.hollowjaw.reset(); this.finale.reset(); this.powers.reset(); p.applyCosmetics();
     const restartBoss = this.bosses.active?.id; if (restartBoss) { this.bosses.end(false); setTimeout(() => this.bosses.start(restartBoss), 900); }
     if (this.flight) { const bird = this.entities.companions.find((c) => c.kind === 'bird'); bird.state = 'idle'; p.mountOn(bird); p.birdTime = 1e9; }
     this.fx.burst(this.path.world(p.s, p.y + 1, 0), 0xfff0c0, 24, 4, 0.6, 0.8, 2); p.squash = 0.4;
@@ -571,7 +576,7 @@ class Game {
     const h = 1 / 120;
     for (let i = 0; i < secs * 120; i++) {
       this.input.update();
-      this.entities.update(h); this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h); this.player.step(h, this.input); this.extras.step(h); this.player.tick(h); this.player.interact(h);
+      this.entities.update(h); this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h); this.player.step(h, this.input); this.extras.step(h); this.powers.step(h); this.player.tick(h); this.player.interact(h);
       if (i === 0) this.input.endFrame();
     }
     const p = this.player; return { s: +(p.s - O).toFixed(2), y: +p.y.toFixed(2), vs: +p.vs.toFixed(2), vy: +p.vy.toFixed(2), st: p.state, g: p.grounded, mount: p.mount, cart: !!p.cart, glims: this.stats.glims, hearts: p.hearts, deaths: this.stats.deaths, water: p.inWater };
@@ -580,6 +585,7 @@ class Game {
     requestAnimationFrame((t) => this.loop(t));
     this.frames = (this.frames || 0) + 1;
     let dt = Math.max(0, Math.min(0.05, (now - this.last) / 1000)); this.last = now;
+    if (this.state === 'mini') { this.input.update(); this.minis.update(dt); this.input.endFrame(); this.hud.update(dt); this.audio.updateMusic(); this.cine.uniforms.time.value = this.time += dt; this.composer.render(); return; }
     if (this.state === 'photo') { this.input.update(); this.extras.update(dt, this.time); this.world.update(this.time, 0); this.cine.uniforms.time.value = this.time; this.composer.render(); return; }
     if (this.state === 'story') { this.input.update(); this.story.update(dt); this.entities.update(dt); this.player.render(dt); this.magic.update(dt); this.world.update(this.time += dt, dt); this.updateAtmosphere(dt); this.fx.update(dt, this.camera.position); this.hud.update(dt); this.audio.updateMusic(); this.cine.uniforms.time.value = this.time; this.composer.render(); return; }
     if (this.state === 'paused' || this.state === 'travel' || this.state === 'map') { this.input.endFrame(); if (this.state === 'map') { this.world.update(this.time += 0.016, 0.016); this.composer.render(); } return; }
@@ -598,7 +604,7 @@ class Game {
         this.entities.update(h);
         this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h);
         this.player.step(h, this.input);
-        this.coop.step(h, this.input.p2); this.extras.step(h);
+        this.coop.step(h, this.input.p2); this.extras.step(h); this.powers.step(h); this.minis.step(h);
         this.player.tick(h);
         this.player.interact(h);
         this.acc -= h; n++;
@@ -619,7 +625,7 @@ class Game {
       const w = this.path.world(this.player.s, 2, 0), a = this.time * 0.08;
       this.camera.position.set(w.x + Math.sin(a) * 26, w.y + 8, w.z + Math.cos(a) * 26); this.camera.lookAt(w.x, w.y + 3, w.z);
     }
-    this.coop.update(dt); this.extras.update(dt, this.time);
+    this.coop.update(dt); this.extras.update(dt, this.time); this.powers.update(dt, this.time); this.minis.updateWorld(dt, this.time);
     this.cine.uniforms.time.value = this.time;
     this.fx.update(dt, this.camera.position);
     this.hud.update(dt);

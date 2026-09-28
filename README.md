@@ -84,6 +84,18 @@ Debug: `?autostart&level=<id>` starts in a level (rootwild, canopy, skyward, rui
 - **Assist options** in Settings: no damage, and a slower game speed.
 - **Feel**: nearby glims drift into Kiri, a burst of light when Kiri falls, and a burst when Kiri reforms at a checkpoint.
 
+## Round seven: Root Hollows, mini-games, blocks and power-ups
+- **Root Hollows** are glowing hollow stumps hidden in levels, Thornwild's answer to warp pipes. Stand on one and press ↓ to dive into a secret mini-game, then pop back out where you were. There are four: in the Rootwild behind a bramble thicket, in the Canopy by the waystone, on the Weeping Ruins cliff, and in the Glowdeep.
+- **Three mini-games in true 3D**, each with a gold target, glim payouts and a saved best score. Your first gold wins the Party Hat.
+  - **Glimstorm** (and a night version in the Glowdeep): run and jump around a floating island in full 3D, catching falling glims (gold ones are worth 5) and dodging thorn bombs by their red shadows.
+  - **Sky Drop**: freefall through the clouds, steering through rings and around falling rocks, with streak bonuses.
+  - **Echo Stones**: four singing standing stones. Watch the song, then repeat it with ←↑→↓, and it grows longer every round.
+- **Lumen Blocks**: Sunwright cubes you jump into from below. They hold glims or power-ups.
+- **Power-ups** (taking a hit costs the power-up before a heart):
+  - **Ember Bloom:** Shift throws bouncing fire seeds that defeat critters and burn thorn thickets.
+  - **Frost Lily:** Shift fires frost bolts that freeze critters into ice blocks you can stand on for a few seconds.
+  - **Bubble Wisp:** a shield that pops instead of costing a heart.
+
 ## Code layout
 - `src/level.js`: the whole level as data, in route space (s = distance along the path, y = height)
 - `src/path.js`: the curved route through the 3D world
@@ -92,6 +104,7 @@ Debug: `?autostart&level=<id>` starts in a level (rootwild, canopy, skyward, rui
 - `src/entities.js`: enemies, collectibles, interactables, the boulder chase
 - `src/world.js`: terrain, vegetation, landmarks, sky, and water
 - `src/camera.js`: the zone-based camera director and scripted shots
+- `src/powerups.js`, `src/minigames.js`: Lumen Blocks, power-ups, Root Hollows and the 3D mini-games
 - `src/extras.js`: Seed Coins, shop, hats, medals, compass, photo mode
 - `src/menu.js`, `src/story.js`, `src/coop.js`: title menus and save slots, the prologue and chapter lines, local co-op
 - `src/map.js`: world map and level definitions

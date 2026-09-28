@@ -197,3 +197,13 @@ button:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .mn .coins{fill:#ffd46a;font-size:11px;text-anchor:middle}
 .mn .medal{font-size:14px;text-anchor:middle}
 body.photo #banner,body.photo #toast,body.photo #story,body.photo #chain,body.photo #prompt,body.photo #bossbar,body.photo #compass,body.photo #compass-d{display:none}
+
+#power{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#0006;border:1px solid #ffd46a88;font-size:17px;opacity:0;transform:scale(.6);transition:opacity .3s,transform .3s}
+#power.on{opacity:1;transform:none}
+#mini-hud{position:fixed;inset:0;pointer-events:none;z-index:8;text-align:center;text-shadow:0 2px 8px #000a}
+.mini-top{display:flex;justify-content:space-between;padding:max(14px,env(safe-area-inset-top)) 20px 0;font-size:22px;font-weight:700}
+#mini-score{color:#ffd46a}
+#mini-title{margin-top:10vh;font-size:clamp(28px,6vw,54px);letter-spacing:.12em;color:#fff}
+#mini-sub{opacity:.85}
+body.mini #banner,body.mini #toast,body.mini #story,body.mini #prompt,body.mini #chain,body.mini #compass,body.mini #compass-d{display:none}
+#touch.mini #t-off,#touch.mini #t-pause{display:none}
