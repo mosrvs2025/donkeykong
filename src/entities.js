@@ -209,6 +209,7 @@ export class Entities {
       }
       if (Math.abs(e.s - pl.s) > 90 || e.frozen > 0) continue; // sleep far away (or frozen solid)
       e.t += dt;
+      if (ud.anim) { const dx = pl.s - e.s, dy = pl.y + 0.8 - e.y; ud.anim(e.t, dt, { near: Math.hypot(dx, dy) < 7, lookX: dx, lookY: THREE.MathUtils.clamp(dy / 5, -1, 1) * Math.sign(dx * (e.dir || 1)) }); }
       if (e.stun > 0) { e.stun -= dt; }
       if (e.kind === 'snapjaw' || e.kind === 'spikeback') {
         const sp = e.kind === 'snapjaw' ? 2.6 : 1.5;
