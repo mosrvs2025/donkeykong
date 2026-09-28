@@ -17,7 +17,42 @@ import { Hollowjaw, Finale } from './encounters.js';
 import { BossManager, BOSSES } from './bosses.js';
 import { WorldMap, LEVELS, levelById } from './map.js';
 import { Worlds } from './worlds.js';
-const store = { get(k) { try { return localStorage.getItem('thornwild.' + k); } catch { return null; } }, set(k, v) { try { localStorage.setItem('thornwild.' + k, v); } catch { /* storage unavailable */ } } };
+import { Menu, store, currentSlot, loadSettings } from './menu.js';
+import { Story, CHAPTER_LINES } from './story.js';
+import { Coop } from './coop.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+// Cinematic finishing pass: gentle colour grading, vignette, film grain and a hint of lens fringing.
+const CineShader = {
+  uniforms: { tDiffuse: { value: null }, time: { value: 0 }, amount: { value: 1 }, tint: { value: new THREE.Color(1, 1, 1) }, sat: { value: 1.08 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float time, amount, sat; uniform vec3 tint; varying vec2 vUv;
+    float rnd(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time) * 43758.5453); }
+    void main(){
+      vec2 c = vUv - 0.5; float r = dot(c, c);
+      vec2 off = c * 0.0035 * amount * r * 4.0;
+      vec3 col = vec3(texture2D(tDiffuse, vUv + off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv - off).b);
+      float l = dot(col, vec3(0.299, 0.587, 0.114));
+      col = mix(vec3(l), col, sat);
+      col *= mix(vec3(1.0), tint, 0.35 * amount);
+      col = mix(col, col * col * (3.0 - 2.0 * col), 0.18 * amount);
+      col *= 1.0 - r * 0.9 * amount;
+      col += (rnd(vUv * 900.0) - 0.5) * 0.035 * amount;
+      gl_FragColor = vec4(col, 1.0);
+    }`,
+};
+// Rim light: a fresnel glow on characters so they read clearly against busy scenery.
+export const rimU = { rimColor: { value: new THREE.Color(0xfff0c8) }, rimStrength: { value: 0.55 } };
+export function addRim(root) {
+  root.traverse((o) => {
+    const m = o.material; if (!o.isMesh || !m || !m.isMeshStandardMaterial || m.userData.rim) return;
+    m.userData.rim = true;
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.rimColor = rimU.rimColor; sh.uniforms.rimStrength = rimU.rimStrength;
+      sh.fragmentShader = 'uniform vec3 rimColor; uniform float rimStrength;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n float rimF = pow(1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0), 3.0); totalEmissiveRadiance += rimColor * rimF * rimStrength;');
+    };
+    m.needsUpdate = true;
+  });
+}
 const DAWN = { top: 0x5a8ad8, hor: 0xffd0a0, fog: 0xe8c8a8, dens: 0.0032, hs: 0xfff0d0, hg: 0x5a4a30, sun: 0xffe0b0, si: 2.8, pc: 0xfff0a0, exp: 1.05, moon: 0.3, stars: 0.2 };
 
 const $ = (id) => document.getElementById(id);
@@ -84,6 +119,7 @@ class Game {
     this.bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.55, 0.55, 0.82);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
+    this.cine = new ShaderPass(CineShader); this.composer.addPass(this.cine);
 
     this.input = new Input(); this.audio = new Audio(); this.hud = new HUD(this);
     this.level = buildLevel();
@@ -95,10 +131,13 @@ class Game {
     this.player = new Player(this);
     this.magic = new Magic(this);
     this.hollowjaw = new Hollowjaw(this); this.finale = new Finale(this);
+    this.coop = new Coop(this); this.story = new Story(this); this.addRim = addRim;
     this.bosses = new BossManager(this); this.map = new WorldMap(this); this.worlds = new Worlds(this);
     this.forms = new Set(); this.levelWalls = [0, 1].map(() => { const w = { s0: 0, s1: 0, y0: -2000, y1: 2000, active: false, dS: 0, dY: 0 }; this.entities.solids.push(w); return w; });
     this.progress = { unlocked: ['rootwild'], levels: {} };
     this.loadSave();
+    addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
+    this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
     this.checkpoint = { s: this.level.start.s, y: this.level.start.y };
@@ -111,7 +150,8 @@ class Game {
     this.input.onKey = (code) => {
       if (code === 'KeyM') this.audio.toggleMute();
       if ((code === 'KeyP' || code === 'Escape') && (this.state === 'play' || this.state === 'paused')) this.togglePause();
-      if ((code === 'Enter' || code === 'Space') && this.state === 'title' && this.ready) this.start();
+      if (this.state === 'story' && (code === 'Space' || code === 'Enter' || code === 'Escape')) this.story.next();
+      if (this.state === 'title' && (code === 'ArrowDown' || code === 'ArrowUp')) { const bs = [...document.querySelectorAll('#title .menu:not(.hidden) button:not(.hidden)')]; const i = bs.indexOf(document.activeElement); const n = bs[(i + (code === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length]; n && n.focus(); }
       if (this.state === 'map') this.map.key(code);
       if (this.state === 'travel') {
         const L = this.magic.waystones;
@@ -122,17 +162,15 @@ class Game {
         if (code === 'Escape' || code === 'KeyX') this.travelTo(-1);
       }
     };
-    $('start-btn').onclick = () => this.start();
-    if (store.get('cleared')) { const b = $('wisp-btn'); b.classList.remove('hidden'); b.onclick = () => { this.wisp = true; for (const a of ['leap', 'song', 'grip']) this.magic.abilities.add(a); this.magic.shrines.forEach((x) => x.done = true); this.hud.abilities(this.magic.abilities); this.start(); $('hud').classList.add('wisp'); }; }
-    const best = +store.get('best.normal'); if (best) $('loading').textContent += ` · best ${Math.floor(best / 60)}:${Math.floor(best % 60).toString().padStart(2, '0')}`;
     $('resume-btn').onclick = () => this.togglePause();
     $('t-pause').addEventListener('pointerdown', (e) => { e.preventDefault(); if (this.state === 'play' || this.state === 'paused') this.togglePause(); });
     $('map-btn').onclick = () => { this.state = 'play'; this.leaveToMap(); };
-    $('new-btn').onclick = () => { store.set('save', ''); location.reload(); };
-    if (this.hasSave) { $('start-btn').textContent = 'Continue'; $('new-btn').classList.remove('hidden'); }
+    $('save-btn').onclick = () => { this.saveGame(); $('save-note').textContent = `Saved to slot ${currentSlot()}`; this.audio.play('checkpoint'); };
+    $('quit-btn').onclick = () => { this.saveGame(); location.reload(); };
     this.resize();
     this.director.update(0.016, this.player, true);
-    this.ready = true; $('loading').textContent = isMobile ? 'touch controls enabled' : 'press Enter or click Play';
+    this.ready = true; $('loading').textContent = isMobile ? 'touch controls enabled' : 'arrows / mouse to choose · gamepads supported';
+    if (store.get('autoplay')) { store.del('autoplay'); setTimeout(() => this.start(), 50); }
     this.last = performance.now();
     requestAnimationFrame((t) => this.loop(t));
     window.__game = this; // debugging / automated tests
@@ -152,7 +190,10 @@ class Game {
     if (this.state !== 'title') return;
     this.audio.init(); this.audio.resume(); this.audio.musicOn = true;
     $('title').classList.add('hidden');
-    if (!skipIntro) { this.state = 'map'; this.map.show(); return; }
+    if (!skipIntro) {
+      if (store.get('newgame')) { store.del('newgame'); this.story.play(() => { this.state = 'map'; this.map.show(); this.saveGame(); }); return; }
+      this.state = 'map'; this.map.show(); return;
+    }
     $('hud').classList.remove('hidden'); if (this.input.isTouch) $('touch').classList.remove('hidden');
     this.state = 'play';
     if (false) {
@@ -167,10 +208,23 @@ class Game {
       this.bannerSeen.add(0);
     }
   }
+  applySettings(S, qualityChanged) {
+    this.audio.volume = S.vol / 100; this.audio.musicWanted = S.music; this.audio.applyVolume?.();
+    this.cine.uniforms.amount.value = S.post ? 1 : 0; this.cine.enabled = S.post;
+    if (qualityChanged) {
+      const q = S.quality;
+      this.renderer.setPixelRatio(Math.min(devicePixelRatio, q === 'high' ? (isMobile ? 1.5 : 2) : q === 'med' ? 1.25 : 0.85));
+      this.bloom.enabled = q !== 'low'; this.sun.castShadow = q !== 'low';
+      this.sun.shadow.mapSize.set(q === 'high' ? 2048 : 1024, q === 'high' ? 2048 : 1024); if (this.sun.shadow.map) { this.sun.shadow.map.dispose(); this.sun.shadow.map = null; }
+      this.resize();
+    }
+  }
   // ───────────── levels & the world map
   enterLevel(lv, buddy) {
     const p = this.player, O2 = O;
-    this.currentLevel = lv; this.state = 'play'; this.endSeq = null;
+    this.currentLevel = lv; this.state = 'play'; this.endSeq = null; this.progress.last = lv.id;
+    const seen = (this.progress.chapters ||= []); if (!seen.includes(lv.id) && CHAPTER_LINES[lv.id]) { seen.push(lv.id); setTimeout(() => this.hud.story(CHAPTER_LINES[lv.id][1], CHAPTER_LINES[lv.id][0]), 5200); }
+    if (this.coop.enabled) setTimeout(() => this.coop.spawn(), 0);
     $('hud').classList.remove('hidden'); if (this.input.isTouch) $('touch').classList.remove('hidden');
     if (p.comp) p.dismount(false);
     p.cart = null; p.reset(lv.start[0] + O2, lv.start[1] + 0.1);
@@ -256,10 +310,10 @@ class Game {
     const data = { progress: this.progress, abilities: [...M.abilities], echoes: [...M.echoes], bonds: [...M.bonds], trials: [...M.trialsWon], met: S.met,
       shards: E.shards.filter((x) => x.taken).map((x) => x.idx), secrets: [...S.secrets], forms: [...this.forms], glims: S.glims, bosses: [...this.bosses.defeated],
       mossback: !!S.mossback, hollowjaw: !!S.hollowjaw, cosmetic: M.cosmetic, maxHearts: this.player.maxHearts, time: S.time };
-    store.set('save', JSON.stringify(data));
+    store.set('slot.' + currentSlot(), JSON.stringify(data));
   }
   loadSave() {
-    let d; try { d = JSON.parse(store.get('save') || 'null'); } catch { d = null; }
+    let d; try { d = JSON.parse(store.get('slot.' + currentSlot()) || 'null'); } catch { d = null; }
     if (!d) return;
     const M = this.magic, E = this.entities, S = this.stats;
     this.progress = d.progress || this.progress;
@@ -452,6 +506,7 @@ class Game {
     this.sun.color.copy(c.sun); this.sun.intensity += (T.si - this.sun.intensity) * k;
     this.renderer.toneMappingExposure += (T.exp - this.renderer.toneMappingExposure) * k;
     this.fx.ambColor.copy(c.pc);
+    this.cine.uniforms.tint.value.copy(c.hor).lerp(new THREE.Color(1, 1, 1), 0.4); rimU.rimColor.value.copy(c.pc);
     const u = this.world.skyU; u.moonAmt.value += ((T.moon || 0) - u.moonAmt.value) * k; u.starAmt.value += ((T.stars || 0) - u.starAmt.value) * k;
   }
   updateAtmosphere(dt) {
@@ -516,6 +571,7 @@ class Game {
     requestAnimationFrame((t) => this.loop(t));
     this.frames = (this.frames || 0) + 1;
     let dt = Math.max(0, Math.min(0.05, (now - this.last) / 1000)); this.last = now;
+    if (this.state === 'story') { this.input.update(); this.story.update(dt); this.entities.update(dt); this.player.render(dt); this.magic.update(dt); this.world.update(this.time += dt, dt); this.updateAtmosphere(dt); this.fx.update(dt, this.camera.position); this.hud.update(dt); this.audio.updateMusic(); this.cine.uniforms.time.value = this.time; this.composer.render(); return; }
     if (this.state === 'paused' || this.state === 'travel' || this.state === 'map') { this.input.endFrame(); if (this.state === 'map') { this.world.update(this.time += 0.016, 0.016); this.composer.render(); } return; }
     this.time += dt;
     const playing = this.state === 'play';
@@ -531,6 +587,7 @@ class Game {
         this.entities.update(h);
         this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h);
         this.player.step(h, this.input);
+        this.coop.step(h, this.input.p2);
         this.player.tick(h);
         this.player.interact(h);
         this.acc -= h; n++;
@@ -551,6 +608,8 @@ class Game {
       const w = this.path.world(this.player.s, 2, 0), a = this.time * 0.08;
       this.camera.position.set(w.x + Math.sin(a) * 26, w.y + 8, w.z + Math.cos(a) * 26); this.camera.lookAt(w.x, w.y + 3, w.z);
     }
+    this.coop.update(dt);
+    this.cine.uniforms.time.value = this.time;
     this.fx.update(dt, this.camera.position);
     this.hud.update(dt);
     $('timer').textContent = this.state === 'play' ? `${Math.floor(this.stats.time / 60)}:${Math.floor(this.stats.time % 60).toString().padStart(2, '0')}` : '';

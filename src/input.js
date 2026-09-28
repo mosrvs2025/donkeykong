@@ -9,8 +9,13 @@ export class Input {
     const map = {
       ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
       ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
-      Space: 'jump', KeyZ: 'jump', ShiftLeft: 'action', ShiftRight: 'action', KeyX: 'action', KeyJ: 'action', KeyC: 'dismount',
+      Space: 'jump', KeyZ: 'jump', ShiftLeft: 'action', ShiftRight: 'action', KeyX: 'action', KeyC: 'dismount',
     };
+    this.p2 = { x: 0, y: 0, action: false }; this.p2keys = {};
+    const p2map = { KeyI: 'up', KeyK: 'down', KeyJ: 'left', KeyL: 'right', KeyO: 'act', KeyU: 'act' };
+    addEventListener('keydown', (e) => { if (p2map[e.code]) this.p2keys[p2map[e.code]] = true; });
+    addEventListener('keyup', (e) => { if (p2map[e.code]) this.p2keys[p2map[e.code]] = false; });
+    this.padPrev = [{}, {}];
     addEventListener('keydown', (e) => {
       const k = map[e.code];
       if (k) { e.preventDefault(); if (!this.keys[k]) this.pressed[k] = true; this.keys[k] = true; }
@@ -51,7 +56,23 @@ export class Input {
     addEventListener('pointercancel', onUp);
   }
   update() {
-    for (const k in this.held) this.held[k] = this.keys[k] || this.touch[k];
+    const pads = (navigator.getGamepads ? [...navigator.getGamepads()] : []).filter(Boolean);
+    const pad = {};
+    // gamepad 1 drives Kiri (standard mapping): stick/d-pad, A jump, X/B action, Y hop off, Start pause
+    const g0 = pads[0];
+    if (g0) {
+      const ax = g0.axes[0] || 0, ay = g0.axes[1] || 0, b = (i) => !!(g0.buttons[i] && g0.buttons[i].pressed);
+      Object.assign(pad, { left: ax < -0.4 || b(14), right: ax > 0.4 || b(15), up: ay < -0.5 || b(12), down: ay > 0.5 || b(13), jump: b(0), action: b(2) || b(1), dismount: b(3) });
+      const prev = this.padPrev[0];
+      for (const k in pad) { if (pad[k] && !prev[k]) this.pressed[k] = true; prev[k] = pad[k]; }
+      if (b(9) && !prev.start && this.onKey) this.onKey('KeyP'); prev.start = b(9);
+    }
+    for (const k in this.held) this.held[k] = this.keys[k] || this.touch[k] || !!pad[k];
+    // player 2 (Lumi): IJKL + O, or a second gamepad
+    const K = this.p2keys; let x = (K.right ? 1 : 0) - (K.left ? 1 : 0), y = (K.up ? 1 : 0) - (K.down ? 1 : 0), act = !!K.act;
+    const g1 = pads[1];
+    if (g1) { const ax = g1.axes[0] || 0, ay = g1.axes[1] || 0; if (Math.abs(ax) > 0.25) x = ax; if (Math.abs(ay) > 0.25) y = -ay; if (g1.buttons[2]?.pressed || g1.buttons[0]?.pressed) act = true; }
+    this.p2.x = x; this.p2.y = y; this.p2.action = act;
   }
   consume(k) { const v = !!this.pressed[k]; this.pressed[k] = false; return v; }
   peek(k) { return !!this.pressed[k]; }

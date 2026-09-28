@@ -19,6 +19,7 @@
   <div id="abilities"></div>
   <div id="echoes"></div>
   <div id="bonds"></div>
+  <span id="p2tag" class="hidden">P2 · Lumi</span>
   <div id="timer"></div>
 </div>
 <div id="chain"></div>
@@ -37,21 +38,35 @@
     <div class="kicker">an original cinematic platformer</div>
     <h1>THORNWILD</h1>
     <h2>The Lumen Seed</h2>
-    <p class="lore">The Sunwright machines fell silent a thousand years ago.<br/>Their seed still glows somewhere beneath the canopy.</p>
-    <button id="start-btn">Play</button> <button id="wisp-btn" class="hidden alt">Wisp Mode</button>
-    <div><button id="new-btn" class="hidden linkbtn">start a new game</button></div>
-    <div class="controls">
-      <div><b>←→ / A D</b> run</div>
-      <div><b>Space</b> jump (hold = higher)</div>
-      <div><b>Shift / X</b> roll · in air: slam</div>
-      <div><b>C</b> or <b>↓ + Shift</b> hop off</div>
-      <div><b>↑</b> waystones · songs, later</div>
-      <div><b>M</b> mute · <b>P</b> pause</div>
+    <div id="menu-main" class="menu">
+      <button id="m-continue" class="hidden">Continue</button>
+      <button id="m-new" class="alt">New Game</button>
+      <button id="m-load" class="ghost">Save Slots</button>
+      <button id="m-coop" class="ghost">Players: 1</button>
+      <button id="m-settings" class="ghost">Settings</button>
+      <button id="m-help" class="ghost">How to Play</button>
+      <p id="m-note" class="dimt"></p>
     </div>
+    <div id="menu-slots" class="menu hidden"><h3 id="slots-title">Save Slots</h3><div id="slot-list"></div><button class="ghost m-back">Back</button></div>
+    <div id="menu-settings" class="menu hidden"><h3>Settings</h3>
+      <label class="set">Volume <input id="s-vol" type="range" min="0" max="100" value="70"></label>
+      <label class="set">Music <input id="s-music" type="checkbox" checked></label>
+      <label class="set">Graphics <select id="s-quality"><option value="low">Low (fast)</option><option value="med">Medium</option><option value="high">High</option></select></label>
+      <label class="set">Film grain &amp; vignette <input id="s-post" type="checkbox" checked></label>
+      <button class="ghost m-back">Back</button></div>
+    <div id="menu-help" class="menu hidden"><h3>How to Play</h3>
+      <div class="controls">
+        <div><b>←→ / A D</b> run</div><div><b>Space</b> jump (hold = higher)</div>
+        <div><b>Shift / X</b> roll · in air: slam</div><div><b>C</b> hop off a companion</div>
+        <div><b>↑</b> sing · waystones</div><div><b>P</b> pause · <b>M</b> mute</div>
+        <div class="span"><b>Gamepad</b>: stick/d-pad move · A jump · X action · Y hop off · Start pause</div>
+        <div class="span"><b>Player 2 · Lumi the wisp</b>: <b>I J K L</b> fly · <b>O</b> lumen pulse (or a second gamepad)</div>
+      </div><button class="ghost m-back">Back</button></div>
     <div id="loading">growing the jungle…</div>
   </div>
 </div>
-<div id="pause" class="screen hidden"><div class="title-inner"><h2>Paused</h2><button id="resume-btn">Resume</button><div style="margin-top:14px"><button id="map-btn" class="alt">World map</button></div></div></div>
+<div id="intro" class="hidden"><div class="bar top"></div><div class="bar bot"></div><p id="intro-text"></p><small id="intro-skip">Space / tap to continue</small></div>
+<div id="pause" class="screen hidden"><div class="title-inner"><h2>Paused</h2><div class="menu"><button id="resume-btn">Resume</button><button id="map-btn" class="alt">World Map</button><button id="save-btn" class="ghost">Save</button><button id="quit-btn" class="ghost">Save &amp; Quit to Title</button><p id="save-note" class="dimt"></p></div></div></div>
 <div id="end" class="screen hidden"><div class="title-inner" id="end-inner"></div></div>
 <div id="touch" class="hidden">
   <div id="t-left" class="tbtn">◀</div>

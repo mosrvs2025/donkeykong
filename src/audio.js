@@ -5,7 +5,7 @@ export class Audio {
     if (this.ctx) return;
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     this.ctx = new AC();
-    this.master = this.ctx.createGain(); this.master.gain.value = 0.55; this.master.connect(this.ctx.destination);
+    this.master = this.ctx.createGain(); this.master.gain.value = 0.55 * (this.volume ?? 0.7) / 0.7; this.master.connect(this.ctx.destination);
     this.sfx = this.ctx.createGain(); this.sfx.gain.value = 0.8; this.sfx.connect(this.master);
     this.mus = this.ctx.createGain(); this.mus.gain.value = 0.32; this.mus.connect(this.master);
     // simple reverb-ish delay for music
@@ -18,7 +18,8 @@ export class Audio {
     this.ambient();
   }
   resume() { this.ctx && this.ctx.state !== 'running' && this.ctx.resume(); }
-  toggleMute() { this.muted = !this.muted; if (this.master) this.master.gain.value = this.muted ? 0 : 0.55; }
+  toggleMute() { this.muted = !this.muted; this.applyVolume(); }
+  applyVolume() { if (this.master) this.master.gain.value = this.muted ? 0 : 0.55 * (this.volume ?? 0.7) / 0.7; }
   tone(freq, dur, type = 'square', vol = 0.2, slide = 0, delay = 0, dest) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime + delay;
@@ -93,7 +94,7 @@ export class Audio {
   }
   // theme: 0 jungle, 1 canopy, 2 water, 3 cave, 4 mine/chase
   updateMusic() {
-    if (!this.ctx || !this.musicOn) return;
+    if (!this.ctx || !this.musicOn || this.musicWanted === false) { if (this.mus) this.mus.gain.value = 0; return; }
     this.q += (this.quiet - this.q) * 0.05;
     this.mus.gain.value = this.muted ? 0 : 0.32 * (1 - this.q * 0.92);
     const calm = this.theme >= 5 && this.theme !== 5;

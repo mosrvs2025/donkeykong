@@ -68,6 +68,14 @@ Debug: `?autostart&abilities` grants all three abilities.
 
 Debug: `?autostart&level=<id>` starts in a level (rootwild, canopy, skyward, ruins, sunken, glowdeep, mine, heart).
 
+## Round five: presentation, saves, story and co-op
+- **Title screen**: an animated 3D backdrop with Continue, New Game, Save Slots, Players (1 or 2), Settings, and How to Play. It supports keyboard, mouse, touch and gamepad.
+- **Three save slots** show your current area, levels cleared, echoes, bonds, glims and play time. Slots can be erased. The pause menu adds Save and Save & Quit.
+- **Storybook prologue** on a new journey: letterboxed narration over camera shots of Thornwild (skippable). Each chapter opens with its own line of narration the first time you enter.
+- **Graphics**: a cinematic finishing pass (colour grading tinted by each area, vignette, film grain, subtle lens fringing), fresnel rim lighting on characters, companions, critters and guardians, and a Low/Medium/High quality setting plus a volume slider and music toggle.
+- **Local co-op**: Player 2 is **Lumi**, a wisp who flies freely around Kiri (IJKL + O, or a second gamepad). Lumi collects glims, and her Lumen Pulse stuns critters and pops flyers. Pulsing next to Kiri refreshes Kiri's Wisp Leap and boosts Kiri upward. It also counts as a song for Hollowjaw and wakes nearby ghostwood.
+- **Gamepad support**: stick/d-pad to move, A jump, X action, Y hop off, Start pause.
+
 ## Code layout
 - `src/level.js`: the whole level as data, in route space (s = distance along the path, y = height)
 - `src/path.js`: the curved route through the 3D world
@@ -76,6 +84,7 @@ Debug: `?autostart&level=<id>` starts in a level (rootwild, canopy, skyward, rui
 - `src/entities.js`: enemies, collectibles, interactables, the boulder chase
 - `src/world.js`: terrain, vegetation, landmarks, sky, and water
 - `src/camera.js`: the zone-based camera director and scripted shots
+- `src/menu.js`, `src/story.js`, `src/coop.js`: title menus and save slots, the prologue and chapter lines, local co-op
 - `src/map.js`: world map and level definitions
 - `src/bosses.js`: the area guardians
 - `src/worlds.js`: underwater and sky world decor, currents, storms

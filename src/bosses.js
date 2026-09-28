@@ -21,7 +21,7 @@ export class BossManager {
   start(id) {
     const game = this.game, A = game.level.arenas[id]; if (!A) return;
     const def = BOSSES[id];
-    const b = new Boss(game, id, def, A);
+    const b = new Boss(game, id, def, A); game.addRim?.(b.group);
     this.active = b;
     for (const o of game.level.bounds) if (o.id === id) { o.sol ||= { s0: o.s0, s1: o.s1, y0: o.y0, y1: o.y1, active: false, dS: 0, dY: 0 }; if (!game.entities.solids.includes(o.sol)) game.entities.solids.push(o.sol); o.sol.active = true; }
     game.hud.banner(def.name, def.sub, 3.5);
