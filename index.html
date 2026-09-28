@@ -65,7 +65,7 @@
     <div id="menu-help" class="menu hidden"><h3>How to Play</h3>
       <div class="controls">
         <div><b>←→ / A D</b> run</div><div><b>Space</b> jump (hold = higher)</div>
-        <div><b>Shift / X</b> roll · in air: slam</div><div><b>C</b> hop off a companion</div>
+        <div><b>Shift / X</b> roll · in air: slam</div><div><b>C</b> hop off a companion</div><div><b>F / E</b> Sprout Dash (any direction)</div><div><b>Touch</b>: left thumb anywhere = joystick</div>
         <div><b>↑</b> sing · waystones</div><div><b>P</b> pause · <b>M</b> mute · <b>F</b> photo</div>
         <div class="span"><b>Gamepad</b>: stick/d-pad move · A jump · X action · Y hop off · Start pause</div>
         <div class="span"><b>Player 2 · Lumi the wisp</b>: <b>I J K L</b> fly · <b>O</b> lumen pulse (or a second gamepad)</div>
@@ -74,13 +74,12 @@
   </div>
 </div>
 <div id="intro" class="hidden"><div class="bar top"></div><div class="bar bot"></div><p id="intro-text"></p><small id="intro-skip">Space / tap to continue</small></div>
-<div id="pause" class="screen hidden"><div class="title-inner"><h2>Paused</h2><div class="menu"><button id="resume-btn">Resume</button><button id="map-btn" class="alt">World Map</button><button id="photo-btn" class="ghost">Photo Mode</button><button id="save-btn" class="ghost">Save</button><button id="quit-btn" class="ghost">Save &amp; Quit to Title</button><p id="save-note" class="dimt"></p></div></div></div>
+<div id="pause" class="screen hidden"><div class="title-inner"><h2>Paused</h2><div class="menu"><button id="resume-btn">Resume</button><button id="map-btn" class="alt">World Map</button><button id="photo-btn" class="ghost">Photo Mode</button><button id="evo-btn" class="ghost">Evolutions</button><div id="evo-list" class="hidden"></div><button id="save-btn" class="ghost">Save</button><button id="quit-btn" class="ghost">Save &amp; Quit to Title</button><p id="save-note" class="dimt"></p></div></div></div>
 <div id="end" class="screen hidden"><div class="title-inner" id="end-inner"></div></div>
 <div id="touch" class="hidden">
-  <div id="t-left" class="tbtn">◀</div>
-  <div id="t-right" class="tbtn">▶</div>
-  <div id="t-down" class="tbtn small">▼</div>
-  <div id="t-up" class="tbtn small">▲</div>
+  <div id="t-zone"></div>
+  <div id="stick"><div id="stick-knob"></div></div>
+  <div id="t-dash" class="tbtn small">➶<span>dash</span></div>
   <div id="t-act" class="tbtn">⚡</div>
   <div id="t-jump" class="tbtn big">⤒</div>
   <div id="t-pause">❚❚</div>

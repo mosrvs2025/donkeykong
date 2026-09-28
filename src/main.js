@@ -23,6 +23,7 @@ import { Coop } from './coop.js';
 import { Extras, medalFor, MEDAL_ICON } from './extras.js';
 import { Powers, POWERS } from './powerups.js';
 import { MiniGames } from './minigames.js';
+import { Evolve } from './evolve.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 // Cinematic finishing pass: gentle colour grading, vignette, film grain and a hint of lens fringing.
 const CineShader = {
@@ -143,7 +144,7 @@ class Game {
     this.loadSave();
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
-    this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero);
+    this.evolve = new Evolve(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero);
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
@@ -297,6 +298,7 @@ class Game {
     this.clearing = true;
     const p = this.player; p.state = 'cutscene'; p.vs = 0;
     const st = (this.progress.levels[lv.id] ||= {});
+    const evoBefore = this.evolve.owned();
     st.clear = true; if (lv.boss && this.bosses.defeated.has(lv.boss)) st.boss = true;
     st.best = st.best ? Math.min(st.best, this.levelTime) : this.levelTime;
     const medal = medalFor(lv.id, this.levelTime); const rank = { bronze: 1, silver: 2, gold: 3 }; if (!st.medal || rank[medal] > rank[st.medal]) st.medal = medal;
@@ -304,7 +306,8 @@ class Game {
     this.map.unlock(lv.id);
     let extra = '';
     if (lv.grants === 'sky' && !this.forms.has('sky')) { this.forms.add('sky'); extra = '<p class="unlock">Kiri evolves: <b>SKY FORM</b>. Wisp Leap now works twice in mid-air, everywhere.</p>'; }
-    if (lv.grants === 'tide') extra = '<p class="unlock">Tide Form stays with Kiri. Somewhere in the Weeping Ruins, a sealed stone waits for a dash.</p>';
+    extra += this.evolve.announce(evoBefore);
+    if (lv.grants === 'tide') extra += '<p class="unlock">Tide Form stays with Kiri. Somewhere in the Weeping Ruins, a sealed stone waits for a dash.</p>';
     this.audio.play('win'); this.audio.motif(3);
     const t = this.levelTime;
     $('clear').innerHTML = `<div class="kicker">level clear</div><h2>${lv.name}</h2><p class="big">${MEDAL_ICON[medal]} ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}</p><p>Seed Coins ${'◉'.repeat(lc)}${'○'.repeat(3 - lc)} · ${this.stats.glims} glims · ${this.magic.echoes.size}/8 echoes · ${this.magic.bonds.size}/5 bonds</p>${extra}`;

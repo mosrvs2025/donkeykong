@@ -69,7 +69,7 @@ export class Player {
 
   hurt(reason) {
     const game = this.game;
-    if (this.invuln > 0 || this.state === 'dead' || this.state === 'cutscene') return;
+    if (this.invuln > 0 || this.sdashT > 0 || this.state === 'dead' || this.state === 'cutscene') return;
     if (game.assist) { this.invuln = 1; this.vy = 8; game.audio.play('hurt'); return; }
     if (game.powers?.power && !this.cart) { game.powers.lose(); this.vy = 9 * this.g; this.vs = -this.facing * 5; game.shake(0.3); return; }
     if (this.cart) return game.killPlayer(reason);
@@ -87,7 +87,7 @@ export class Player {
     this.animT += dt;
     if (this.hitstop > 0) { this.hitstop -= dt; return; }
     this.invuln = Math.max(0, this.invuln - dt); this.rollCool -= dt; this.flipCool -= dt; this.remountCool -= dt; this.hurtT -= dt;
-    this.dropThrough -= dt; this.wallT -= dt; this.tongueT -= dt;
+    this.dropThrough -= dt; this.wallT -= dt; this.tongueT -= dt; this.sdashCool = (this.sdashCool || 0) - dt; this.wjLock = (this.wjLock || 0) - dt;
     if (this.state === 'dead') { this.deadT += dt; if (this.deadT > 0.8) game.respawn(); return; }
     if (this.state === 'cutscene') { this.vs = approach(this.vs, 0, 20 * dt); this.move(dt); return; }
     const H = input.held;
@@ -97,6 +97,7 @@ export class Player {
     else this.jumpBuf -= dt;
     let action = input.consume('action');
     const off = input.consume('dismount');
+    const dashPress = input.consume('dash');
     if (this.comp && !this.cart && !game.flight && (off || (action && H.down))) { this.dismount(false); action = false; }
 
     const M = game.magic;
@@ -124,11 +125,14 @@ export class Player {
     if (swimming) run = 6;
     if (fishSwim) run = tide ? 11 : 13;
     if (this.mount === 'bird' && !this.grounded) run = game.flight ? 13 : 12;
-    const charging = this.chargeT > 0, rolling = this.rollT > 0, dashing = this.dashT > 0;
+    if (!this.mount && !this.inWater && dir) run *= Math.max(0.4, input.mag ?? 1); // a light stick tilt walks
+    const charging = this.chargeT > 0, rolling = this.rollT > 0, dashing = this.dashT > 0, sdash = this.sdashT > 0;
     if (dir) this.facing = rolling || charging || dashing ? this.facing : dir;
     if (rolling) { this.rollT -= dt; if (this.grounded) this.vs = approach(this.vs, this.facing * 10, 8 * dt); }
     else if (charging) { this.chargeT -= dt; this.vs = this.facing * 20; if (Math.random() < dt * 40) game.fx.spawn(game.path.world(this.s - this.facing, this.y + 0.2, (Math.random() - 0.5) * 2), new THREE.Vector3(0, 2, 0), 0xc0a070, 0.8, 0.5, 0); }
     else if (dashing) { this.dashT -= dt; }
+    else if (sdash) { /* Sprout Dash holds its line */ }
+    else if (this.wjLock > 0 && !this.grounded) { this.vs = approach(this.vs, dir * run, 10 * dt); } // just kicked off a wall
     else if (fishSwim || swimming) {
       const vIn = dir * run;
       this.vs = approach(this.vs, vIn, (fishSwim ? 40 : 25) * dt);
@@ -168,6 +172,39 @@ export class Player {
       }
       vyr = Math.max(vyr, -32);
     }
+    // ── Sprout Dash (evolution): a short, weightless burst in any of eight directions
+    const E2 = game.evolve;
+    if (this.grounded || this.inWater || this.state !== 'normal') this.airDashes = E2.has('comet') ? 2 : 1;
+    if (dashPress && !this.mount && !this.cart && !this.inWater && E2.has('dash') && this.sdashCool <= 0 && (this.grounded || this.airDashes > 0) && !sdash) {
+      let dx = input.ax ?? dir, dy = input.ay ?? 0;
+      if (Math.hypot(dx, dy) < 0.3) { dx = this.facing; dy = 0; }
+      let a = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4); dx = Math.round(Math.cos(a) * 1000) / 1000; dy = Math.round(Math.sin(a) * 1000) / 1000;
+      if (this.grounded && dy < 0) { dy = 0; dx = Math.sign(dx) || this.facing; }
+      if (!this.grounded) this.airDashes--;
+      this.sdashT = 0.17; this.sdashCool = 0.28; this.sdashDir = [dx, dy]; this.slamming = false; this.rollT = 0;
+      if (dx) this.facing = Math.sign(dx);
+      this.vs = dx * 25; vyr = dy * 19;
+      game.audio.play('leap'); game.shake(0.06); this.squash = -0.25;
+      const f = game.path.frame(this.s), w = game.path.world(this.s, this.y + 0.6, 0);
+      game.fx.ring(w, 0x9fffd0, 14, 5, 0.3, new THREE.Vector3(f.tx, 0, f.tz), new THREE.Vector3(f.nx, 0, f.nz));
+      if (!game.stats.dashTip) { game.stats.dashTip = true; game.hud.toast('<b>Sprout Dash!</b> Aim it any way. One burst in the air.', 2.5); }
+    }
+    if (this.sdashT > 0) {
+      this.sdashT -= dt; const [dx, dy] = this.sdashDir;
+      this.vs = dx * 25; vyr = dy * 19;
+      if (Math.random() < dt * 90) game.fx.spawn(game.path.world(this.s - dx * 0.4, this.y + 0.3 + Math.random() * 0.9, (Math.random() - 0.5) * 0.4), new THREE.Vector3(-dx * 2, -dy * 2, 0), 0x9fffd0, 0.45, 0.35, 0);
+      if (E2.has('comet')) for (const e of E.enemies) {
+        if (!e.alive || e.frozen > 0 || e.boss) continue;
+        if (Math.abs(e.s - this.s) < e.hw + this.hw + 0.4 && this.y < e.y + e.h + 0.3 && this.y + this.h > e.y - 0.3) { E.killEnemy(e, dx * 8, 9); this.airDashes = Math.max(this.airDashes, 1); this.hitstop = 0.04; game.shake(0.12); }
+      }
+      if (this.sdashT <= 0) { this.vs = dx * 14; vyr = dy > 0 ? dy * 9 : dy * 6; }
+    }
+    // ── Thornclaws (evolution): slide on any wall while holding toward it
+    this.sliding = false;
+    if (!this.mount && !this.cart && E2.has('claws') && this.g === 1 && !this.grounded && !this.inWater && this.state === 'normal' && this.wallDir && dir === this.wallDir && vyr < 0 && !(this.wallSolid && this.wallSolid.moss && M.has('grip'))) {
+      this.sliding = true; this.slamming = false; vyr = Math.max(vyr, -4.5); this.airDashes = E2.has('comet') ? 2 : 1;
+      if (Math.random() < dt * 25) game.fx.spawn(game.path.world(this.s + this.wallDir * this.hw, this.y + 0.9, 0), new THREE.Vector3(-this.wallDir, 1, 0), 0xe8d8b0, 0.3, 0.3, 0);
+    }
     // updrafts
     for (const u of E.updrafts) if (this.s > u.s0 && this.s < u.s1 && this.center > u.y0 && this.center < u.y1) vyr = Math.min(vyr + (this.mount === 'bird' ? 90 : 25) * dt, this.mount === 'bird' ? 17 : 4);
 
@@ -175,7 +212,7 @@ export class Player {
     if (this.jumpBuf > 0 && !this.inWater) {
       if (this.grounded || this.coyote > 0) {
         vyr = m.jump + (this.wasSlope && this.slopeLaunch > 0 ? this.slopeLaunch : 0);
-        this.jumpBuf = 0; this.coyote = 0; this.grounded = false; this.squash = -0.3;
+        this.jumpBuf = 0; this.coyote = 0; this.grounded = false; this.squash = -0.3; this.sdashT = 0;
         if (rolling) { this.rollT = 0; this.rollJump = true; }
         game.audio.play(this.mount === 'frog' ? 'bigjump' : 'jump');
         game.fx.burst(game.path.world(this.s, this.y + 0.1, 0), 0xe0d0b0, 6, 3, 0.6, 0.4, 0);
@@ -183,6 +220,10 @@ export class Player {
       } else if (this.mount === 'frog' && this.wallT > 0) {
         vyr = 18; this.vs = -this.wallD * 11; this.facing = -this.wallD; this.jumpBuf = 0; this.wallT = 0; game.audio.play('bigjump'); this.leapReady = true; M.chainEvent();
         game.fx.burst(game.path.world(this.s + this.wallD * this.hw, this.y + 1, 0), 0x80ff90, 10, 4, 0.6, 0.4, 0);
+      } else if (!this.mount && game.evolve.has('claws') && this.wallT > 0 && !this.cart) {
+        vyr = 15; this.vs = -this.wallD * 11.5; this.facing = -this.wallD; this.jumpBuf = 0; this.wallT = 0; this.wjLock = 0.16; this.leapReady = true; this.firstLeapDone = false; this.sdashT = 0;
+        game.audio.play('jump'); M.chainEvent(); this.squash = -0.3;
+        game.fx.burst(game.path.world(this.s + this.wallD * this.hw, this.y + 0.9, 0), 0xe8d8b0, 10, 4, 0.5, 0.4, 0);
       } else if (this.mount === 'bird' && this.birdTime > 0) {
         if (M.has('leap') && this.leapReady && this.animT - this.lastFlap < 0.3) { // Sunflare: double-tap
           vyr = 19; this.birdTime += 3; this.leapReady = false; game.audio.play('leap'); M.chainEvent();
@@ -516,7 +557,8 @@ export class Player {
     const speed = Math.abs(this.vs);
     const air = !this.grounded;
     const runPhase = (this._rp = (this._rp || 0) + dt * (4 + speed * 1.3));
-    if (this.state === 'grip') { armZ = 2.7; legA = Math.sin(t * 8) * (Math.abs(this.vy) > 1 ? 0.6 : 0.1); ud.body.rotation.z = 0.15; }
+    if (this.sdashT > 0) { const [dx, dy] = this.sdashDir; ud.body.rotation.z = -Math.atan2(dy, Math.abs(dx) || 0.001) * 0.8; lean = 0.5; legA = 1.3; armA = -1.2; armZ = 1.2; }
+    else if (this.state === 'grip' || this.sliding) { armZ = 2.7; legA = Math.sin(t * 8) * (Math.abs(this.vy) > 1 ? 0.6 : 0.1); ud.body.rotation.z = 0.15; }
     else if (this.songHold > 0 && this.grounded) { armZ = 2.2 + Math.sin(t * 6) * 0.3; ud.head.rotation.z = 0.35; bob = Math.sin(t * 5) * 0.03; if (Math.random() < dt * 20) game.fx.spawn(P.world(this.s, this.y + 1.8, 0), new THREE.Vector3((Math.random() - 0.5) * 2, 2, 0), 0xa0f0ff, 0.35, 0.8, 0); }
     else if (this.leapSpin > 0) { this.leapSpin -= dt * 3; ud.body.rotation.z = -(1 - this.leapSpin) * Math.PI * 2 * this.facing * 0 - (1 - this.leapSpin) * Math.PI * 2; ud.body.position.y = 0.6; legA = 1.2; armA = 1; }
     else if (this.state === 'vine') { armZ = 2.9; legA = Math.sin(t * 3) * 0.3; ud.body.rotation.z = -this.vine.ang; }
