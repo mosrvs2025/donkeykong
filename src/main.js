@@ -24,6 +24,7 @@ import { Extras, medalFor, MEDAL_ICON } from './extras.js';
 import { Powers, POWERS } from './powerups.js';
 import { MiniGames } from './minigames.js';
 import { Evolve } from './evolve.js';
+import { Gfx } from './gfx.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 // Cinematic finishing pass: gentle colour grading, vignette, film grain and a hint of lens fringing.
 const CineShader = {
@@ -38,7 +39,9 @@ const CineShader = {
       float l = dot(col, vec3(0.299, 0.587, 0.114));
       col = mix(vec3(l), col, sat);
       col *= mix(vec3(1.0), tint, 0.35 * amount);
-      col = mix(col, col * col * (3.0 - 2.0 * col), 0.18 * amount);
+      col = mix(col, col * col * (3.0 - 2.0 * col), 0.14 * amount);
+      float lum = dot(col, vec3(0.299, 0.587, 0.114));
+      col += (mix(vec3(-0.012, 0.0, 0.02), vec3(0.025, 0.012, -0.015), smoothstep(0.15, 0.7, lum))) * amount;
       col *= 1.0 - r * 0.9 * amount;
       col += (rnd(vUv * 900.0) - 0.5) * 0.035 * amount;
       gl_FragColor = vec4(col, 1.0);
@@ -120,12 +123,14 @@ class Game {
     this.scene.add(this.sun, this.sun.target);
     this.playerLight = new THREE.PointLight(0xffe0b0, 0, 14, 1.6); this.scene.add(this.playerLight);
     // post
-    this.composer = new EffectComposer(r);
-    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.composer = new EffectComposer(r, new THREE.WebGLRenderTarget(innerWidth * r.getPixelRatio(), innerHeight * r.getPixelRatio(), { type: THREE.HalfFloatType }));
+    this.renderPass = new RenderPass(this.scene, this.camera); this.composer.addPass(this.renderPass);
     this.bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.55, 0.55, 0.82);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
     this.cine = new ShaderPass(CineShader); this.composer.addPass(this.cine);
+    this.gfx = new Gfx(this, isMobile); this.gfx.buildComposer(this.composer, this.renderPass);
+    this.scene.environmentIntensity = 0.55; this.hemi.intensity = 0.75;
 
     this.input = new Input(); this.audio = new Audio(); this.hud = new HUD(this);
     this.level = buildLevel();
@@ -226,7 +231,7 @@ class Game {
     if (qualityChanged) {
       const q = S.quality;
       this.renderer.setPixelRatio(Math.min(devicePixelRatio, q === 'high' ? (isMobile ? 1.5 : 2) : q === 'med' ? 1.25 : 0.85));
-      this.bloom.enabled = q !== 'low'; this.sun.castShadow = q !== 'low';
+      this.bloom.enabled = q !== 'low'; this.sun.castShadow = q !== 'low'; this.gfx.setQuality(q);
       this.sun.shadow.mapSize.set(q === 'high' ? 2048 : 1024, q === 'high' ? 2048 : 1024); if (this.sun.shadow.map) { this.sun.shadow.map.dispose(); this.sun.shadow.map = null; }
       this.resize();
     }
@@ -553,6 +558,7 @@ class Game {
     this.playerLight.position.set(w.x, w.y + 2, w.z + 2);
     this.playerLight.intensity += ((t === 3 ? 26 : t === 4 || t === 6 ? 18 : t === 7 ? 10 : 0) - this.playerLight.intensity) * dt * 2;
     this.world.sky.position.copy(this.camera.position);
+    this.gfx.update(dt, this.col);
     if (this.state !== 'play') return;
     // banners for new areas
     for (const b of this.level.banners) if (p.s > b.s && p.s < b.s + 30 && !this.bannerSeen.has(b.s)) { this.bannerSeen.add(b.s); this.hud.banner(b.name, b.sub, 3.5); }

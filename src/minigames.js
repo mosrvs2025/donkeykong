@@ -59,7 +59,7 @@ export class MiniGames {
     const game = this.game, M = MINIS[kind];
     this.active = { kind, hl, t: 0, score: 0, state: 'count', count: 3, M };
     game.state = 'mini'; game.hud.prompt(null, 'hollow');
-    const rp = game.composer.passes[0]; this.saved = { scene: rp.scene, camera: rp.camera, fog: game.scene.fog };
+    const rp = game.composer.passes[0]; this.saved = { scene: rp.scene, camera: rp.camera, fog: game.scene.fog, ao: game.gfx.gtao.enabled }; game.gfx.gtao.enabled = false;
     rp.scene = this.scene; rp.camera = this.camera;
     this.camera.aspect = innerWidth / innerHeight; this.camera.updateProjectionMatrix();
     this.stage.clear(); this.fx.cursor = 0;
@@ -89,7 +89,7 @@ export class MiniGames {
     const game = this.game, A = this.active, p = game.player;
     $('fade').style.opacity = 1;
     setTimeout(() => {
-      const rp = game.composer.passes[0]; rp.scene = this.saved.scene; rp.camera = this.saved.camera;
+      const rp = game.composer.passes[0]; rp.scene = this.saved.scene; rp.camera = this.saved.camera; game.gfx.gtao.enabled = this.saved.ao;
       $('mini-hud').classList.add('hidden'); $('hud').classList.remove('hidden'); document.body.classList.remove('mini'); $('touch').classList.remove('mini');
       this.stage.clear(); this.active = null;
       p.s = A.hl.s; p.y = A.hl.y + 0.2; p.vy = 12; p.vs = 0; p.state = 'normal'; p.grounded = false;
