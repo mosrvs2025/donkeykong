@@ -213,3 +213,7 @@ body.mini #banner,body.mini #toast,body.mini #story,body.mini #prompt,body.mini 
 .evo.on{opacity:1;border-color:#9fffd088;box-shadow:0 0 14px #9fffd033}
 .evo .ei{font-size:24px;width:32px;text-align:center;color:#bff4ff}
 .evo small{display:block;font-size:12px;opacity:.8;margin-top:2px}
+
+#t-swap{top:calc(100px + env(safe-area-inset-top));right:8px;width:48px;height:48px;font-size:18px;flex-direction:column;line-height:1;background:#ffd46a22;border-color:#ffd46aaa}
+#t-swap span{font-size:9px;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+#touch.mini #t-swap{display:none}

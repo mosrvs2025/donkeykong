@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 import { makeHero } from './models.js';
+export const HEROES = {
+  kiri: { name: 'KIRI', hw: 0.38, h: 1.3, run: 10, jump: 15.5, color: 0xffa050, power: 'all-rounder: Wisp Leap, Rootgrip, the Lumen Song' },
+  pip: { name: 'PIP', hw: 0.34, h: 1.15, run: 11.5, jump: 15, color: 0x9fd0ff, power: 'hold jump to glide · the quickest feet in Thornwild' },
+  brom: { name: 'BROM', hw: 0.45, h: 1.45, run: 8.8, jump: 14.5, color: 0xffd060, power: 'rolls smash cracked walls · stomps right through spikes' },
+};
 import { moveBody, overlap } from './physics.js';
 import { COMPANIONS } from './entities.js';
 
@@ -33,7 +38,27 @@ export class Player {
     this.hearts = this.maxHearts;
     this.applyMount();
   }
-  get dims() { return MOUNT[this.cart ? 'cart' : (this.mount || 'none')]; }
+  get dims() { return this.cart || this.mount ? MOUNT[this.cart ? 'cart' : this.mount] : HEROES[this.hero || 'kiri']; }
+  // DK64-style tag team: swap to any hero Kiri has met (Q / Tab / Back / ⇄)
+  setHero(kind, fx = true) {
+    const game = this.game, old = this.model;
+    this.hero = kind; game.progress.hero = kind;
+    this.model = makeHero(kind); this.model.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    this.model.position.copy(old.position); this.model.rotation.copy(old.rotation);
+    game.scene.remove(old); game.scene.add(this.model); game.addRim?.(this.model);
+    this.applyCosmetics(); game.extras?.applyLook();
+    if (!this.mount && !this.cart) this.applyMount();
+    if (fx) {
+      const H = HEROES[kind]; game.audio.play('mount'); this.squash = -0.4;
+      game.fx.burst(game.path.world(this.s, this.y + 0.8, 0), H.color, 36, 7, 0.7, 0.7, 0);
+      game.hud.toast(`<b>${H.name}</b> · ${H.power}`, 2.2);
+    }
+    game.hud.swap?.();
+  }
+  swapHero() {
+    const own = this.game.evolve.heroes(); if (own.length < 2) return false;
+    this.setHero(own[(own.indexOf(this.hero || 'kiri') + 1) % own.length]); return true;
+  }
   applyMount() { const d = this.dims; this.hw = d.hw; this.h = d.h; }
   get center() { return this.y + this.h / 2; }
 
@@ -98,6 +123,7 @@ export class Player {
     let action = input.consume('action');
     const off = input.consume('dismount');
     const dashPress = input.consume('dash');
+    if (input.consume('swap') && this.state === 'normal' && !this.mount && !this.cart && !game.flight) this.swapHero();
     if (this.comp && !this.cart && !game.flight && (off || (action && H.down))) { this.dismount(false); action = false; }
 
     const M = game.magic;
@@ -170,6 +196,8 @@ export class Player {
           if (this.dashT > 0) { this.dashT -= dt; this.vs = this.facing * 24; vyr = 0; }
         }
       }
+      this.gliding = this.hero === 'pip' && !this.mount && !this.grounded && input.held.jump && vyr < -2.4 && !this.slamming && this.state === 'normal';
+      if (this.gliding) { vyr = -2.4; if (dir) this.vs = approach(this.vs, dir * 12.5, 20 * dt); }
       vyr = Math.max(vyr, -32);
     }
     // ── Sprout Dash (evolution): a short, weightless burst in any of eight directions
@@ -290,6 +318,7 @@ export class Player {
   }
   onHitSolid(o, d, axis) {
     const E = this.game.entities;
+    if (o.crack === 'beast' && !this.mount && this.hero === 'brom' && (this.rollT > 0 || this.sdashT > 0) && axis === 'x') { E.breakSolid(o); this.game.stats.walls++; this.hitstop = 0.06; this.game.shake(0.3); return true; }
     if (o.crack === 'beast' && this.mount === 'beast' && (this.chargeT > 0 || Math.abs(this.vs) > 11) && axis === 'x') { E.breakSolid(o); this.game.stats.walls++; this.hitstop = 0.06; return true; }
     if (o.crack === 'swim' && (this.mount === 'fish' || (this.game.forms.has('tide') && !this.mount)) && this.dashT > 0) { E.breakSolid(o); this.game.stats.walls++; this.hitstop = 0.06; return true; }
     if (o.crack && axis === 'x' && Math.abs(this.vs) > 5 && !this._crackHint) { this._crackHint = true; this.game.toast(o.crack === 'beast' ? 'This wall is cracked… something strong could smash it.' : 'A cracked seal… something fast could burst through.', 3); }
@@ -464,7 +493,7 @@ export class Player {
       if (e.kind === 'eel' || e.kind === 'jelly') { this.hurt(e.kind === 'jelly' ? 'Stung!' : 'Zapped!'); continue; }
       const above = this.g === 1 && falling && this.y > e.y + e.h * 0.35;
       if (above) {
-        if (e.kind === 'spikeback' && this.mount !== 'beast') { this.vy = 13; this.hurt('Ouch, spikes!'); continue; }
+        if (e.kind === 'spikeback' && this.mount !== 'beast' && !(this.hero === 'brom' && !this.mount)) { this.vy = 13; this.hurt('Ouch, spikes!'); continue; }
         E.killEnemy(e, this.vs * 0.3, 8);
         this.chain++;
         this.vy = game.input.held.jump || this.slamming ? 17.5 : 12;
@@ -475,7 +504,7 @@ export class Player {
         continue;
       }
       if (this.rollT > 0 || this.rollJump) {
-        if (e.kind !== 'spikeback') { E.killEnemy(e, this.facing * 6, 10); this.rollT = Math.max(this.rollT, 0.25); this.chain++; game.audio.play('stomp', this.chain); this.hitstop = 0.03; continue; }
+        if (e.kind !== 'spikeback' || (this.hero === 'brom' && !this.mount)) { E.killEnemy(e, this.facing * 6, 10); this.rollT = Math.max(this.rollT, 0.25); this.chain++; game.audio.play('stomp', this.chain); this.hitstop = 0.03; continue; }
       }
       this.hurt(e.kind === 'spikeback' ? 'Ouch, spikes!' : 'Chomped!');
     }
@@ -557,7 +586,9 @@ export class Player {
     const speed = Math.abs(this.vs);
     const air = !this.grounded;
     const runPhase = (this._rp = (this._rp || 0) + dt * (4 + speed * 1.3));
-    if (this.sdashT > 0) { const [dx, dy] = this.sdashDir; ud.body.rotation.z = -Math.atan2(dy, Math.abs(dx) || 0.001) * 0.8; lean = 0.5; legA = 1.3; armA = -1.2; armZ = 1.2; }
+    if (ud.wings) ud.wings.forEach((w) => w.visible = !!this.gliding);
+    if (this.gliding) { armZ = 1.5; legA = -0.4; lean = 0.2; }
+    else if (this.sdashT > 0) { const [dx, dy] = this.sdashDir; ud.body.rotation.z = -Math.atan2(dy, Math.abs(dx) || 0.001) * 0.8; lean = 0.5; legA = 1.3; armA = -1.2; armZ = 1.2; }
     else if (this.state === 'grip' || this.sliding) { armZ = 2.7; legA = Math.sin(t * 8) * (Math.abs(this.vy) > 1 ? 0.6 : 0.1); ud.body.rotation.z = 0.15; }
     else if (this.songHold > 0 && this.grounded) { armZ = 2.2 + Math.sin(t * 6) * 0.3; ud.head.rotation.z = 0.35; bob = Math.sin(t * 5) * 0.03; if (Math.random() < dt * 20) game.fx.spawn(P.world(this.s, this.y + 1.8, 0), new THREE.Vector3((Math.random() - 0.5) * 2, 2, 0), 0xa0f0ff, 0.35, 0.8, 0); }
     else if (this.leapSpin > 0) { this.leapSpin -= dt * 3; ud.body.rotation.z = -(1 - this.leapSpin) * Math.PI * 2 * this.facing * 0 - (1 - this.leapSpin) * Math.PI * 2; ud.body.position.y = 0.6; legA = 1.2; armA = 1; }

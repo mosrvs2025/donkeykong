@@ -1,17 +1,17 @@
 // Unified keyboard + touch input. Exposes held state and edge-triggered presses.
 export class Input {
   constructor() {
-    this.held = { left: false, right: false, up: false, down: false, jump: false, action: false, dismount: false, dash: false };
+    this.held = { left: false, right: false, up: false, down: false, jump: false, action: false, dismount: false, dash: false, swap: false };
     this.pressed = {};
-    this.touch = { left: false, right: false, up: false, down: false, jump: false, action: false, dismount: false, dash: false };
-    this.keys = { left: false, right: false, up: false, down: false, jump: false, action: false, dismount: false, dash: false };
+    this.touch = { left: false, right: false, up: false, down: false, jump: false, action: false, dismount: false, dash: false, swap: false };
+    this.keys = { left: false, right: false, up: false, down: false, jump: false, action: false, dismount: false, dash: false, swap: false };
     // analog stick (touch joystick or gamepad); x right+, y up+. mag scales run speed.
     this.stick = { x: 0, y: 0, on: false }; this.mag = 1;
     this.onKey = null;
     const map = {
       ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
       ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
-      Space: 'jump', KeyZ: 'jump', ShiftLeft: 'action', ShiftRight: 'action', KeyX: 'action', KeyC: 'dismount', KeyF: 'dash', KeyE: 'dash',
+      Space: 'jump', KeyZ: 'jump', ShiftLeft: 'action', ShiftRight: 'action', KeyX: 'action', KeyC: 'dismount', KeyF: 'dash', KeyE: 'dash', KeyQ: 'swap', Tab: 'swap',
     };
     this.p2 = { x: 0, y: 0, action: false }; this.p2keys = {};
     const p2map = { KeyI: 'up', KeyK: 'down', KeyJ: 'left', KeyL: 'right', KeyO: 'act', KeyU: 'act' };
@@ -26,10 +26,10 @@ export class Input {
     addEventListener('keyup', (e) => { const k = map[e.code]; if (k) this.keys[k] = false; });
     addEventListener('blur', () => { for (const k in this.keys) this.keys[k] = false; });
     this.isTouch = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
-    const ids = { 't-jump': 'jump', 't-act': 'action', 't-off': 'dismount', 't-dash': 'dash' };
+    const ids = { 't-jump': 'jump', 't-act': 'action', 't-off': 'dismount', 't-dash': 'dash', 't-swap': 'swap' };
     const active = new Map(); // pointerId -> key
     const setFrom = () => {
-      for (const k of ['jump', 'action', 'dismount', 'dash']) this.touch[k] = false;
+      for (const k of ['jump', 'action', 'dismount', 'dash', 'swap']) this.touch[k] = false;
       for (const k of active.values()) this.touch[k] = true;
       for (const id in ids) document.getElementById(id)?.classList.toggle('on', this.touch[ids[id]]);
     };
@@ -82,7 +82,7 @@ export class Input {
     const g0 = pads[0];
     if (g0) {
       const ax = g0.axes[0] || 0, ay = g0.axes[1] || 0, b = (i) => !!(g0.buttons[i] && g0.buttons[i].pressed);
-      Object.assign(pad, { left: ax < -0.28 || b(14), right: ax > 0.28 || b(15), up: ay < -0.6 || b(12), down: ay > 0.6 || b(13), jump: b(0), action: b(2) || b(1), dismount: b(3), dash: b(5) || b(7) || b(4) || b(6) });
+      Object.assign(pad, { left: ax < -0.28 || b(14), right: ax > 0.28 || b(15), up: ay < -0.6 || b(12), down: ay > 0.6 || b(13), jump: b(0), action: b(2) || b(1), dismount: b(3), dash: b(5) || b(7) || b(4) || b(6), swap: b(8) });
       if (Math.abs(ax) > 0.28 || Math.abs(ay) > 0.28) { pad.sx = ax; pad.sy = -ay; }
       const prev = this.padPrev[0];
       for (const k in pad) { if (k === 'sx' || k === 'sy') continue; if (pad[k] && !prev[k]) this.pressed[k] = true; prev[k] = pad[k]; }

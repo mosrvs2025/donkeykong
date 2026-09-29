@@ -68,6 +68,7 @@ const params = new URLSearchParams(location.search);
 
 class HUD {
   constructor(game) { this.game = game; this.toastT = 0; this.bannerT = 0; }
+  swap() { const g = this.game, own = g.evolve.heroes(), el = $('t-swap'); if (!el) return; el.classList.toggle('hidden', own.length < 2); const next = own[(own.indexOf(g.player.hero || 'kiri') + 1) % own.length]; el.innerHTML = `⇄<span>${next}</span>`; }
   hearts(n, max) { $('hearts').innerHTML = Array.from({ length: max }, (_, i) => `<div class="heart ${i < n ? '' : 'empty'}"></div>`).join(''); }
   glims(n) { const el = $('glim-count'); el.textContent = n; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   shards(list) { $('shards').innerHTML = list.map((s) => `<div class="shard ${s.star ? 'star' : ''} ${s.taken ? 'got' : ''}"></div>`).join(''); }
@@ -244,6 +245,7 @@ class Game {
     if (this.coop.enabled) setTimeout(() => this.coop.spawn(), 0);
     $('hud').classList.remove('hidden'); if (this.input.isTouch) $('touch').classList.remove('hidden');
     if (p.comp) p.dismount(false);
+    { const hk = this.progress.hero; if (hk && hk !== (p.hero || 'kiri') && this.evolve.heroes().includes(hk)) p.setHero(hk, false); else this.hud.swap(); }
     p.cart = null; p.reset(lv.start[0] + O2, lv.start[1] + 0.1);
     this.checkpoint = { s: p.s, y: p.y }; this.levelTime = 0;
     const [L, R] = this.levelWalls;
@@ -286,6 +288,7 @@ class Game {
     const A = this.level.arenas[id], p = this.player;
     $('fade').style.opacity = 1; p.state = 'cutscene'; this.audio.play('portal');
     setTimeout(() => {
+      this.levelWalls.forEach((w) => w.active = false); // the arena has its own walls; the level's end wall would cut through it
       p.s = A.s - A.w + 6; p.y = A.y + 0.1; p.vs = 0; p.vy = 0; p.state = 'normal'; p.g = 1;
       this.checkpoint = { s: p.s, y: p.y, arena: id };
       this.snapTheme = true; this.director.update(0.016, p, true); $('fade').style.opacity = 0;
@@ -303,7 +306,7 @@ class Game {
     this.clearing = true;
     const p = this.player; p.state = 'cutscene'; p.vs = 0;
     const st = (this.progress.levels[lv.id] ||= {});
-    const evoBefore = this.evolve.owned();
+    const evoBefore = this.evolve.owned(), heroBefore = this.evolve.heroes();
     st.clear = true; if (lv.boss && this.bosses.defeated.has(lv.boss)) st.boss = true;
     st.best = st.best ? Math.min(st.best, this.levelTime) : this.levelTime;
     const medal = medalFor(lv.id, this.levelTime); const rank = { bronze: 1, silver: 2, gold: 3 }; if (!st.medal || rank[medal] > rank[st.medal]) st.medal = medal;
@@ -311,7 +314,7 @@ class Game {
     this.map.unlock(lv.id);
     let extra = '';
     if (lv.grants === 'sky' && !this.forms.has('sky')) { this.forms.add('sky'); extra = '<p class="unlock">Kiri evolves: <b>SKY FORM</b>. Wisp Leap now works twice in mid-air, everywhere.</p>'; }
-    extra += this.evolve.announce(evoBefore);
+    extra += this.evolve.announce(evoBefore) + this.evolve.announceHeroes(heroBefore);
     if (lv.grants === 'tide') extra += '<p class="unlock">Tide Form stays with Kiri. Somewhere in the Weeping Ruins, a sealed stone waits for a dash.</p>';
     this.audio.play('win'); this.audio.motif(3);
     const t = this.levelTime;
