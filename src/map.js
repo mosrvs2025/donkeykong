@@ -20,19 +20,21 @@ export class WorldMap {
     this.game = game; this.el = document.getElementById('map');
     this.cur = 'rootwild'; this.buddy = null; this.moving = null;
     this.el.addEventListener('pointerdown', (e) => {
-      const n = e.target.closest('[data-node]'); if (n) { e.preventDefault(); this.tapNode(n.dataset.node); }
+      if (!e.target.closest('button') && this.game.map3d) { const id = this.game.map3d.pick(e.clientX, e.clientY); if (id) { e.preventDefault(); this.tapNode(id); } }
       const b = e.target.closest('[data-act]'); if (b) { e.preventDefault(); if (b.dataset.act === 'buddy') this.cycleBuddy(); if (b.dataset.act === 'go') this.enter(); if (b.dataset.act === 'shop') this.game.extras.openShop(); }
     });
   }
   progress() { return this.game.progress; }
   unlocked(id) { return this.progress().unlocked.includes(id); }
-  unlock(id) { for (const n of UNLOCKS[id] || []) if (!this.unlocked(n)) { this.progress().unlocked.push(n); this.justUnlocked = n; } }
+  unlock(id) { for (const n of UNLOCKS[id] || []) if (!this.unlocked(n)) { this.progress().unlocked.push(n); this.justUnlocked = n; (this.reveals ||= []).push([id, n]); } }
   neighbors(id) { return LINKS.filter((l) => l.includes(id)).map((l) => (l[0] === id ? l[1] : l[0])).filter((n) => this.unlocked(n)); }
   show() {
-    this.el.classList.remove('hidden'); this.open = true; this.render();
+    this.el.classList.remove('hidden'); this.open = true;
+    const M3 = this.game.map3d; M3.enter(); this.render();
+    for (const [a, b] of this.reveals || []) M3.reveal(a, b); this.reveals = [];
     if (this.justUnlocked) { const n = levelById(this.justUnlocked); setTimeout(() => this.game.hud.toast(`New path: <b>${n.name}</b>${n.optional ? ' (optional)' : ''}`, 3), 400); this.justUnlocked = null; }
   }
-  hide() { this.el.classList.add('hidden'); this.open = false; }
+  hide() { this.el.classList.add('hidden'); this.open = false; this.game.map3d.exit(); }
   buddies() { return ['beast', 'frog', 'bird', 'fish', 'oru'].filter((k) => this.game.stats.met[k]); }
   cycleBuddy() {
     const list = [null, ...this.buddies()]; const i = list.indexOf(this.buddy); this.buddy = list[(i + 1) % list.length];
@@ -50,11 +52,9 @@ export class WorldMap {
     if (!(b in prev)) return null;
     const r = []; for (let n = b; n !== a; n = prev[n]) r.unshift(n); return r;
   }
-  walk(route) { this.moving = route; this.step(); }
-  step() {
-    if (!this.moving || !this.moving.length) { this.moving = null; return; }
-    this.cur = this.moving.shift(); this.game.audio.play('glim', 2); this.render();
-    setTimeout(() => this.step(), 220);
+  walk(route) {
+    this.moving = route; this.game.audio.play('notice');
+    this.game.map3d.travel(this.cur, route, (id) => { this.cur = id; this.game.audio.play('glim', 2); this.render(); }, () => { this.moving = null; });
   }
   key(code) {
     if (!this.open || this.moving) return;
@@ -73,35 +73,25 @@ export class WorldMap {
   render() {
     const P = this.progress(), g = this.game;
     const names = { beast: 'Grumbo', frog: 'Boing', bird: 'Sola', fish: 'Nuu', oru: 'Oru' };
-    const lines = LINKS.map(([a, b]) => { const A = levelById(a).at, B = levelById(b).at, open = this.unlocked(a) && this.unlocked(b); const mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2 - 30; return `<path d="M${A[0]} ${A[1]} Q${mx} ${my} ${B[0]} ${B[1]}" class="mp ${open ? 'open' : ''} ${levelById(b).optional ? 'opt' : ''}"/>`; }).join('');
-    const nodes = LEVELS.map((l) => {
-      const st = P.levels[l.id] || {}, un = this.unlocked(l.id), here = l.id === this.cur;
-      const cls = `mn ${un ? 'un' : ''} ${st.clear ? 'clear' : ''} ${here ? 'here' : ''} ${l.optional ? 'opt' : ''} ${l.mode || ''}`;
-      const icon = l.mode === 'swim' ? '≈' : l.mode === 'fly' ? '☁' : l.id === 'heart' ? '✦' : st.clear ? '✓' : '';
-      const cn = g.extras ? g.extras.levelCoins(l.id).filter((c) => c.taken).length : 0;
-      const md = { gold: '🥇', silver: '🥈', bronze: '🥉' }[st.medal] || '';
-      return `<g data-node="${l.id}" class="${cls}" transform="translate(${l.at[0]} ${l.at[1]})"><circle r="30" class="hit"/><circle r="17" class="ring"/><circle r="11" class="core"/><text class="ic" y="4">${icon}</text>${st.boss ? '<text class="crown" y="-24">♛</text>' : ''}${md ? `<text class="medal" x="24" y="-12">${md}</text>` : ''}<text class="nm" y="42">${un ? l.name : '? ? ?'}</text>${un ? `<text class="coins" y="57">${'◉'.repeat(cn)}${'○'.repeat(3 - cn)}</text>` : ''}</g>`;
-    }).join('');
     const here = levelById(this.cur), st = P.levels[here.id] || {};
-    const kiri = `<g class="kiri" transform="translate(${here.at[0]} ${here.at[1] - 22})"><circle r="8" fill="#e0873a"/><circle cx="3" cy="-2" r="1.6" fill="#111"/><path d="M-7 3 q-9 2 -10 -6" stroke="#f6dcb0" stroke-width="3" fill="none"/></g>`;
-    this.el.innerHTML = `<div class="map-inner">
-      <div class="map-head"><div class="kicker">Thornwild</div><h2>${here.name}</h2><p class="map-sub">${here.sub}${here.optional ? ' · optional world' : ''}</p>
-        <p class="map-stats">${st.clear ? 'cleared' : 'not yet cleared'}${st.boss ? ' · guardian defeated' : ''}${st.best ? ` · best ${Math.floor(st.best / 60)}:${String(Math.floor(st.best % 60)).padStart(2, '0')}` : ''}</p></div>
-      <svg viewBox="0 0 940 640" class="map-svg" preserveAspectRatio="xMidYMid meet">
-        <defs><radialGradient id="sea" cx="50%" cy="55%" r="70%"><stop offset="0" stop-color="#153a34"/><stop offset="1" stop-color="#050f0d"/></radialGradient></defs>
-        <rect width="940" height="640" fill="url(#sea)"/>
-        <path class="land" d="M60 520 C40 420 120 330 210 330 C260 250 360 250 430 300 C500 250 620 260 660 320 C740 300 860 250 900 320 C930 420 860 520 760 530 C680 600 520 610 440 590 C340 620 180 610 60 520Z"/>
-        <path class="land sky" d="M230 190 C230 150 290 130 330 150 C370 130 420 160 400 200 C390 230 250 230 230 190Z"/>
-        <path class="land deep" d="M410 560 C420 530 520 530 540 560 C550 600 420 610 410 560Z"/>
-        <g class="deco"><circle cx="820" cy="300" r="60" class="glowseed"/><text x="150" y="560">the Rootwild</text><text x="610" y="560">the old mines</text><text x="250" y="130">above the canopy</text><text x="560" y="625">below the river</text></g>
-        ${lines}${nodes}${kiri}
-      </svg>
-      <div class="map-foot">
-        <button data-act="buddy" class="alt small">Bring: ${this.buddy ? names[this.buddy] : 'nobody'}</button>
-        <button data-act="shop" class="ghost small">Pim’s Stall · ${g.stats.glims} ✦</button>
-        <button data-act="go">Enter ▸</button>
+    const cn = g.extras ? g.extras.levelCoins(here.id).filter((c) => c.taken).length : 0;
+    const md = { gold: '🥇', silver: '🥈', bronze: '🥉' }[st.medal] || '';
+    const best = st.best ? `${Math.floor(st.best / 60)}:${String(Math.floor(st.best % 60)).padStart(2, '0')}` : '';
+    const doneCount = LEVELS.filter((l) => P.levels[l.id]?.clear).length;
+    this.el.innerHTML = `
+      <div class="mp-card">
+        <div class="mp-kicker">${here.optional ? (here.mode === 'swim' ? 'underwater world' : 'sky world') : 'world ' + (LEVELS.filter((l) => !l.optional).indexOf(here) + 1)}</div>
+        <h2>${here.name}</h2><p class="mp-sub">${here.sub}</p>
+        <div class="mp-row"><span class="mp-coins">${'<i class="on">◉</i>'.repeat(cn)}${'<i>○</i>'.repeat(3 - cn)}</span>${md ? `<span>${md}</span>` : ''}${best ? `<span class="mp-best">⏱ ${best}</span>` : ''}</div>
+        <div class="mp-tags">${st.clear ? '<b class="t ok">✓ cleared</b>' : '<b class="t new">new!</b>'}${here.boss ? (st.boss ? '<b class="t crown">♛ guardian defeated</b>' : '<b class="t boss">♛ guardian awaits</b>') : ''}</div>
       </div>
-      <p class="map-help">${g.input.isTouch ? 'Tap a level to walk there, tap again to enter' : '←→↑↓ walk · Space enter · C companion · B shop'}</p>
-    </div>`;
+      <div class="mp-top"><span>✦ ${g.stats.glims}</span><span>◉ ${g.extras ? g.extras.coinCount : 0}</span><span>⚑ ${doneCount}/${LEVELS.length}</span></div>
+      <div class="mp-foot">
+        <button data-act="buddy" class="alt small">Bring: ${this.buddy ? names[this.buddy] : 'nobody'}</button>
+        <button data-act="shop" class="ghost small">Pim’s Stall</button>
+        <button data-act="go">Play ▸</button>
+      </div>
+      <p class="map-help">${g.input.isTouch ? 'Tap a flag to walk there · tap again to play' : '←→↑↓ walk · Space play · C companion · B shop'}</p>`;
+    g.map3d.refresh(this);
   }
 }
