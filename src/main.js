@@ -20,7 +20,7 @@ import { Worlds } from './worlds.js';
 import { Menu, store, currentSlot, loadSettings } from './menu.js';
 import { Story, CHAPTER_LINES } from './story.js';
 import { Coop } from './coop.js';
-import { Extras, medalFor, MEDAL_ICON } from './extras.js';
+import { Extras, medalFor, MEDAL_ICON, MEDAL_TIMES } from './extras.js';
 import { Powers, POWERS } from './powerups.js';
 import { MiniGames } from './minigames.js';
 import { Evolve } from './evolve.js';
@@ -30,6 +30,7 @@ import { Eggs } from './eggs.js';
 import { Thornwell } from './thornwell.js';
 import { Clash } from './clash.js';
 import { Seeker } from './seeker.js';
+import { Goals } from './goals.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 // Cinematic finishing pass: gentle colour grading, vignette, film grain and a hint of lens fringing.
 const CineShader = {
@@ -155,7 +156,7 @@ class Game {
     this.loadSave();
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
-    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this);
+    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
@@ -252,7 +253,7 @@ class Game {
     if (p.comp) p.dismount(false);
     { const hk = this.progress.hero; if (hk && hk !== (p.hero || 'kiri') && this.evolve.heroes().includes(hk)) p.setHero(hk, false); else this.hud.swap(); }
     p.cart = null; p.reset(lv.start[0] + O2, lv.start[1] + 0.1);
-    this.checkpoint = { s: p.s, y: p.y }; this.levelTime = 0;
+    this.checkpoint = { s: p.s, y: p.y }; this.levelTime = 0; this.levelGlims0 = this.stats.glims;
     const [L, R] = this.levelWalls;
     Object.assign(L, { s0: lv.wall + O2 - 2, s1: lv.wall + O2, active: true });
     if (lv.end != null && !lv.mode) Object.assign(R, { s0: lv.end + O2 + 3, s1: lv.end + O2 + 5, active: true }); else R.active = false;
@@ -322,11 +323,29 @@ class Game {
     extra += this.evolve.announce(evoBefore) + this.evolve.announceHeroes(heroBefore);
     if (lv.grants === 'tide') extra += '<p class="unlock">Tide Form stays with Kiri. Somewhere in the Weeping Ruins, a sealed stone waits for a dash.</p>';
     this.audio.play('win'); this.audio.motif(3);
-    const t = this.levelTime;
-    $('clear').innerHTML = `<div class="kicker">level clear</div><h2>${lv.name}</h2><p class="big">${MEDAL_ICON[medal]} ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}</p><p>${this.seeker.line(lv.id)}</p><p>${this.stats.glims} glims · ${this.magic.echoes.size}/8 echoes · ${this.magic.bonds.size}/5 bonds</p>${extra}`;
-    $('clear').classList.add('on');
+    const t = this.levelTime, fmt = (x) => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`;
+    const newBest = !st.prevBest || t < st.prevBest; st.prevBest = st.best;
+    const tal = this.seeker.tally(lv.id), gl = Math.max(0, this.stats.glims - (this.levelGlims0 ?? this.stats.glims));
+    const row = (ic, label, val, i) => val ? `<div class="rc-row" style="--d:${0.5 + i * 0.18}s"><span class="rc-ic">${ic}</span><span>${label}</span><b>${val}</b></div>` : '';
+    const coinsDots = tal.list.filter((x) => x.kind === 'coin').map((x, i) => `<i class="${x.taken ? 'on' : ''}" style="--d:${0.6 + i * 0.15}s">◉</i>`).join('');
+    const gold = MEDAL_TIMES[lv.id] || 150;
+    $('clear').innerHTML = `<div class="rc-card">
+      <div class="rc-ribbon">LEVEL CLEAR!</div>
+      <h2>${lv.name}</h2><p class="rc-sub">${lv.sub || ''}</p>
+      <div class="rc-medal"><span class="rc-m">${MEDAL_ICON[medal]}</span><div><b>${fmt(t)}</b>${newBest ? '<em>new best!</em>' : `<small>best ${fmt(st.best)}</small>`}<small>gold under ${fmt(gold)}</small></div></div>
+      ${coinsDots ? `<div class="rc-coins">${coinsDots}<span>Seed Coins</span></div>` : ''}
+      <div class="rc-rows">${row('◆', 'Sun Shards', tal.shard, 0)}${row('❋', 'Echoes', tal.echo, 1)}${row('✦', 'Glims gathered', gl ? '+' + gl : '', 2)}${lv.boss && st.boss ? row('♛', 'Guardian', 'defeated', 3) : ''}</div>
+      ${extra ? `<div class="rc-unlocks">${extra}</div>` : ''}
+      <div class="rc-btns"><button id="rc-go">Continue ▸</button></div>
+      <p class="rc-hint">${this.input.isTouch ? 'tap to continue' : 'Space / Enter to continue'}</p></div>`;
+    $('clear').classList.add('on'); this.clearOpen = performance.now();
+    $('rc-go').onclick = () => this.finishClear();
     this.saveGame();
-    setTimeout(() => { $('clear').classList.remove('on'); this.clearing = false; this.leaveToMap(); }, extra ? 4200 : 2800);
+    clearTimeout(this._clearT); this._clearT = setTimeout(() => this.finishClear(), 20000);
+  }
+  finishClear() {
+    if (!this.clearOpen) return; this.clearOpen = 0; clearTimeout(this._clearT);
+    $('clear').classList.remove('on'); this.clearing = false; this.audio.play('notice'); this.leaveToMap();
   }
   zoneKillY(p) {
     if (p.y < -520 && p.y > -1000) return -800; // the Thornwell
@@ -613,6 +632,7 @@ class Game {
     this.time += dt;
     const playing = this.state === 'play';
     this.input.update();
+    if (this.clearOpen && performance.now() - this.clearOpen > 900 && (this.input.consume('jump') || this.input.consume('action'))) this.finishClear();
     if (this.slowT > 0) { this.slowT -= dt; dt *= 0.35; }
     if (this.slow) dt *= 0.8;
     this.glimStreakT = (this.glimStreakT || 0) - dt;
@@ -646,7 +666,7 @@ class Game {
       const w = this.path.world(this.player.s, 2, 0), a = this.time * 0.08;
       this.camera.position.set(w.x + Math.sin(a) * 26, w.y + 8, w.z + Math.cos(a) * 26); this.camera.lookAt(w.x, w.y + 3, w.z);
     }
-    this.coop.update(dt); this.eggs.update(dt); this.thornwell.update(dt, this.time); this.extras.update(dt, this.time); this.powers.update(dt, this.time); this.minis.updateWorld(dt, this.time);
+    this.coop.update(dt); this.goals.update(dt, this.time); this.eggs.update(dt); this.thornwell.update(dt, this.time); this.extras.update(dt, this.time); this.powers.update(dt, this.time); this.minis.updateWorld(dt, this.time);
     this.cine.uniforms.time.value = this.time;
     this.fx.update(dt, this.camera.position);
     this.hud.update(dt);

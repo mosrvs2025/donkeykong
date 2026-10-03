@@ -111,7 +111,9 @@ button.alt{background:linear-gradient(#bff4ff,#5ab8e8);color:#062030;box-shadow:
 #bossbar span{font-size:12px;letter-spacing:.3em;color:#ffd48a}
 #bossbar b{font-size:26px;color:#ff7a5a;letter-spacing:.2em}
 #clear{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);background:#071a14ee;border:1px solid #ffd46a66;border-radius:22px;padding:26px 34px;text-align:center;opacity:0;pointer-events:none;transition:opacity .4s,transform .4s;z-index:9;max-width:90vw}
-#clear.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#clear.on{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
+#clear:has(.rc-card){background:none;border:0;padding:0;width:min(440px,calc(100vw - 24px))}
+#clear:has(.rc-card).on::before{content:'';position:fixed;inset:-100vmax;background:#000a;z-index:-1}
 #clear h2{margin:4px 0 8px}
 #map{position:fixed;inset:0;z-index:11;background:none;touch-action:none}
 #map-labels{position:fixed;inset:0;pointer-events:none;z-index:10}
@@ -283,3 +285,28 @@ body.clashing #t-pause,body.clashing #t-swap,body.clashing #t-off{display:none}
 .seek li{padding:4px 0;border-top:1px solid #ffffff12}.seek li small{display:block;opacity:.7;font-size:12px}
 .sk-dir{float:right;color:#9fffd0;font-weight:700}.sk-done{margin:4px 0;color:#9fffd0}
 .mp-found{font-size:13px;font-weight:700;color:#7a4a1a;margin-top:4px}
+
+/* level results card */
+.rc-card{position:relative;background:linear-gradient(#fffaf0,#f1e2c2);color:#3a2410;border:4px solid #7a4a1a;border-radius:22px;padding:58px 22px 16px;box-shadow:0 6px 0 #7a4a1a,0 20px 50px #000a;text-align:center;max-height:calc(100dvh - 40px);overflow:auto}
+.rc-ribbon{position:absolute;left:50%;top:12px;transform:translateX(-50%) rotate(-2deg);background:linear-gradient(#ffd46a,#ff8a2a);color:#3a1a00;font-weight:900;font-size:22px;letter-spacing:.08em;padding:6px 24px;border-radius:12px;border:3px solid #a4450f;box-shadow:0 4px 0 #a4450f;white-space:nowrap;animation:rcstamp .5s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes rcstamp{from{transform:translateX(-50%) rotate(-12deg) scale(2.2);opacity:0}}
+.rc-card h2{color:#3a2410;margin:2px 0 0;font-size:clamp(22px,6vw,30px);font-weight:900;letter-spacing:.02em}
+.rc-sub{font-style:italic;opacity:.7;margin:0 0 10px;font-size:14px}
+.rc-medal{display:flex;align-items:center;justify-content:center;gap:12px;background:#fff8;border:2px solid #d8c4a0;border-radius:16px;padding:8px 12px;margin:0 auto 10px;max-width:300px;text-align:left}
+.rc-m{font-size:44px;animation:rcpop .5s .25s cubic-bezier(.2,1.8,.4,1) both}
+.rc-medal b{font-size:26px;display:block;line-height:1}.rc-medal small{display:block;opacity:.65;font-size:12px}
+.rc-medal em{display:block;color:#d0402a;font-weight:800;font-style:normal;font-size:13px;text-transform:uppercase;letter-spacing:.06em;animation:rcpulse .8s ease-in-out infinite alternate}
+@keyframes rcpulse{to{transform:scale(1.08)}}
+@keyframes rcpop{from{transform:scale(0);opacity:0}}
+.rc-coins{display:flex;align-items:center;justify-content:center;gap:6px;font-size:30px;margin:2px 0 8px}
+.rc-coins i{font-style:normal;color:#cdbb9c;animation:rcpop .35s var(--d) cubic-bezier(.2,1.8,.4,1) both}.rc-coins i.on{color:#e0a010;text-shadow:0 0 10px #ffd04099}
+.rc-coins span{font-size:13px;font-weight:700;opacity:.7;margin-left:6px}
+.rc-rows{display:flex;flex-direction:column;gap:4px;max-width:300px;margin:0 auto}
+.rc-row{display:flex;align-items:center;gap:10px;background:#fff7;border-radius:10px;padding:5px 10px;font-size:15px;animation:rcslide .35s var(--d) ease-out both}
+.rc-row b{margin-left:auto}.rc-ic{width:22px;text-align:center;color:#b0602a;font-size:17px}
+@keyframes rcslide{from{transform:translateX(-24px);opacity:0}}
+.rc-unlocks{margin:12px 0 0;display:flex;flex-direction:column;gap:6px}
+.rc-unlocks .unlock{margin:0;background:linear-gradient(#2a1a50,#1a1036);color:#fff;border:2px solid #c9a0ff;border-radius:12px;padding:8px 12px;font-size:14px;animation:rcpop .45s 1.2s cubic-bezier(.2,1.6,.4,1) both}
+.rc-unlocks .unlock b{color:#ffd46a}
+.rc-btns{margin:14px 0 2px}.rc-btns button{animation:rcpop .4s 1s both}
+.rc-hint{font-size:12px;opacity:.55;margin:4px 0 0}
