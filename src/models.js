@@ -83,23 +83,42 @@ export function makeHero(kind = 'kiri') {
 
 // ── Grumbo, the Horned Beast (rhino-boar), ~2m long
 export function makeBeast() {
+  // Grumbo: the last horned beast. Armoured shoulders, a shaggy mane, a great curved horn, a well-loved saddle
   const root = new THREE.Group(); const b = pivot(root, 0, 0, 0);
-  const hide = M(0x5a6a88), belly = M(0x9aa6b8), horn = M(0xf2e6c8, { roughness: 0.4 }), stripe = M(0xff9a3a);
-  const torso = cap(0.55, 0.9, hide); torso.rotation.z = Math.PI / 2; torso.position.y = 0.9; b.add(torso);
-  const bel = sph(0.5, belly); bel.scale.set(1.5, 0.7, 0.9); bel.position.set(0, 0.62, 0); b.add(bel);
-  const head = pivot(b, 0.85, 1.0, 0);
-  const hd = sph(0.45, hide); hd.scale.set(1.2, 0.9, 0.9); head.add(hd);
-  const snout = sph(0.3, belly); snout.position.set(0.45, -0.15, 0); head.add(snout);
-  const h1 = cone(0.15, 0.7, horn); h1.position.set(0.5, 0.3, 0); h1.rotation.z = -0.5; head.add(h1);
-  const h2 = cone(0.08, 0.3, horn); h2.position.set(0.15, 0.42, 0); h2.rotation.z = -0.3; head.add(h2);
-  for (const z of [0.2, -0.2]) { const t = cone(0.05, 0.25, horn); t.position.set(0.55, -0.25, z); t.rotation.z = -2.6; head.add(t); }
-  eye(head, 0.3, 0.12, 0.28, 0.08); eye(head, 0.3, 0.12, -0.28, 0.08);
-  for (let i = 0; i < 3; i++) { const s = box(0.1, 0.05, 1.12, stripe); s.position.set(-0.3 + i * 0.3, 1.42, 0); s.rotation.z = 0.2; b.add(s); }
-  const saddle = box(0.6, 0.12, 0.8, M(0x8a4a20)); saddle.position.set(-0.05, 1.46, 0); b.add(saddle);
+  const hideM = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.75, sheen: 0.4, sheenColor: new THREE.Color(0x9ab0d0) });
+  const gs = (r, top, bot, ws = 22, hs = 14) => { const m = new THREE.Mesh(gradGeo(new THREE.SphereGeometry(r, ws, hs), top, bot), hideM); m.castShadow = true; return m; };
+  const plate = new THREE.MeshPhysicalMaterial({ color: 0x3e4a66, roughness: 0.35, clearcoat: 0.8, clearcoatRoughness: 0.3 });
+  const horn = new THREE.MeshPhysicalMaterial({ color: 0xf4e6c4, roughness: 0.3, clearcoat: 0.6 });
+  const mane = new THREE.MeshStandardMaterial({ color: 0x2a2f42, roughness: 1, flatShading: true });
+  const hoof = M(0x2a2420, { roughness: 0.5 });
+  const torso = gs(0.72, 0x4e5c7e, 0xa8b2c4); torso.scale.set(1.45, 0.82, 0.88); torso.position.y = 0.95; b.add(torso);
+  // overlapping shoulder plates
+  for (let i = 0; i < 4; i++) { const pl = sph(0.42 - i * 0.04, plate, 16, 8); pl.scale.set(0.9, 0.35, 1.05); pl.position.set(0.45 - i * 0.28, 1.45 - i * 0.03, 0); pl.rotation.z = 0.25; b.add(pl); }
+  // shaggy mane tufts along the neck and spine
+  for (let i = 0; i < 9; i++) { const t = cone(0.09, 0.32 + (i % 3) * 0.06, mane, 5); t.position.set(0.75 - i * 0.12, 1.55 - Math.abs(i - 2) * 0.03, (i % 2 ? 0.08 : -0.08)); t.rotation.z = -0.5; b.add(t); }
+  const head = pivot(b, 0.95, 1.05, 0);
+  const hd = gs(0.46, 0x4e5c7e, 0x98a4b8); hd.scale.set(1.25, 0.88, 0.92); head.add(hd);
+  const snout = sph(0.3, new THREE.MeshPhysicalMaterial({ color: 0xb8c0cc, roughness: 0.5 }), 16, 10); snout.scale.set(1.1, 0.85, 1); snout.position.set(0.48, -0.16, 0); head.add(snout);
+  for (const z of [0.1, -0.1]) { const n = sph(0.05, M(0x1a1c24), 8, 6); n.position.set(0.76, -0.12, z); head.add(n); }
+  // the great curved horn (a tapered tube along a curve) and a little one behind it
+  const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.12, 0.3, 0), new THREE.Vector3(0.05, 0.6, 0), new THREE.Vector3(-0.12, 0.78, 0)]);
+  const hg = new THREE.TubeGeometry(curve, 16, 0.13, 10, false); const hp = hg.attributes.position; for (let i = 0; i < hp.count; i++) { const k = Math.floor(i / 11) / 16, sc = 1 - k * 0.92; const c = curve.getPoint(k); hp.setXYZ(i, c.x + (hp.getX(i) - c.x) * sc, c.y + (hp.getY(i) - c.y) * sc, c.z + (hp.getZ(i) - c.z) * sc); } hg.computeVertexNormals();
+  const h1 = new THREE.Mesh(hg, horn); h1.castShadow = true; h1.position.set(0.52, 0.18, 0); h1.rotation.z = -0.55; head.add(h1);
+  const h2 = cone(0.08, 0.28, horn, 10); h2.position.set(0.2, 0.42, 0); h2.rotation.z = -0.35; head.add(h2);
+  for (const z of [0.2, -0.2]) { const tk = cone(0.045, 0.24, horn, 8); tk.position.set(0.6, -0.26, z); tk.rotation.z = -2.5; head.add(tk); }
+  const ears = []; for (const z of [0.36, -0.36]) { const ep = pivot(head, -0.12, 0.3, z); const e = sph(0.13, hideM, 10, 8); gradGeo(e.geometry, 0x4e5c7e, 0x4e5c7e); e.scale.set(0.5, 1, 0.3); e.position.y = 0.1; ep.add(e); ep.rotation.x = z > 0 ? -0.7 : 0.7; ears.push(ep); }
+  const eyes = [face(head, 0.3, 0.12, 0.3, 0.085, 0x3a2410, M(0x232838)), face(head, 0.3, 0.12, -0.3, 0.085, 0x3a2410, M(0x232838))];
+  // a well-loved saddle on a striped blanket
+  const blanket = box(0.85, 0.06, 1.25, new THREE.MeshStandardMaterial({ map: (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 16; const x = c.getContext('2d'); ['#d8562a', '#ffb040', '#d8562a', '#3a6ac8'].forEach((col, i) => { x.fillStyle = col; x.fillRect(i * 16, 0, 16, 16); }); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })(), roughness: 0.9 }));
+  blanket.position.set(-0.08, 1.52, 0); blanket.scale.z = 0.8; b.add(blanket);
+  for (const z of [1, -1]) { const side = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.42, 0.04), blanket.material); side.position.set(-0.08, 1.33, 0.56 * z); side.rotation.x = z * 0.35; b.add(side); const fr = box(0.85, 0.04, 0.05, M(0xffd060)); fr.position.set(-0.08, 1.12, 0.63 * z); fr.rotation.x = z * 0.35; b.add(fr); }
+  const saddle = sph(0.36, new THREE.MeshPhysicalMaterial({ color: 0x8a4a20, roughness: 0.5, clearcoat: 0.4 }), 16, 8); saddle.scale.set(1.05, 0.32, 1); saddle.position.set(-0.08, 1.58, 0); b.add(saddle);
+  const horn2 = cap(0.04, 0.12, M(0xd8a040, { metalness: 0.6, roughness: 0.3 })); horn2.position.set(0.22, 1.68, 0); b.add(horn2);
   const legs = [];
-  for (const [x, z] of [[0.55, 0.32], [0.55, -0.32], [-0.55, 0.32], [-0.55, -0.32]]) { const l = pivot(b, x, 0.6, z); const m = cap(0.16, 0.3, hide); m.position.y = -0.3; l.add(m); legs.push(l); }
-  const tail = pivot(b, -0.95, 1.0, 0); const tl = cap(0.05, 0.3, hide); tl.rotation.z = 1; tail.add(tl);
-  root.userData = { body: b, head, legs, tail, seat: 1.5 };
+  for (const [x, z] of [[0.58, 0.34], [0.58, -0.34], [-0.58, 0.34], [-0.58, -0.34]]) { const l = pivot(b, x, 0.68, z); const m = gs(0.18, 0x4e5c7e, 0x6a7898, 12, 8); m.scale.set(1, 1.9, 1); m.position.y = -0.26; l.add(m); const hf = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.14, 12), hoof); hf.position.y = -0.6; l.add(hf); legs.push(l); }
+  const tail = pivot(b, -1.0, 1.05, 0); const tl = cap(0.045, 0.32, hideM); gradGeo(tl.geometry, 0x4e5c7e, 0x4e5c7e); tl.rotation.z = 1; tail.add(tl); const tuft = cone(0.1, 0.22, mane, 6); tuft.position.set(-0.3, -0.18, 0); tuft.rotation.z = 2.4; tail.add(tuft);
+  const la = lifeAnim(eyes);
+  root.userData = { body: b, head, legs, tail, seat: 1.62, anim: (t, dt) => { la(t, dt, { near: false, lookX: 1, lookY: 0 }); ears.forEach((e, i) => e.rotation.y = Math.max(0, Math.sin(t * 1.3 + i * 2) - 0.92) * 6); torso.scale.y = 0.82 + Math.sin(t * 1.6) * 0.015; } };
   return root;
 }
 
@@ -213,16 +232,31 @@ export function makeFish() {
 
 // ── Oru, the Ancient: a floating stone shell with an inverted-light core and orbiting rune rings
 export function makeOru() {
+  // Oru: a Sunwright who turned himself inside out of time. Rune-carved shell, a calm stone mask,
+  // a crystal heart, rune rings and translucent spirit wings.
   const root = new THREE.Group(); const b = pivot(root, 0, 0, 0);
-  const stone = M(0x6a7280, { roughness: 0.9, flatShading: true }), glowM = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xb080ff, emissiveIntensity: 2.2 });
-  const shell = new THREE.Mesh(new THREE.DodecahedronGeometry(0.75, 0), stone); shell.scale.set(1.3, 0.8, 1); shell.position.y = 1.0; shell.castShadow = true; b.add(shell);
-  const core = sph(0.35, glowM); core.position.set(0.35, 0.95, 0); b.add(core);
-  const head = pivot(b, 0.8, 1.05, 0);
-  for (const z of [0.18, -0.18]) { const e = sph(0.1, new THREE.MeshStandardMaterial({ color: 0, emissive: 0x80ffe0, emissiveIntensity: 3 })); e.position.set(0.1, 0.05, z); head.add(e); }
+  const runeTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0, 0, 128, 128); x.strokeStyle = '#fff'; x.lineWidth = 3; for (let i = 0; i < 9; i++) { const cx = 14 + (i % 3) * 42, cy = 14 + Math.floor(i / 3) * 42; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + 18, cy + (i % 2 ? 6 : 18)); x.lineTo(cx + 6, cy + 24); x.moveTo(cx + 12, cy); x.arc(cx + 12, cy + 12, 6, 0, Math.PI * (i % 2 ? 1 : 2)); x.stroke(); } const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })();
+  const stone = new THREE.MeshPhysicalMaterial({ color: 0x7a8296, roughness: 0.8, flatShading: true, emissive: 0xb080ff, emissiveMap: runeTex, emissiveIntensity: 1.2, clearcoat: 0.3 });
+  const shell = new THREE.Mesh(new THREE.DodecahedronGeometry(0.75, 1), stone); shell.scale.set(1.3, 0.78, 1); shell.position.y = 1.05; shell.castShadow = true; b.add(shell);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.07, 6, 24), new THREE.MeshPhysicalMaterial({ color: 0xc8a050, metalness: 0.8, roughness: 0.3 })); rim.rotation.x = Math.PI / 2; rim.scale.set(1.25, 1, 1); rim.position.y = 0.88; b.add(rim);
+  const glowM = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xb080ff, emissiveIntensity: 2.2 });
+  const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.3, 0), new THREE.MeshPhysicalMaterial({ color: 0xe0d0ff, emissive: 0xb080ff, emissiveIntensity: 2, transmission: 0.4, thickness: 0.4, roughness: 0.05 })); core.scale.y = 1.4; core.position.set(0, 0.45, 0); b.add(core);
+  // the mask: smooth pale stone, two calm glowing eyes and a little beak-like ridge
+  const head = pivot(b, 0.85, 1.08, 0);
+  const mask = sph(0.36, new THREE.MeshPhysicalMaterial({ color: 0xe8e2d4, roughness: 0.35, clearcoat: 0.7 }), 22, 16); mask.scale.set(0.7, 1, 0.95); head.add(mask);
+  const ridge = cone(0.06, 0.22, M(0xc8a050, { metalness: 0.6, roughness: 0.3 }), 6); ridge.rotation.z = -Math.PI / 2; ridge.position.set(0.26, -0.04, 0); head.add(ridge);
+  const eyeL = [];
+  for (const z of [0.15, -0.15]) { const e = sph(0.075, new THREE.MeshStandardMaterial({ color: 0, emissive: 0x80ffe0, emissiveIntensity: 3 }), 10, 8); e.scale.set(0.6, 0.5, 1.3); e.position.set(0.22, 0.08, z); head.add(e); eyeL.push(e); const mark = box(0.02, 0.16, 0.02, glowM); mark.position.set(0.24, -0.1, z * 1.1); head.add(mark); }
+  const crown = []; for (let i = 0; i < 5; i++) { const sp = cone(0.035, 0.22, new THREE.MeshPhysicalMaterial({ color: 0xc8a050, metalness: 0.8, roughness: 0.25 }), 6); const a = (i - 2) * 0.32; sp.position.set(-0.02 + Math.cos(a) * 0.05, 0.38, Math.sin(a) * 0.3); sp.rotation.x = -a * 0.6; head.add(sp); crown.push(sp); }
+  // rune rings
   const rings = [];
-  for (let i = 0; i < 2; i++) { const r = new THREE.Mesh(new THREE.TorusGeometry(1.1 + i * 0.25, 0.04, 4, 30), glowM); r.position.y = 1.0; b.add(r); rings.push(r); }
-  const wings = []; for (const z of [1, -1]) { const w = pivot(b, -0.1, 1.2, 0.5 * z); const m = new THREE.Mesh(new THREE.CircleGeometry(0.8, 5), new THREE.MeshStandardMaterial({ color: 0x80e0ff, emissive: 0x3060a0, transparent: true, opacity: 0.55, side: THREE.DoubleSide })); m.rotation.x = Math.PI / 2; m.position.z = 0.7 * z; w.add(m); wings.push(w); }
-  root.userData = { body: b, head, rings, wings, core, legs: [], seat: 1.55 };
+  for (let i = 0; i < 2; i++) { const rt = runeTex.clone(); rt.repeat.set(8, 1); rt.needsUpdate = true; const r = new THREE.Mesh(new THREE.TorusGeometry(1.1 + i * 0.25, 0.045, 6, 48), new THREE.MeshStandardMaterial({ color: 0xc8a050, metalness: 0.7, roughness: 0.3, emissive: 0xb080ff, emissiveMap: rt, emissiveIntensity: 1.8 })); r.position.y = 1.0; b.add(r); rings.push(r); }
+  // spirit wings: translucent, gradient, softly additive
+  const wingM = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.32, side: THREE.DoubleSide, depthWrite: false });
+  const wings = []; for (const z of [1, -1]) { const w = pivot(b, -0.1, 1.25, 0.55 * z);
+    for (let k = 0; k < 3; k++) { const g = gradGeo(new THREE.CircleGeometry(0.75 - k * 0.15, 16), 0xa0f0ff, 0x6040c0, 'x'); const m = new THREE.Mesh(g, wingM); m.rotation.x = z * 0.55; m.scale.set(1.3, 0.75, 1); m.position.set(-0.3 - k * 0.2, 0.35 - k * 0.08, (0.35 + k * 0.08) * z); w.add(m); }
+    wings.push(w); }
+  root.userData = { body: b, head, rings, wings, core, legs: [], seat: 1.55, anim: (t) => { core.rotation.y = t * 1.5; core.position.y = 0.45 + Math.sin(t * 2) * 0.06; const bl = (t % 4.1) < 0.12 ? 0.15 : 1; eyeL.forEach((e) => e.scale.y = 0.5 * bl); stone.emissiveIntensity = 1 + Math.sin(t * 1.4) * 0.4; } };
   return root;
 }
 
