@@ -3,7 +3,7 @@
 const $ = (id) => document.getElementById(id);
 export const EVOS = [
   { id: 'dash', name: 'SPROUT DASH', icon: '➶', sub: 'Dash in any direction · one burst in the air, refreshed on landing', from: null },
-  { id: 'claws', name: 'THORNCLAWS', icon: '⟟', sub: 'Slide down any wall · jump to kick off it', from: 'rootwild', hint: 'defeat the guardian of the Rootwild' },
+  { id: 'claws', name: 'THORNCLAWS', icon: '⟟', sub: 'Hang on any wall as long as you like · climb it with ↑ / ↓', from: 'rootwild', hint: 'defeat the guardian of the Rootwild' },
   { id: 'comet', name: 'COMET DASH', icon: '☄', sub: 'Dash straight through critters · two air dashes', from: 'canopy', hint: 'defeat the guardian of the Canopy of Hands' },
 ];
 // heroes who join the team (DK64-style): freed when a guardian falls
@@ -35,7 +35,7 @@ export class Evolve {
   toggle() {
     const el = $('evo-list'); el.classList.toggle('hidden');
     const t = this.game.input.isTouch;
-    const keys = { dash: t ? 'the ➶ button + joystick' : 'F / E + a direction (gamepad: bumpers)', claws: 'hold toward a wall in the air', comet: 'just dash into them' };
+    const keys = { dash: t ? 'the ➶ button + joystick' : 'F / E + a direction (gamepad: bumpers)', claws: 'hold toward a wall, then ↑ / ↓', comet: 'just dash into them' };
     el.innerHTML = EVOS.map((e) => { const on = this.has(e.id); return `<div class="evo ${on ? 'on' : ''}"><span class="ei">${on ? e.icon : '?'}</span><div><b>${on ? e.name : '? ? ?'}</b><small>${on ? `${e.sub} · <i>${keys[e.id]}</i>` : e.hint}</small></div></div>`; }).join('');
   }
 }

@@ -27,6 +27,7 @@ import { Evolve } from './evolve.js';
 import { Gfx } from './gfx.js';
 import { MapWorld } from './map3d.js';
 import { Eggs } from './eggs.js';
+import { Thornwell } from './thornwell.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 // Cinematic finishing pass: gentle colour grading, vignette, film grain and a hint of lens fringing.
 const CineShader = {
@@ -152,7 +153,7 @@ class Game {
     this.loadSave();
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
-    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this);
+    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.thornwell = new Thornwell(this);
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
@@ -326,6 +327,7 @@ class Game {
     setTimeout(() => { $('clear').classList.remove('on'); this.clearing = false; this.leaveToMap(); }, extra ? 4200 : 2800);
   }
   zoneKillY(p) {
+    if (p.y < -520 && p.y > -1000) return -800; // the Thornwell
     if (p.y > 700) return 745;
     if (p.y > 400) return 430;
     if (p.y < -250) return -470;
@@ -544,6 +546,7 @@ class Game {
     if (p.y > 250) t = 7;
     if (p.y > 400 && p.y < 700 && this.currentLevel) t = this.currentLevel.theme;
     if (p.y < -250) t = 8;
+    if (p.y < -520 && p.y > -1000) t = 10;
     if (p.y > 700) t = 9;
     const sky = p.y > 150 && p.y < 250;
     if (t === 8 || t === 9) this.audio.theme = t === 8 ? 2 : 1;
@@ -556,12 +559,13 @@ class Game {
     if (t <= 2 && wk > 0) T = { ...T, exp: T.exp + wk * 0.08, si: T.si * (1 + wk * 0.15) };
     if (this.dawn) T = DAWN;
     this.applyTheme(T, this.snapTheme ? 1 : 1 - Math.exp(-dt * 1.2)); this.snapTheme = false;
-    this.audio.theme = t >= 8 ? (t === 8 ? 6 : 1) : t; this.audio.wake = this.magic.awaken;
+    this.audio.theme = t === 10 ? 3 : t >= 8 ? (t === 8 ? 6 : 1) : t; this.audio.wake = this.magic.awaken;
     // sun & shadow camera follow the player
     const w = this.path.world(p.s, p.y, 0);
     this.sun.position.set(w.x + 30, w.y + 60, w.z + 20); this.sun.target.position.copy(w);
     this.playerLight.position.set(w.x, w.y + 2, w.z + 2);
-    this.playerLight.intensity += ((t === 3 ? 26 : t === 4 || t === 6 ? 18 : t === 7 ? 10 : 0) - this.playerLight.intensity) * dt * 2;
+    this.playerLight.distance = t === 10 ? 26 : 14;
+    this.playerLight.intensity += ((t === 3 ? 26 : t === 10 ? 60 : t === 4 || t === 6 ? 18 : t === 7 ? 10 : 0) - this.playerLight.intensity) * dt * 2;
     this.world.sky.position.copy(this.camera.position);
     this.gfx.update(dt, this.col);
     if (this.state !== 'play') return;
@@ -590,7 +594,7 @@ class Game {
     const h = 1 / 120;
     for (let i = 0; i < secs * 120; i++) {
       this.input.update();
-      this.entities.update(h); this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h); this.player.step(h, this.input); this.extras.step(h); this.powers.step(h); this.player.tick(h); this.player.interact(h);
+      this.entities.update(h); this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h); this.player.step(h, this.input); this.thornwell.step(h); this.extras.step(h); this.powers.step(h); this.player.tick(h); this.player.interact(h);
       if (i === 0) this.input.endFrame();
     }
     const p = this.player; return { s: +(p.s - O).toFixed(2), y: +p.y.toFixed(2), vs: +p.vs.toFixed(2), vy: +p.vy.toFixed(2), st: p.state, g: p.grounded, mount: p.mount, cart: !!p.cart, glims: this.stats.glims, hearts: p.hearts, deaths: this.stats.deaths, water: p.inWater };
@@ -618,7 +622,7 @@ class Game {
         this.entities.update(h);
         this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h);
         this.player.step(h, this.input);
-        this.coop.step(h, this.input.p2); this.eggs.step(h); this.extras.step(h); this.powers.step(h); this.minis.step(h);
+        this.coop.step(h, this.input.p2); this.eggs.step(h); this.thornwell.step(h); this.extras.step(h); this.powers.step(h); this.minis.step(h);
         this.player.tick(h);
         this.player.interact(h);
         this.acc -= h; n++;
@@ -639,7 +643,7 @@ class Game {
       const w = this.path.world(this.player.s, 2, 0), a = this.time * 0.08;
       this.camera.position.set(w.x + Math.sin(a) * 26, w.y + 8, w.z + Math.cos(a) * 26); this.camera.lookAt(w.x, w.y + 3, w.z);
     }
-    this.coop.update(dt); this.eggs.update(dt); this.extras.update(dt, this.time); this.powers.update(dt, this.time); this.minis.updateWorld(dt, this.time);
+    this.coop.update(dt); this.eggs.update(dt); this.thornwell.update(dt, this.time); this.extras.update(dt, this.time); this.powers.update(dt, this.time); this.minis.updateWorld(dt, this.time);
     this.cine.uniforms.time.value = this.time;
     this.fx.update(dt, this.camera.position);
     this.hud.update(dt);

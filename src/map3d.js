@@ -14,7 +14,7 @@ function vnoise(x, z) {
 const fbm = (x, z) => vnoise(x, z) * 0.6 + vnoise(x * 2.1, z * 2.1) * 0.3 + vnoise(x * 4.3, z * 4.3) * 0.1;
 const std = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.8, flatShading: true, ...o });
 const glow = (c, i = 2) => new THREE.MeshStandardMaterial({ color: 0x000000, emissive: c, emissiveIntensity: i });
-const ZONE = { rootwild: 0x5cae48, canopy: 0x3d8f3a, ruins: 0x8fa276, glowdeep: 0x6c5aa6, mine: 0xa8683c, heart: 0xd8bc5c };
+const ZONE = { thornwell: 0x4a6a3a, rootwild: 0x5cae48, canopy: 0x3d8f3a, ruins: 0x8fa276, glowdeep: 0x6c5aa6, mine: 0xa8683c, heart: 0xd8bc5c };
 const W = 120, D = 90; // terrain extents
 
 export class MapWorld {
@@ -37,12 +37,13 @@ export class MapWorld {
     this.ray = new THREE.Raycaster();
   }
   // ── terrain: a continent grown along the main road, with a mountain for the mine
-  mainland() { return LEVELS.filter((l) => !l.optional); }
+  mainland() { return LEVELS.filter((l) => !l.optional || l.deep); }
   heightAt(x, z) {
     const P = this.pos; let m = -1;
     const segD = (px, pz, a, b) => { const abx = b.x - a.x, abz = b.z - a.z, t = Math.max(0, Math.min(1, ((px - a.x) * abx + (pz - a.z) * abz) / (abx * abx + abz * abz))); return Math.hypot(px - a.x - abx * t, pz - a.z - abz * t); };
     for (const l of this.mainland()) m = Math.max(m, 1 - Math.hypot(x - P[l.id].x, z - P[l.id].z) / 11);
-    for (const [a, b] of LINKS) if (!levelById(a).optional && !levelById(b).optional) m = Math.max(m, 1 - segD(x, z, P[a], P[b]) / 9.5);
+    const land = (id) => !levelById(id).optional || levelById(id).deep;
+    for (const [a, b] of LINKS) if (land(a) && land(b)) m = Math.max(m, 1 - segD(x, z, P[a], P[b]) / 9.5);
     m += (fbm(x * 0.12, z * 0.12) - 0.5) * 0.45;
     let h = m <= 0 ? Math.max(-3.5, m * 9) : 0.25 + Math.min(1, m * 2.2) * 1.6 + fbm(x * 0.25 + 9, z * 0.25) * 1.4 * Math.min(1, m * 2);
     const mt = P.mine, dm = (x - mt.x - 4) ** 2 + (z - mt.z + 5) ** 2; h += 11 * Math.exp(-dm / 30) * Math.max(0, Math.min(1, m * 3));
@@ -129,6 +130,11 @@ export class MapWorld {
     { const c = this.ground('heart', 0, -3.4), g = new THREE.Group(); g.position.copy(c); L.add(g);
       const seed = new THREE.Mesh(new THREE.SphereGeometry(1.8, 24, 16), new THREE.MeshStandardMaterial({ color: 0xffe8a0, emissive: 0xffb830, emissiveIntensity: 1.3, roughness: 0.3 })); seed.scale.set(0.85, 1.2, 0.85); seed.position.y = 2.4; g.add(seed); this.seed = seed;
       for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; const root = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.35, 3, 5), std(0x6a4426)); root.position.set(Math.cos(a) * 1.2, 0.6, Math.sin(a) * 1.2); root.rotation.set(Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9); g.add(root); } }
+    // The Thornwell: a thorn-ringed sinkhole glowing from far below
+    { const c = this.ground('thornwell', 0, -3.6), g = new THREE.Group(); g.position.copy(c); L.add(g);
+      const pit = new THREE.Mesh(new THREE.CircleGeometry(2.2, 24), new THREE.MeshBasicMaterial({ color: 0x05030a })); pit.rotation.x = -Math.PI / 2; pit.position.y = 0.06; g.add(pit);
+      const glowR = new THREE.Mesh(new THREE.RingGeometry(1.2, 2.1, 24), new THREE.MeshBasicMaterial({ color: 0x60ffd0, transparent: true, opacity: 0.35 })); glowR.rotation.x = -Math.PI / 2; glowR.position.y = 0.08; g.add(glowR); this.wellGlow = glowR;
+      for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2; const th = new THREE.Mesh(new THREE.ConeGeometry(0.18, 1.4 + (i % 3) * 0.4, 5), std(0x5a2a4a)); th.position.set(Math.cos(a) * 2.5, 0.6, Math.sin(a) * 2.5); th.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5); g.add(th); } }
     // Skyward Isles: a floating island in the clouds
     { const p = this.pos.skyward, g = (this.sky = new THREE.Group()); g.position.set(p.x, 13, p.z); L.add(g);
       const rock = new THREE.Mesh(new THREE.ConeGeometry(3.4, 5, 8), std(0x8a7a6a)); rock.rotation.x = Math.PI; rock.position.y = -2.5; g.add(rock);
@@ -280,6 +286,7 @@ export class MapWorld {
     if (this.seed) { const s = 1 + Math.sin(t * 2) * 0.04; this.seed.scale.set(0.85 * s, 1.2 * s, 0.85 * s); this.seed.material.emissiveIntensity = 1.2 + Math.sin(t * 2) * 0.35; }
     if (this.sky) this.sky.position.y = this.skyY + Math.sin(t * 0.8) * 0.3;
     if (this.swirl) this.swirl.rotation.z = t * 0.8;
+    if (this.wellGlow) this.wellGlow.material.opacity = 0.25 + Math.sin(t * 1.8) * 0.15;
     if (this.gem) { this.gem.rotation.y = t * 1.5; this.gem.position.y = 2.6 + Math.sin(t * 2) * 0.15; }
     if (this.fall) this.fall.material.opacity = 0.7 + Math.sin(t * 9) * 0.08;
     this.shrooms?.forEach((c, i) => c.material.emissiveIntensity = 1.3 + Math.sin(t * 2 + i) * 0.5);

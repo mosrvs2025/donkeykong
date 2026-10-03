@@ -13,6 +13,7 @@ export const THEMES = [
   { top: 0x0a0a2a, hor: 0x3a2a60, fog: 0x1a1640, dens: 0.009, hs: 0x9080e0, hg: 0x201840, sun: 0xc0b0ff, si: 1.0, pc: 0xffc0f0, exp: 1.2, moon: 1, stars: 1 },
   { top: 0x0a3a5a, hor: 0x1a6a8a, fog: 0x0d4a62, dens: 0.019, hs: 0x70d0f0, hg: 0x0a2838, sun: 0x90e8ff, si: 1.3, pc: 0xa0fff0, exp: 1.2, moon: 0, stars: 0 },
   { top: 0x2f86f0, hor: 0xffe6d0, fog: 0xcfe4fa, dens: 0.0032, hs: 0xe8f4ff, hg: 0x7a90b0, sun: 0xfff4e0, si: 3.0, pc: 0xffffff, exp: 1.05, moon: 0.2, stars: 0 },
+  { top: 0x03080c, hor: 0x123a40, fog: 0x0f3238, dens: 0.013, hs: 0x8ad8e0, hg: 0x3a2040, sun: 0x90e8ff, si: 0.3, pc: 0x9ffff0, exp: 1.6, moon: 0, stars: 0 }
 ];
 
 const MAT_DEF = {

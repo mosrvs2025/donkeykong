@@ -3,6 +3,7 @@
 const O = 80;
 export const LEVELS = [
   { id: 'rootwild', name: 'The Rootwild', sub: 'where the old roads sleep', start: [4, 0], end: 264, endY: 3, wall: -50, boss: 'bramble', theme: 0, at: [120, 470] },
+  { id: 'thornwell', name: 'The Thornwell', sub: 'down where the roots drink', start: [42, -599.9], end: 210, endY: -719, wall: 30, theme: 10, at: [205, 525], optional: true, mode: null, deep: true },
   { id: 'canopy', name: 'Canopy of Hands', sub: 'a thousand-year-old grove', start: [266, 3.1], end: 535, endY: 17, wall: 262, boss: 'skyreaver', theme: 1, at: [250, 380] },
   { id: 'skyward', name: 'Skyward Isles', sub: 'a world with no ground', start: [205, 803], end: 905, wall: 190, boss: 'heron', mode: 'fly', theme: 9, at: [300, 175], optional: true, grants: 'sky' },
   { id: 'ruins', name: 'The Weeping Ruins', sub: 'the river remembers', start: [578, 2.1], end: 852, endY: 21.4, wall: 575, boss: 'warden', theme: 2, at: [400, 430] },
@@ -11,8 +12,8 @@ export const LEVELS = [
   { id: 'mine', name: 'Sunwright Mine', sub: 'hold on tight', start: [1062, -4.9], end: 1362, endY: -20, wall: 1058, boss: 'crawler', theme: 4, at: [690, 440] },
   { id: 'heart', name: 'Heart of the Seed', sub: 'the end of the road', start: [1366, -19.9], end: null, wall: 1362, theme: 5, at: [820, 300] },
 ];
-export const LINKS = [['rootwild', 'canopy'], ['canopy', 'skyward'], ['canopy', 'ruins'], ['ruins', 'sunken'], ['ruins', 'glowdeep'], ['glowdeep', 'mine'], ['mine', 'heart']];
-const UNLOCKS = { rootwild: ['canopy'], canopy: ['ruins', 'skyward'], ruins: ['glowdeep', 'sunken'], glowdeep: ['mine'], mine: ['heart'] };
+export const LINKS = [['rootwild', 'canopy'], ['rootwild', 'thornwell'], ['canopy', 'skyward'], ['canopy', 'ruins'], ['ruins', 'sunken'], ['ruins', 'glowdeep'], ['glowdeep', 'mine'], ['mine', 'heart']];
+const UNLOCKS = { rootwild: ['canopy', 'thornwell'], canopy: ['ruins', 'skyward'], ruins: ['glowdeep', 'sunken'], glowdeep: ['mine'], mine: ['heart'] };
 export const levelById = (id) => LEVELS.find((l) => l.id === id);
 
 export class WorldMap {
@@ -30,6 +31,7 @@ export class WorldMap {
   neighbors(id) { return LINKS.filter((l) => l.includes(id)).map((l) => (l[0] === id ? l[1] : l[0])).filter((n) => this.unlocked(n)); }
   show() {
     this.el.classList.remove('hidden'); this.open = true;
+    if (this.progress().levels.rootwild?.clear && !this.unlocked('thornwell')) { this.progress().unlocked.push('thornwell'); this.justUnlocked = 'thornwell'; (this.reveals ||= []).push(['rootwild', 'thornwell']); }
     const M3 = this.game.map3d; M3.enter(); this.render();
     for (const [a, b] of this.reveals || []) M3.reveal(a, b); this.reveals = [];
     if (this.justUnlocked) { const n = levelById(this.justUnlocked); setTimeout(() => this.game.hud.toast(`New path: <b>${n.name}</b>${n.optional ? ' (optional)' : ''}`, 3), 400); this.justUnlocked = null; }
@@ -80,7 +82,7 @@ export class WorldMap {
     const doneCount = LEVELS.filter((l) => P.levels[l.id]?.clear).length;
     this.el.innerHTML = `
       <div class="mp-card">
-        <div class="mp-kicker">${here.optional ? (here.mode === 'swim' ? 'underwater world' : 'sky world') : 'world ' + (LEVELS.filter((l) => !l.optional).indexOf(here) + 1)}</div>
+        <div class="mp-kicker">${here.optional ? (here.deep ? 'secret depths' : here.mode === 'swim' ? 'underwater world' : 'sky world') : 'world ' + (LEVELS.filter((l) => !l.optional).indexOf(here) + 1)}</div>
         <h2>${here.name}</h2><p class="mp-sub">${here.sub}</p>
         <div class="mp-row"><span class="mp-coins">${'<i class="on">◉</i>'.repeat(cn)}${'<i>○</i>'.repeat(3 - cn)}</span>${md ? `<span>${md}</span>` : ''}${best ? `<span class="mp-best">⏱ ${best}</span>` : ''}</div>
         <div class="mp-tags">${st.clear ? '<b class="t ok">✓ cleared</b>' : '<b class="t new">new!</b>'}${here.boss ? (st.boss ? '<b class="t crown">♛ guardian defeated</b>' : '<b class="t boss">♛ guardian awaits</b>') : ''}</div>

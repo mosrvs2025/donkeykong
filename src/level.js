@@ -13,7 +13,7 @@ export function buildLevel() {
     solids: [], slopes: [], water: [], vines: [], bouncers: [], glims: [], shards: [], cages: [], enemies: [],
     grapples: [], updrafts: [], checkpoints: [], portals: [], blooms: [], totems: [], carts: [], chases: [],
     altar: null, cams: [], themes: [], banners: [], signs: [], hints: [],
-    shrines: [], waystones: [], doors: [], echoes: [], trials: [], critters: [], blooms2: [], mossback: null, notices: [], bonds: [], finaleBlights: [], arenas: {}, currents: [], storms: [], bounds: [], blocks: [], hollows: [],
+    shrines: [], waystones: [], doors: [], echoes: [], trials: [], critters: [], blooms2: [], mossback: null, notices: [], bonds: [], finaleBlights: [], arenas: {}, currents: [], storms: [], bounds: [], blocks: [], hollows: [], spikes: [],
   };
   let id = 0;
   const solid = (s0, s1, y0, y1, mat = 'stone', extra = {}) => { const o = { id: id++, s0: s0 + O, s1: s1 + O, y0, y1, mat, ...extra }; L.solids.push(o); return o; };
@@ -497,5 +497,56 @@ export function buildLevel() {
 
   L.start = { s: 4 + O, y: 0 };
   L.endS = 1560 + O;
+
+  // ═════════════════════ THE THORNWELL: a deep, branching descent (Ori / Metroid style) ═════════════════════
+  // Lives far below the Rootwild (y ≈ -600 … -740). Wall-cling shafts, thorn-lined walls, a hidden alcove.
+  // spikes(box): touching the box hurts. dir is which way the thorns point (for the visuals).
+  const spikes = (s0, s1, y0, y1, dir) => L.spikes.push({ s0: s0 + O, s1: s1 + O, y0, y1, dir });
+  cam(26, 216, { dist: 18, height: 2.2, fov: 54, look: 2.5, yMin: -800, yMax: -560 });
+  solid(22, 30, -790, -560, 'cave');                       // west wall
+  solid(22, 104, -572, -562, 'cave');                      // ceiling of the upper hall
+  // chamber 1: the mouth of the well
+  solid(30, 60, -640, -600, 'cliff');
+  checkpoint(40, -600);
+  hint(31, 58, 'Hold toward a wall to <b>cling</b> · jump to kick off · keep holding toward it to climb');
+  line(34, 56, -598.8, -598.8, 7);
+  // shaft 1 (thorns on the west face: cling to the east wall)
+  solid(65, 69, -640, -588, 'cave');
+  spikes(60, 60.45, -632, -612, 'right');
+  line(62.5, 62.5, -604, -634, 6);
+  // chamber 2: the root hall
+  solid(60, 96, -690, -640, 'cliff');
+  checkpoint(74, -640);
+  enemy('snapjaw', 80, -640, 5);
+  spikes(84, 88, -640, -639.35, 'up'); arc(83, 89, -638.6, 3, 5);
+  solid(90, 96, -640, -634, 'cliff');                       // a low step: kick off the far wall to hop it
+  // the east wall has a hidden alcove high up: climb the bare wall with tight kicks
+  solid(100, 104, -690, -616, 'cave'); solid(100, 104, -608, -572, 'cave');
+  line(98.6, 98.6, -630, -618, 4);
+  // shaft 2: two thorn shelves force you to switch walls on the way down
+  solid(96, 98.2, -656, -654, 'cave'); spikes(96, 98.2, -654, -653.35, 'up');
+  spikes(99.55, 100, -672, -660, 'left');
+  solid(97.8, 100, -676, -674, 'cave'); spikes(97.8, 100, -674, -673.35, 'up');
+  line(99, 99, -644, -652, 3); line(97, 97, -678, -686, 3);
+  // chamber 3: the thorn tunnel
+  solid(56, 90, -740, -690, 'cave'); solid(90, 150, -740, -700, 'cliff');
+  solid(104, 160, -690, -572, 'cave');
+  checkpoint(104, -700);
+  solid(110, 126, -694, -690, 'cave'); spikes(110, 126, -694.65, -694, 'down');
+  spikes(116, 120, -700, -699.35, 'up'); line(112, 124, -698.6, -698.6, 6);
+  enemy('spikeback', 136, -700, 5); enemy('buzzmoth', 143, -696, 2);
+  // the drop into the heart hollow
+  solid(156, 160, -728, -690, 'cave');
+  line(153, 153, -702, -736, 6);
+  // chamber 4: the chimney out
+  solid(150, 214, -780, -740, 'cliff'); solid(160, 214, -700, -572, 'cave');
+  checkpoint(166, -740);
+  line(168, 186, -738.8, -738.8, 6);
+  solid(188, 192, -740, -722, 'cliff');
+  solid(196, 214, -740, -719, 'cliff');
+  spikes(192, 192.45, -736, -728, 'right');
+  spikes(195.55, 196, -726, -720, 'left');
+  line(194, 194, -737, -724, 4);
+  line(200, 210, -717.8, -717.8, 5);
   return L;
 }

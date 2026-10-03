@@ -227,12 +227,20 @@ export class Player {
       }
       if (this.sdashT <= 0) { this.vs = dx * 14; vyr = dy > 0 ? dy * 9 : dy * 6; }
     }
-    // ── Thornclaws (evolution): slide on any wall while holding toward it
+    // ── wall cling (everyone, Ori-style): hold toward a wall to stick, hang a moment, then slide.
+    //    Thornclaws (evolution) upgrade it: hang as long as you like and climb any wall with ↑/↓.
     this.sliding = false;
-    if (!this.mount && !this.cart && E2.has('claws') && this.g === 1 && !this.grounded && !this.inWater && this.state === 'normal' && this.wallDir && dir === this.wallDir && vyr < 0 && !(this.wallSolid && this.wallSolid.moss && M.has('grip'))) {
-      this.sliding = true; this.slamming = false; vyr = Math.max(vyr, -4.5); this.airDashes = E2.has('comet') ? 2 : 1;
-      if (Math.random() < dt * 25) game.fx.spawn(game.path.world(this.s + this.wallDir * this.hw, this.y + 0.9, 0), new THREE.Vector3(-this.wallDir, 1, 0), 0xe8d8b0, 0.3, 0.3, 0);
-    }
+    const claws = E2.has('claws');
+    if (!this.mount && !this.cart && this.g === 1 && !this.grounded && !this.inWater && this.state === 'normal' && this.wallDir && dir === this.wallDir && (vyr < 4 || this.clingT > 0) && this.wjLock <= 0.05 && !(this.wallSolid && this.wallSolid.moss && M.has('grip'))) {
+      if (!this.clingT) { this.clingT = 0.001; vyr = Math.max(vyr, 0); this.squash = 0.2; game.audio.play('land'); }
+      this.clingT += dt; this.sliding = true; this.slamming = false; this.airDashes = E2.has('comet') ? 2 : 1; this.leapReady = true; this.firstLeapDone = false;
+      const up = (H.up ? 1 : 0) - (H.down ? 1 : 0);
+      if (claws && up) vyr = up * 5;                                  // climb
+      else if (claws) vyr = H.down ? -9 : Math.max(vyr - 30 * dt, -0.6); // hang, creep down
+      else if (this.clingT < 0.45) vyr = H.down ? -9 : Math.max(Math.min(vyr, 0), -0.4); // hold for a breath
+      else vyr = H.down ? -10 : Math.max(vyr, -3.2);                  // then slide
+      if (Math.random() < dt * (Math.abs(vyr) > 1 ? 25 : 4)) game.fx.spawn(game.path.world(this.s + this.wallDir * this.hw, this.y + 0.9, 0), new THREE.Vector3(-this.wallDir, 1, 0), 0xe8d8b0, 0.3, 0.3, 0);
+    } else this.clingT = 0;
     // updrafts
     for (const u of E.updrafts) if (this.s > u.s0 && this.s < u.s1 && this.center > u.y0 && this.center < u.y1) vyr = Math.min(vyr + (this.mount === 'bird' ? 90 : 25) * dt, this.mount === 'bird' ? 17 : 4);
 
@@ -248,8 +256,10 @@ export class Player {
       } else if (this.mount === 'frog' && this.wallT > 0) {
         vyr = 18; this.vs = -this.wallD * 11; this.facing = -this.wallD; this.jumpBuf = 0; this.wallT = 0; game.audio.play('bigjump'); this.leapReady = true; M.chainEvent();
         game.fx.burst(game.path.world(this.s + this.wallD * this.hw, this.y + 1, 0), 0x80ff90, 10, 4, 0.6, 0.4, 0);
-      } else if (!this.mount && game.evolve.has('claws') && this.wallT > 0 && !this.cart) {
-        vyr = 15; this.vs = -this.wallD * 11.5; this.facing = -this.wallD; this.jumpBuf = 0; this.wallT = 0; this.wjLock = 0.16; this.leapReady = true; this.firstLeapDone = false; this.sdashT = 0;
+      } else if (!this.mount && this.wallT > 0 && !this.cart && !this.inWater) {
+        // kick off the wall; holding toward it makes a tighter, higher kick for climbing a single wall
+        const climb = dir === this.wallD;
+        vyr = climb ? 15.5 : 14.5; this.vs = -this.wallD * (climb ? 4 : 11.5); this.facing = -this.wallD; this.jumpBuf = 0; this.wallT = 0; this.wjLock = climb ? 0.07 : 0.16; this.leapReady = true; this.firstLeapDone = false; this.sdashT = 0; this.clingT = 0;
         game.audio.play('jump'); M.chainEvent(); this.squash = -0.3;
         game.fx.burst(game.path.world(this.s + this.wallD * this.hw, this.y + 0.9, 0), 0xe8d8b0, 10, 4, 0.5, 0.4, 0);
       } else if (this.mount === 'bird' && this.birdTime > 0) {
