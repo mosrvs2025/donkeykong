@@ -54,6 +54,14 @@ export class Powers {
     game.audio.play(fire ? 'roll' : 'tongue');
     return true;
   }
+  // Pip's acorn sling (works with or without a power-up)
+  shootAcorn() {
+    const game = this.game, p = game.player; if (p.inWater) return false;
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), new THREE.MeshStandardMaterial({ color: 0x8a5a2a, roughness: 0.6 }));
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x5a3a1a })); cap.position.y = 0.05; m.add(cap);
+    this.group.add(m); this.shots.push({ kind: 'acorn', m, s: p.s + p.facing * 0.6, y: p.y + 0.8, vs: p.facing * 21 + p.vs * 0.2, vy: 2, t: 0, bounces: 0 });
+    game.audio.play('tongue'); return true;
+  }
   step(h) {
     const game = this.game, p = game.player, E = game.entities;
     this.cool -= h;
@@ -66,6 +74,7 @@ export class Powers {
     // shots
     for (const sh of this.shots) {
       sh.t += h;
+      if (sh.kind === 'acorn') sh.vy -= 9 * h;
       if (sh.kind === 'ember') {
         sh.vy -= 38 * h;
         const g = E.groundUnder(sh.s, sh.y + 0.3);
@@ -82,12 +91,13 @@ export class Powers {
         if (sh.dead || !e.alive || e.frozen > 0) continue;
         if (Math.abs(e.s - sh.s) < e.hw + 0.3 && sh.y > e.y - 0.2 && sh.y < e.y + e.h + 0.3) {
           if (sh.kind === 'ember') E.killEnemy(e, Math.sign(sh.vs) * 5, 9);
+          else if (sh.kind === 'acorn') { if (e.kind === 'spikeback') e.stun = 2; else E.killEnemy(e, Math.sign(sh.vs) * 4, 8); game.audio.play('stomp', 1); }
           else this.freeze(e);
           sh.dead = true;
         }
       }
-      if (sh.t > (sh.kind === 'ember' ? 2.4 : 1.1) || sh.bounces > 4) sh.dead = true;
-      if (sh.dead) { game.fx.burst(this.path.world(sh.s, sh.y, 0), sh.kind === 'ember' ? 0xff9a40 : 0xcff8ff, 10, 4, 0.5, 0.4, 0); this.group.remove(sh.m); }
+      if (sh.t > (sh.kind === 'ember' ? 2.4 : sh.kind === 'acorn' ? 0.7 : 1.1) || sh.bounces > 4) sh.dead = true;
+      if (sh.dead) { game.fx.burst(this.path.world(sh.s, sh.y, 0), sh.kind === 'ember' ? 0xff9a40 : sh.kind === 'acorn' ? 0xc8a070 : 0xcff8ff, 10, 4, 0.5, 0.4, 0); this.group.remove(sh.m); }
     }
     this.shots = this.shots.filter((x) => !x.dead);
     // frozen critters thaw
@@ -142,7 +152,8 @@ export class Powers {
       const k = Math.max(0, b.bump) / 0.5; b.g.position.y = b.baseY + Math.sin(k * Math.PI) * 0.45;
       if (!b.spent) b.marks.forEach((m) => { m.rotation.y = t * 2; m.material.emissiveIntensity = 1.8 + Math.sin(t * 4) * 0.6; });
     }
-    for (const sh of this.shots) { this.path.place(sh.m, sh.s, sh.y, 0.2); sh.m.rotation.x += dt * 12; if (sh.kind === 'ember' && Math.random() < dt * 40) game.fx.spawn(this.path.world(sh.s, sh.y, 0.2), new THREE.Vector3(0, 1.5, 0), 0xff9a40, 0.35, 0.3, 0); }
+    for (const sh of this.shots) { this.path.place(sh.m, sh.s, sh.y, 0.2); sh.m.rotation.x += dt * 12; if (sh.kind === 'acorn') sh.m.rotation.z += dt * 20;
+      if (sh.kind === 'ember' && Math.random() < dt * 40) game.fx.spawn(this.path.world(sh.s, sh.y, 0.2), new THREE.Vector3(0, 1.5, 0), 0xff9a40, 0.35, 0.3, 0); }
     for (const it of this.items) { this.path.place(it.m, it.s, it.y + Math.sin(t * 3) * 0.1, 0.3); it.m.rotation.y = t * 2; }
     const pw = this.power;
     this.bubble.visible = pw === 'bubble' && p.state !== 'dead';

@@ -19,6 +19,7 @@ function eye(parent, x, y, z, r = 0.11, iris = 0x2a1a0a) {
 export const HERO_LOOKS = {
   kiri: { fur: 0xe0873a, cream: 0xf6dcb0, dark: 0x5a3018, scarf: 0x2fbfae, ear: [0.15, 1.2], eye: 0.1, tail: 'ring', gear: 'goggles', size: 1 },
   pip: { fur: 0x8f9fc4, cream: 0xf6f2ff, dark: 0x2a2c48, scarf: 0x7ad65a, ear: [0.21, 0.95], eye: 0.125, tail: 'bushy', gear: 'leaf', size: 0.9 },
+  pim: { fur: 0x8a6aa8, cream: 0xf4e8d8, dark: 0x3a2440, scarf: 0xffc030, ear: [0.17, 1.05], eye: 0.11, tail: 'bushy', gear: 'helmet', size: 0.95 },
   brom: { fur: 0x45454f, cream: 0xf0efe6, dark: 0x1c1c22, scarf: 0xd04a3a, ear: [0.1, 0.8], eye: 0.085, tail: 'stub', gear: 'helmet', size: 1.12 },
 };
 export function makeHero(kind = 'kiri') {

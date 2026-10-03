@@ -429,8 +429,12 @@ class Game {
     const E = this.entities;
     this.audio.play('slam'); this.shake(0.35);
     const p = this.path.world(s, y + 0.1, 0), f = this.path.frame(s);
+    const quake = this.player.hero === 'brom' && !this.player.mount, R = quake ? 6 : 3.2;
     this.fx.ring(p, 0xfff0c0, 28, 9, 0.6, new THREE.Vector3(f.tx, 0, f.tz), new THREE.Vector3(f.nx, 0, f.nz));
-    for (const t of E.totems) if (Math.abs(t.s - s) < 3.2 && Math.abs(t.y - y) < 4) E.toggleTotem(t);
+    if (quake) { this.shake(0.7); this.fx.ring(p, 0xffc070, 40, 15, 0.8, new THREE.Vector3(f.tx, 0, f.tz), new THREE.Vector3(f.nx, 0, f.nz)); this.fx.burst(p, 0xc8a070, 40, 9, 0.8, 0.8, -10); this.audio.play('smash');
+      for (const e of E.enemies) if (e.alive && Math.abs(e.s - s) < R && Math.abs(e.y - y) < 5) E.killEnemy(e, Math.sign(e.s - s) * 8, 12);
+      for (const o of E.solids) if (o.active && o.crack === 'beast' && Math.abs((o.s0 + o.s1) / 2 - s) < R && o.y1 > y - 3 && o.y0 < y + 3) E.breakSolid(o); }
+    for (const t of E.totems) if (Math.abs(t.s - s) < R && Math.abs(t.y - y) < 4) E.toggleTotem(t);
     for (const e of E.enemies) if (e.alive && Math.abs(e.s - s) < 3.2 && Math.abs(e.y - y) < 1.5 && e.kind !== 'buzzmoth') { if (e.kind === 'spikeback' && this.player.mount !== 'beast') e.stun = 2; else E.killEnemy(e, Math.sign(e.s - s) * 6, 10); }
     for (const b of E.blooms) if (Math.abs(b.s - s) < 3 && Math.abs(b.y - y) < 3) E.triggerBloom(b);
   }

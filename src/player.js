@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { makeHero } from './models.js';
 export const HEROES = {
   kiri: { name: 'KIRI', hw: 0.38, h: 1.3, run: 10, jump: 15.5, color: 0xffa050, power: 'all-rounder: Wisp Leap, Rootgrip, the Lumen Song' },
-  pip: { name: 'PIP', hw: 0.34, h: 1.15, run: 11.5, jump: 15, color: 0x9fd0ff, power: 'hold jump to glide · the quickest feet in Thornwild' },
-  brom: { name: 'BROM', hw: 0.45, h: 1.45, run: 8.8, jump: 14.5, color: 0xffd060, power: 'rolls smash cracked walls · stomps right through spikes' },
+  pip: { name: 'PIP', hw: 0.34, h: 1.15, run: 11.5, jump: 15, color: 0x9fd0ff, power: 'hold jump to glide · action: acorn sling · in the air: swoop strike' },
+  brom: { name: 'BROM', hw: 0.45, h: 1.45, run: 8.8, jump: 14.5, color: 0xffd060, power: 'rolls smash cracked walls · air slam becomes a Quake · stomps through spikes' },
 };
 import { moveBody, overlap } from './physics.js';
 import { COMPANIONS } from './entities.js';
@@ -276,7 +276,11 @@ export class Player {
     // ── action
     if (action && game.powers.tryShoot()) action = false;
     if (action) {
-      if (!this.mount) {
+      if (!this.mount && this.hero === 'pip' && !swimming) {
+        // Pip: acorn sling on the ground, a swooping glide-strike in the air
+        if (this.grounded) { if (this.rollCool <= 0 && game.powers.shootAcorn()) this.rollCool = 0.3; }
+        else if (!this.rollJump) { this.vs = this.facing * 17; vyr = Math.max(vyr, -1); this.rollJump = true; this.slamming = false; game.audio.play('flap'); game.fx.burst(game.path.world(this.s, this.y + 0.7, 0), 0x9fd0ff, 12, 4, 0.5, 0.4, 0); }
+      } else if (!this.mount) {
         if (this.grounded && this.rollCool <= 0 && !swimming) { this.rollT = 0.42; this.rollCool = 0.5; this.vs = this.facing * Math.max(Math.abs(this.vs) + 4, 15.5); game.audio.play('roll'); }
         else if (!this.grounded && !swimming && !this.slamming) { this.slamming = true; vyr = -30; this.vs *= 0.25; game.audio.play('flap'); }
       } else if (this.mount === 'beast') {
