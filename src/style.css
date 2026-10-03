@@ -276,3 +276,10 @@ body.mini #banner,body.mini #toast,body.mini #story,body.mini #prompt,body.mini 
 .cs-over{pointer-events:auto;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000a}
 .cs-over h2{font-size:clamp(30px,7vw,56px);color:#fff}
 body.clashing #t-pause,body.clashing #t-swap,body.clashing #t-off{display:none}
+
+.seek{text-align:left;max-width:440px;margin:6px auto;background:#0006;border:1px solid #fff2;border-radius:14px;padding:10px 14px}
+.sk-head{font-weight:700;color:#ffd46a;font-size:14px;margin-bottom:4px}
+.seek ul{list-style:none;padding:0;margin:0;font-size:14px;line-height:1.35;max-height:34vh;overflow:auto}
+.seek li{padding:4px 0;border-top:1px solid #ffffff12}.seek li small{display:block;opacity:.7;font-size:12px}
+.sk-dir{float:right;color:#9fffd0;font-weight:700}.sk-done{margin:4px 0;color:#9fffd0}
+.mp-found{font-size:13px;font-weight:700;color:#7a4a1a;margin-top:4px}

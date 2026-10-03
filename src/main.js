@@ -29,6 +29,7 @@ import { MapWorld } from './map3d.js';
 import { Eggs } from './eggs.js';
 import { Thornwell } from './thornwell.js';
 import { Clash } from './clash.js';
+import { Seeker } from './seeker.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 // Cinematic finishing pass: gentle colour grading, vignette, film grain and a hint of lens fringing.
 const CineShader = {
@@ -154,7 +155,7 @@ class Game {
     this.loadSave();
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
-    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this);
+    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this);
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
@@ -322,7 +323,7 @@ class Game {
     if (lv.grants === 'tide') extra += '<p class="unlock">Tide Form stays with Kiri. Somewhere in the Weeping Ruins, a sealed stone waits for a dash.</p>';
     this.audio.play('win'); this.audio.motif(3);
     const t = this.levelTime;
-    $('clear').innerHTML = `<div class="kicker">level clear</div><h2>${lv.name}</h2><p class="big">${MEDAL_ICON[medal]} ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}</p><p>Seed Coins ${'◉'.repeat(lc)}${'○'.repeat(3 - lc)} · ${this.stats.glims} glims · ${this.magic.echoes.size}/8 echoes · ${this.magic.bonds.size}/5 bonds</p>${extra}`;
+    $('clear').innerHTML = `<div class="kicker">level clear</div><h2>${lv.name}</h2><p class="big">${MEDAL_ICON[medal]} ${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}</p><p>${this.seeker.line(lv.id)}</p><p>${this.stats.glims} glims · ${this.magic.echoes.size}/8 echoes · ${this.magic.bonds.size}/5 bonds</p>${extra}`;
     $('clear').classList.add('on');
     this.saveGame();
     setTimeout(() => { $('clear').classList.remove('on'); this.clearing = false; this.leaveToMap(); }, extra ? 4200 : 2800);
@@ -372,7 +373,7 @@ class Game {
     this.checkpoint = { s: w.s + 1.2, y: w.y + 0.1 };
   }
   togglePause() {
-    if (this.state === 'play') { this.state = 'paused'; $('pause').classList.remove('hidden'); }
+    if (this.state === 'play') { this.state = 'paused'; $('pause').classList.remove('hidden'); $('seek-box').innerHTML = this.seeker.pauseHTML(); }
     else if (this.state === 'paused') { this.state = 'play'; $('pause').classList.add('hidden'); this.last = performance.now(); }
   }
   // ───────────── events from gameplay

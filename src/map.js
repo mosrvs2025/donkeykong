@@ -85,6 +85,7 @@ export class WorldMap {
         <div class="mp-kicker">${here.optional ? (here.deep ? 'secret depths' : here.mode === 'swim' ? 'underwater world' : 'sky world') : 'world ' + (LEVELS.filter((l) => !l.optional).indexOf(here) + 1)}</div>
         <h2>${here.name}</h2><p class="mp-sub">${here.sub}</p>
         <div class="mp-row"><span class="mp-coins">${'<i class="on">◉</i>'.repeat(cn)}${'<i>○</i>'.repeat(3 - cn)}</span>${md ? `<span>${md}</span>` : ''}${best ? `<span class="mp-best">⏱ ${best}</span>` : ''}</div>
+        <div class="mp-found">${g.seeker ? g.seeker.line(here.id) : ''}</div>
         <div class="mp-tags">${st.clear ? '<b class="t ok">✓ cleared</b>' : '<b class="t new">new!</b>'}${here.boss ? (st.boss ? '<b class="t crown">♛ guardian defeated</b>' : '<b class="t boss">♛ guardian awaits</b>') : ''}</div>
       </div>
       <div class="mp-top"><span>✦ ${g.stats.glims}</span><span>◉ ${g.extras ? g.extras.coinCount : 0}</span><span>⚑ ${doneCount}/${LEVELS.length}</span></div>
