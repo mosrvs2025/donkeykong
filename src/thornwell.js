@@ -87,7 +87,7 @@ export class Thornwell {
   }
   step(h) {
     const g = this.game, p = g.player;
-    if (p.state !== 'normal' || p.invuln > 0 || p.sdashT > 0) return;
+    if (p.state !== 'normal' || p.invuln > 0 || p.sdashT > 0 || g.skills.charm('charm_thorn')) return;
     for (const k of this.spikes) {
       if (p.s + p.hw > k.s0 && p.s - p.hw < k.s1 && p.y + p.h > k.y0 && p.y < k.y1) {
         p.hurt('Thorns!');

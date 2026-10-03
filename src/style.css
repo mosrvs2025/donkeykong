@@ -354,3 +354,15 @@ body.photo #ghost-chip,body.mini #ghost-chip{display:none}
 .sh-close{align-self:center}
 .sh-none{opacity:.6;font-style:italic}
 @media (max-width:700px){.sh-pv{height:30vh}.sh-tabs button{font-size:14px;padding:6px 12px}.sh-head h2{font-size:20px}}
+
+.lt-seeds{margin:0;font-size:14px}.lt-seeds b{color:#ffd46a}.lt-seeds small{opacity:.6}
+.lt-tree{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:start}
+.lt-col{display:flex;flex-direction:column;gap:10px;align-items:stretch;position:relative}
+.lt-col>*+*{margin-top:8px}
+.lt-col>*+*::before{content:'';position:absolute;left:50%;width:3px;height:14px;margin-top:-18px;background:#6fffd855}
+.lt-split{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.lt-node{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:50px 50px 16px 16px;background:#0b2a24;border:2px solid #6fffd833;text-align:center}
+.lt-node b{font-size:12.5px}.lt-node small{font-size:12px;opacity:.85}
+.lt-node.can{border-color:#ffd46a;box-shadow:0 0 14px #ffd46a44;animation:cssun .9s ease-in-out infinite alternate}
+.lt-node.own{background:linear-gradient(#1e5a3a,#0f3a26);border-color:#9fffd0}.lt-node.locked{opacity:.5}.lt-node.sel{outline:3px solid #ffd46a}
+body.inclash #banner,body.inclash #toast,body.inclash #story,body.inclash #hud,body.inclash #prompt,body.inclash #ghost-chip{display:none!important}

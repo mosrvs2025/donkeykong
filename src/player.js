@@ -96,10 +96,12 @@ export class Player {
     const game = this.game;
     if (this.invuln > 0 || this.sdashT > 0 || this.state === 'dead' || this.state === 'cutscene') return;
     if (game.assist) { this.invuln = 1; this.vy = 8; game.audio.play('hurt'); return; }
+    if (game.skills.has('ironfur') && !this.ironUsed && !this.cart) { this.ironUsed = true; this.invuln = 1.2; this.vy = 9 * this.g; this.vs = -this.facing * 5; game.audio.play('land'); game.fx.burst(game.path.world(this.s, this.y + 0.8, 0), 0xd0d8e0, 24, 6, 0.6, 0.5, 0); game.hud.toast('<b>Iron Fur</b> shrugs it off', 1.6); return; }
     if (game.powers?.power && !this.cart) { game.powers.lose(); this.vy = 9 * this.g; this.vs = -this.facing * 5; game.shake(0.3); return; }
     if (this.cart) return game.killPlayer(reason);
     game.shake(0.5); game.audio.play('hurt');
     if (this.comp && !game.flight) { this.dismount(true, -this.facing); this.invuln = 1.5; this.vy = 12; return; }
+    if (this.hearts <= 1 && game.skills.charm('charm_wind') && !this.windUsed) { this.windUsed = true; this.invuln = 2; this.vy = 12 * this.g; game.hud.toast('<b>Second Wind!</b> one more breath', 2); game.fx.burst(game.path.world(this.s, this.y + 0.8, 0), 0xbff4ff, 30, 7, 0.6, 0.7, 0); return; }
     this.hearts--; this.invuln = 1.7; this.hurtT = 0.5;
     this.vs = -this.facing * 7; this.vy = 10 * this.g; this.state = 'normal'; this.rollT = 0; this.dashT = 0;
     game.hud.hearts(this.hearts, this.maxHearts);
@@ -197,19 +199,20 @@ export class Player {
         }
       }
       this.gliding = this.hero === 'pip' && !this.mount && !this.grounded && input.held.jump && vyr < -2.4 && !this.slamming && this.state === 'normal';
+      if (!this.gliding && !this.mount && game.skills.charm('charm_feather') && input.held.jump && vyr < -6 && !this.slamming && this.state === 'normal') vyr = -6;
       if (this.gliding) { vyr = -2.4; if (dir) this.vs = approach(this.vs, dir * 12.5, 20 * dt); }
       vyr = Math.max(vyr, -32);
     }
     // ── Sprout Dash (evolution): a short, weightless burst in any of eight directions
     const E2 = game.evolve;
-    if (this.grounded || this.inWater || this.state !== 'normal') this.airDashes = E2.has('comet') ? 2 : 1;
+    if (this.grounded || this.inWater || this.state !== 'normal') this.airDashes = (E2.has('comet') ? 2 : 1) + (game.skills.has('dash2') ? 1 : 0);
     if (dashPress && !this.mount && !this.cart && !this.inWater && E2.has('dash') && this.sdashCool <= 0 && (this.grounded || this.airDashes > 0) && !sdash) {
       let dx = input.ax ?? dir, dy = input.ay ?? 0;
       if (Math.hypot(dx, dy) < 0.3) { dx = this.facing; dy = 0; }
       let a = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4); dx = Math.round(Math.cos(a) * 1000) / 1000; dy = Math.round(Math.sin(a) * 1000) / 1000;
       if (this.grounded && dy < 0) { dy = 0; dx = Math.sign(dx) || this.facing; }
       if (!this.grounded) this.airDashes--;
-      this.sdashT = 0.17; this.sdashCool = game.progress.charm === 'charm_dash' ? 0.18 : 0.28; this.sdashDir = [dx, dy]; this.slamming = false; this.rollT = 0;
+      this.sdashT = 0.17; this.sdashCool = game.skills.charm('charm_dash') ? 0.18 : 0.28; this.sdashDir = [dx, dy]; this.slamming = false; this.rollT = 0;
       if (dx) this.facing = Math.sign(dx);
       this.vs = dx * 25; vyr = dy * 19;
       game.audio.play('leap'); game.shake(0.06); this.squash = -0.25;
@@ -233,7 +236,7 @@ export class Player {
     const claws = E2.has('claws');
     if (!this.mount && !this.cart && this.g === 1 && !this.grounded && !this.inWater && this.state === 'normal' && this.wallDir && dir === this.wallDir && (vyr < 4 || this.clingT > 0) && this.wjLock <= 0.05 && !(this.wallSolid && this.wallSolid.moss && M.has('grip'))) {
       if (!this.clingT) { this.clingT = 0.001; vyr = Math.max(vyr, 0); this.squash = 0.2; game.audio.play('land'); }
-      this.clingT += dt; this.sliding = true; this.slamming = false; this.airDashes = E2.has('comet') ? 2 : 1; this.leapReady = true; this.firstLeapDone = false;
+      this.clingT += dt; this.sliding = true; this.slamming = false; this.airDashes = (E2.has('comet') ? 2 : 1) + (game.skills.has('dash2') ? 1 : 0); this.leapReady = true; this.firstLeapDone = false;
       const up = (H.up ? 1 : 0) - (H.down ? 1 : 0);
       if (claws && up) vyr = up * 5;                                  // climb
       else if (claws) vyr = H.down ? -9 : Math.max(vyr - 30 * dt, -0.6); // hang, creep down
@@ -260,6 +263,7 @@ export class Player {
         // kick off the wall; holding toward it makes a tighter, higher kick for climbing a single wall
         const climb = dir === this.wallD;
         vyr = climb ? 15.5 : 14.5; this.vs = -this.wallD * (climb ? 4 : 11.5); this.facing = -this.wallD; this.jumpBuf = 0; this.wallT = 0; this.wjLock = climb ? 0.07 : 0.16; this.leapReady = true; this.firstLeapDone = false; this.sdashT = 0; this.clingT = 0;
+        if (game.skills.has('starstep')) { this.usedSecondLeap = false; this.airDashes = (game.evolve.has('comet') ? 2 : 1) + (game.skills.has('dash2') ? 1 : 0); game.fx.burst(game.path.world(this.s, this.y + 0.8, 0), 0xfff0a0, 14, 5, 0.5, 0.4, 0); }
         game.audio.play('jump'); M.chainEvent(); this.squash = -0.3;
         game.fx.burst(game.path.world(this.s + this.wallD * this.hw, this.y + 0.9, 0), 0xe8d8b0, 10, 4, 0.5, 0.4, 0);
       } else if (this.mount === 'bird' && this.birdTime > 0) {
@@ -361,8 +365,9 @@ export class Player {
   }
   leap(dir) {
     const game = this.game, M = game.magic;
-    if (game.forms.has('sky') && !this.usedSecondLeap && !this.firstLeapDone) { this.firstLeapDone = true; } else { this.leapReady = false; }
-    if (this.firstLeapDone && this.leapReady === true && game.forms.has('sky')) { this.usedSecondLeap = false; }
+    const twin = game.forms.has('sky') || game.skills.has('leap2');
+    if (twin && !this.usedSecondLeap && !this.firstLeapDone) { this.firstLeapDone = true; } else { this.leapReady = false; }
+    if (this.firstLeapDone && this.leapReady === true && twin) { this.usedSecondLeap = false; }
     this.slamming = false;
     let vyr = 13.5;
     const w = game.path.world(this.s, this.y + 0.6, 0);
@@ -559,6 +564,7 @@ export class Player {
     }
     // checkpoints
     for (const cp of E.checkpoints) if (!cp.on && Math.abs(cp.s - this.s) < 1.5 && Math.abs(cp.y - this.y) < 5) {
+      if (game.skills.has('heartbloom') && this.hearts < this.maxHearts) { this.hearts++; game.hud.hearts(this.hearts, this.maxHearts); game.hud.toast('<b>Heart Bloom</b> · +1 heart', 1.5); }
       cp.on = true; cp.gem.material.emissive.setHex(0x40ffd0); cp.gem.material.emissiveIntensity = 2.5;
       game.setCheckpoint(cp); game.fx.burst(P.world(cp.s, cp.y + 3.3, -2.2), 0x40ffd0, 30, 6, 0.6, 1, -2);
     }

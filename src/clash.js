@@ -3,6 +3,7 @@ import { moveBody } from './physics.js';
 import { makeHero, makeBeast, makeFrog, makeSpikeback, makeBird, makeFish, makeOru } from './models.js';
 import { FX } from './fx.js';
 import { getTex } from './textures.js';
+import { makeHat, SHOP } from './extras.js';
 
 // ═══════════════════════════ SEED CLASH ═══════════════════════════
 // A 4-player platform brawler on the Thornwild engine. Route-space bodies (s, y) on a flat stage.
@@ -144,12 +145,12 @@ export class Clash {
     const g = this.game; g.audio.init?.(); g.audio.resume?.();
     $('title').classList.add('hidden'); this.prevState = g.state; g.state = 'clash'; this.active = true;
     const rp = g.composer.passes[0]; this.saved = { scene: rp.scene, camera: rp.camera, ao: g.gfx.gtao.enabled }; rp.scene = this.scene; rp.camera = this.camera; g.gfx.gtao.enabled = false;
-    this.ui.classList.remove('hidden'); this.phase = 'setup'; this.setup();
+    this.ui.classList.remove('hidden'); document.body.classList.add('inclash'); this.phase = 'setup'; this.setup();
     this.onResize();
   }
   setup() { this.phase = 'setup'; this.clearMatch(); this.renderSetup(); $('touch').classList.add('hidden'); document.body.classList.remove('clashing'); }
   close() {
-    const g = this.game; this.clearMatch(); this.active = false; this.ui.classList.add('hidden'); document.body.classList.remove('clashing');
+    const g = this.game; this.clearMatch(); this.active = false; this.ui.classList.add('hidden'); document.body.classList.remove('clashing', 'inclash');
     const rp = g.composer.passes[0]; rp.scene = this.saved.scene; rp.camera = this.saved.camera; g.gfx.gtao.enabled = this.saved.ao;
     $('touch').classList.add('hidden'); g.state = 'title'; $('title').classList.remove('hidden'); g.audio.intensity = 0.2;
   }
@@ -169,6 +170,11 @@ export class Clash {
   }
   makeFighter(i, slot, s) {
     const F = FIGHTERS[slot.kind], model = makeModel(slot.kind);
+    if (i === 0 && slot.type === 'human' && ['kiri', 'pip', 'brom', 'pim'].includes(slot.kind)) { // P1 wears their wardrobe outfit
+      const P = this.game.progress, sc = SHOP.find((x) => x.id === P.scarf);
+      if (P.hat && model.userData.head) { const hn = makeHat(P.hat); hn.rotation.z = -0.1; model.userData.head.add(hn); }
+      if (sc) model.traverse((o) => { if (o.isMesh && o.userData.scarf) { o.material = o.material.clone(); o.material.color.setHex(sc.color); } });
+    }
     this.scene.add(model);
     const tag = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), new THREE.MeshBasicMaterial({ map: this.textTex('P' + (i + 1), '#' + PCOL[i].toString(16).padStart(6, '0')), transparent: true, depthWrite: false }));
     this.scene.add(tag);

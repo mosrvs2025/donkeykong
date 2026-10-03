@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { makeHero } from './models.js';
+import { SKILLS } from './skills.js';
 
 // Seed Coins, the merchant's shop, hats, time medals, the Lumen Compass, glim magnetism,
 // photo mode and assist options: the "complete package" layer.
@@ -38,10 +39,13 @@ export const SHOP = [
   { id: 'scarf_rose', name: 'Rosepetal Scarf', desc: 'Smells faintly of the canopy', cost: 100, kind: 'scarf', color: 0xff7ab0 },
   { id: 'charm_magnet', name: 'Glimstone Charm', desc: 'Glims fly to you from twice as far', cost: 180, kind: 'charm', perk: 'Glim pull ×2' },
   { id: 'charm_dash', name: 'Swiftroot Charm', desc: 'Your Sprout Dash recovers faster', cost: 220, kind: 'charm', perk: 'Dash cooldown −35%' },
+  { id: 'charm_feather', name: 'Featherfall Charm', desc: 'Hold jump while falling to drift down gently', cost: 160, kind: 'charm', perk: 'Slow fall' },
+  { id: 'charm_wind', name: 'Second Wind Charm', desc: 'Once per level, a final blow leaves you on one heart instead', cost: 260, kind: 'charm', perk: 'Survive one knockout per level' },
+  { id: 'charm_thorn', name: 'Thornward Charm', desc: 'Thorns and brambles can’t hurt you', cost: 320, kind: 'charm', perk: 'Thorn immunity' },
   { id: 'scarf_star', name: 'Starfall Scarf', desc: 'Woven from the Starwell’s sky', cost: 150, coins: 20, kind: 'scarf', color: 0xc9a0ff },
 ];
 
-function makeHat(id) {
+export function makeHat(id) {
   const g = new THREE.Group();
   const M = (c, e = 0) => new THREE.MeshStandardMaterial({ color: c, emissive: e, roughness: 0.6 });
   if (id === 'hat_leaf') { const l = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 6), M(0x4fae3c)); l.scale.set(1.3, 0.25, 0.7); l.rotation.z = 0.5; l.position.set(-0.05, 0.36, 0); g.add(l); const st = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.16, 4), M(0x3a6a20)); st.position.set(0.12, 0.33, 0); g.add(st); }
@@ -147,14 +151,16 @@ export class Extras {
   }
   itemIcon(it) {
     if (it.kind === 'scarf') return `<span class="sw" style="background:#${it.color.toString(16).padStart(6, '0')}"></span>`;
-    return { hat_leaf: '🍃', hat_explorer: '🎩', hat_crown: '👑', hat_moon: '🌙', hat_party: '🎉', hat_bloom: '🌸', hat_lantern: '🔦', heart1: '❤', heart2: '❤', compass: '🧭', charm_magnet: '✦', charm_dash: '➶' }[it.id] || '✦';
+    return { hat_leaf: '🍃', hat_explorer: '🎩', hat_crown: '👑', hat_moon: '🌙', hat_party: '🎉', hat_bloom: '🌸', hat_lantern: '🔦', charm_feather: '🪶', charm_wind: '🌬', charm_thorn: '🌿', heart1: '❤', heart2: '❤', compass: '🧭', charm_magnet: '✦', charm_dash: '➶' }[it.id] || '✦';
   }
   renderShop(msg = '') {
     const game = this.game, P = game.progress, glims = game.stats.glims, coins = this.coinCount;
-    const tabs = [['hat', 'Hats'], ['scarf', 'Scarves'], ['charm', 'Charms'], ['up', 'Upgrades']];
+    const tabs = [['hat', 'Hats'], ['scarf', 'Scarves'], ['charm', 'Charms'], ['skill', 'Lumen Tree'], ['up', 'Upgrades']];
+    if (this.tab === 'skill' && !this.renderShop.__frame) return this.renderSkills(msg, tabs);
+    const frame = this.renderShop.__frame; this.renderShop.__frame = null;
     const inTab = (it) => this.tab === 'up' ? (it.kind === 'heart' || !it.kind) : it.kind === this.tab;
     const vis = SHOP.filter((it) => inTab(it) && (!it.needs || P.owned.includes(it.needs)) && (!it.reward || P.owned.includes(it.id)));
-    const isEq = (it) => (it.kind === 'hat' && P.hat === it.id) || (it.kind === 'scarf' && P.scarf === it.id) || (it.kind === 'charm' && P.charm === it.id);
+    const isEq = (it) => (it.kind === 'hat' && P.hat === it.id) || (it.kind === 'scarf' && P.scarf === it.id) || (it.kind === 'charm' && game.skills.charm(it.id));
     const tiles = vis.map((it) => { const own = P.owned.includes(it.id), locked = it.coins && coins < it.coins;
       return `<button class="sh-tile ${this.sel === it.id ? 'sel' : ''} ${own ? 'own' : ''} ${locked ? 'locked' : ''}" data-sel="${it.id}"><span class="sh-ic">${locked ? '🔒' : this.itemIcon(it)}</span><b>${it.name}</b><small>${isEq(it) ? '<i class="eq">equipped</i>' : own ? 'owned' : locked ? `${it.coins} ◉ needed` : `${it.cost} ✦`}</small></button>`; }).join('') || '<p class="sh-none">Nothing here yet. Pim is restocking!</p>';
     const it = SHOP.find((x) => x.id === this.sel);
@@ -164,15 +170,15 @@ export class Extras {
         : locked ? `<span class="lock">find ${it.coins} Seed Coins to unlock (you have ${coins})</span>` : `<button data-buy="${it.id}" ${glims < it.cost ? 'disabled' : ''}>Buy · ${it.cost} ✦</button>${glims < it.cost ? `<small class="lock">${it.cost - glims} more glims</small>` : ''}`;
       detail = `<div class="sh-detail"><div class="sh-dicon">${this.itemIcon(it)}</div><div><b>${it.name}</b><p>${it.desc}</p>${it.perk ? `<p class="perk">⚡ ${it.perk}</p>` : ''}${it.kind === 'heart' ? '<p class="perk">❤ +1 max heart</p>' : ''}<div class="sh-act">${act}</div></div></div>`; }
     const heroes = game.evolve.heroes(), hero = this.pvHero || game.player.hero || 'kiri';
-    const eqHat = SHOP.find((x) => x.id === P.hat), eqSc = SHOP.find((x) => x.id === P.scarf), eqCh = SHOP.find((x) => x.id === P.charm);
+    const eqHat = SHOP.find((x) => x.id === P.hat), eqSc = SHOP.find((x) => x.id === P.scarf), eqCh = { name: (P.charms || []).map((c) => SHOP.find((x) => x.id === c)?.name.replace(' Charm', '')).join(' + ') || null };
     $('shop').innerHTML = `<div class="sh-wrap">
-      <div class="sh-head"><div><div class="kicker">Pim’s Travelling Stall</div><h2>“Glims for goods, little one!”</h2></div><div class="sh-wallet"><span>✦ ${glims}</span><span>◉ ${coins}</span></div></div>
+      <div class="sh-head"><div><div class="kicker">Pim’s Travelling Stall</div><h2>“Glims for goods, little one!”</h2></div><div class="sh-wallet"><span>✦ ${glims}</span><span title="Seed Coins found">◉ ${coins}</span></div></div>
       <div class="sh-body">
         <div class="sh-left"><div id="shop-pv" class="sh-pv"></div>
           ${heroes.length > 1 ? `<div class="sh-heroes">${heroes.map((h) => `<button class="small ${h === hero ? '' : 'ghost'}" data-hero="${h}">${h[0].toUpperCase() + h.slice(1)}</button>`).join('')}</div>` : ''}
-          <div class="sh-loadout"><div><i>Hat</i>${eqHat ? eqHat.name : '—'}</div><div><i>Scarf</i>${eqSc ? eqSc.name : '—'}</div><div><i>Charm</i>${eqCh ? eqCh.name : '—'}</div><div><i>Hearts</i>${'❤'.repeat(game.player.maxHearts)}</div></div></div>
-        <div class="sh-right"><div class="sh-tabs">${tabs.map(([k, n]) => `<button class="small ${this.tab === k ? '' : 'ghost'}" data-tab="${k}">${n}</button>`).join('')}</div>
-          <div class="sh-grid">${tiles}</div>${detail}<p class="shop-msg">${msg}</p></div>
+          <div class="sh-loadout"><div><i>Hat</i>${eqHat ? eqHat.name : '—'}</div><div><i>Scarf</i>${eqSc ? eqSc.name : '—'}</div><div><i>Charm${game.skills.charmSlots() > 1 ? 's (2)' : ''}</i>${eqCh.name || '—'}</div><div><i>Hearts</i>${'❤'.repeat(game.player.maxHearts)}</div></div></div>
+        <div class="sh-right">${frame || `<div class="sh-tabs">${tabs.map(([k, n]) => `<button class="small ${this.tab === k ? '' : 'ghost'}" data-tab="${k}">${n}</button>`).join('')}</div>
+          <div class="sh-grid">${tiles}</div>${detail}<p class="shop-msg">${msg}</p>`}</div>
       </div>
       <button class="ghost sh-close" data-close="1">Back to the map</button></div>`;
     const S = $('shop');
@@ -181,7 +187,25 @@ export class Extras {
     S.querySelectorAll('[data-sel]').forEach((b) => b.onclick = () => { this.sel = this.sel === b.dataset.sel ? null : b.dataset.sel; game.audio.play('notice'); this.renderShop(); });
     S.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { this.tab = b.dataset.tab; this.sel = null; this.renderShop(); });
     S.querySelectorAll('[data-hero]').forEach((b) => b.onclick = () => { this.pvHero = b.dataset.hero; if (game.player.hero !== b.dataset.hero) game.player.setHero(b.dataset.hero, false); this.renderShop(); });
+    S.querySelectorAll('[data-ssel]').forEach((b) => b.onclick = () => { this.sel = this.sel === b.dataset.ssel ? null : b.dataset.ssel; game.audio.play('notice'); this.renderShop(); });
+    S.querySelectorAll('[data-learn]').forEach((b) => b.onclick = () => { if (game.skills.learn(b.dataset.learn)) { game.audio.play('win'); this.renderShop('A new root grows. You feel it already.'); } });
     S.querySelector('[data-close]').onclick = () => this.closeShop();
+  }
+  // the Lumen Tree: Seed Coin skills, laid out as a little tree
+  renderSkills(msg, tabs) {
+    const game = this.game, K = game.skills, P = game.progress;
+    const nodes = SKILLS.map((sk) => { const own = K.has(sk.id), can = K.canLearn(sk), locked = sk.needs && !K.has(sk.needs);
+      return `<button class="lt-node ${own ? 'own' : can ? 'can' : ''} ${locked ? 'locked' : ''} ${this.sel === sk.id ? 'sel' : ''}" data-ssel="${sk.id}"><span class="sh-ic">${locked ? '🔒' : sk.icon}</span><b>${sk.name}</b><small>${own ? '<i class="eq">learned</i>' : `${sk.cost} ◉`}</small></button>`; });
+    const sk = SKILLS.find((x) => x.id === this.sel);
+    let detail = '<div class="sh-detail empty"><p>Seed Coins grow into skills. Pick one.</p></div>';
+    if (sk) { const own = K.has(sk.id), need = sk.needs && !K.has(sk.needs) ? SKILLS.find((x) => x.id === sk.needs).name : null;
+      detail = `<div class="sh-detail"><div class="sh-dicon">${sk.icon}</div><div><b>${sk.name}</b><p>${sk.desc}</p><div class="sh-act">${own ? '<span class="owned">learned ✓</span>' : need ? `<span class="lock">learn ${need} first</span>` : `<button data-learn="${sk.id}" ${K.seeds() < sk.cost ? 'disabled' : ''}>Learn · ${sk.cost} ◉</button>${K.seeds() < sk.cost ? `<small class="lock">find ${sk.cost - K.seeds()} more Seed Coins</small>` : ''}`}</div></div></div>`; }
+    this.renderShopFrame(`<div class="sh-tabs">${tabs.map(([k, n]) => `<button class="small ${this.tab === k ? '' : 'ghost'}" data-tab="${k}">${n}</button>`).join('')}</div>
+      <p class="lt-seeds">Lumen Seeds to spend: <b>${K.seeds()} ◉</b> <small>(every Seed Coin you find is a seed)</small></p>
+      <div class="lt-tree"><div class="lt-col">${nodes[0]}${nodes[5]}</div><div class="lt-col">${nodes[1]}</div><div class="lt-col">${nodes[2]}<div class="lt-split">${nodes[3]}${nodes[4]}</div></div></div>${detail}<p class="shop-msg">${msg}</p>`);
+  }
+  renderShopFrame(right) { // shared left panel (preview, heroes, loadout) for non-grid tabs
+    this.renderShop.__frame = right; this.renderShop();
   }
   buy(id) {
     const game = this.game, it = SHOP.find((x) => x.id === id), P = game.progress;
@@ -196,7 +220,7 @@ export class Extras {
     const P = this.game.progress, it = SHOP.find((x) => x.id === id);
     if (it.kind === 'hat') P.hat = P.hat === id && !silent ? null : id;
     if (it.kind === 'scarf') P.scarf = P.scarf === id && !silent ? null : id;
-    if (it.kind === 'charm') P.charm = P.charm === id && !silent ? null : id;
+    if (it.kind === 'charm') { if (silent && this.game.skills.charm(id)) {} else this.game.skills.toggleCharm(id); }
     if (!P.scarf) this.game.player.model.traverse((o) => { if (o.isMesh && o.userData.scarf) { o.material.color.setHex(this.game.magic.cosmetic.scarf ? 0xffc030 : 0x2fbfae); o.material.emissiveIntensity = this.game.magic.cosmetic.scarf ? 0.8 : 0; } });
     this.applyLook(); this.game.saveGame(); if (!silent) this.renderShop();
     if (silent && this.shopOpen) this.renderShop();
@@ -209,7 +233,7 @@ export class Extras {
     for (const gl of game.entities.glims) {
       if (gl.taken) continue;
       const ds = p.s - gl.s, dy = (p.y + p.h / 2) - gl.y, d = Math.hypot(ds, dy);
-      const R = game.progress.charm === 'charm_magnet' ? 5.2 : 2.6;
+      const R = game.skills.charm('charm_magnet') ? 5.2 : 2.6;
       if (d < R && d > 0.01) { const k = Math.min(1, h * (14 - d * 4 * 2.6 / R)); gl.s += ds * k; gl.y += dy * k; gl.p = this.path.world(gl.s, gl.y, 0); }
     }
   }

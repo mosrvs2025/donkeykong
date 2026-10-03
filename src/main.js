@@ -32,6 +32,7 @@ import { Clash } from './clash.js';
 import { Seeker } from './seeker.js';
 import { Goals } from './goals.js';
 import { Ghosts } from './ghost.js';
+import { Skills } from './skills.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 // Cinematic finishing pass: gentle colour grading, vignette, film grain and a hint of lens fringing.
 const CineShader = {
@@ -140,7 +141,7 @@ class Game {
     this.gfx = new Gfx(this, isMobile); this.gfx.buildComposer(this.composer, this.renderPass);
     this.scene.environmentIntensity = 0.55; this.hemi.intensity = 0.75;
 
-    this.input = new Input(); this.audio = new Audio(); this.hud = new HUD(this);
+    this.input = new Input(); this.audio = new Audio(); this.hud = new HUD(this); this.skills = new Skills(this);
     this.level = buildLevel();
     this.path = new Path(PATH_POINTS);
     this.fx = new FX(this.scene);
@@ -255,7 +256,7 @@ class Game {
     if (p.comp) p.dismount(false);
     { const hk = this.progress.hero; if (hk && hk !== (p.hero || 'kiri') && this.evolve.heroes().includes(hk)) p.setHero(hk, false); else this.hud.swap(); }
     p.cart = null; p.reset(lv.start[0] + O2, lv.start[1] + 0.1);
-    this.checkpoint = { s: p.s, y: p.y }; this.levelTime = 0; this.levelGlims0 = this.stats.glims; this.ghosts.start(lv);
+    this.checkpoint = { s: p.s, y: p.y }; this.levelTime = 0; this.levelGlims0 = this.stats.glims; this.ghosts.start(lv); p.ironUsed = false; p.windUsed = false;
     const [L, R] = this.levelWalls;
     Object.assign(L, { s0: lv.wall + O2 - 2, s1: lv.wall + O2, active: true });
     if (lv.end != null && !lv.mode) Object.assign(R, { s0: lv.end + O2 + 3, s1: lv.end + O2 + 5, active: true }); else R.active = false;
