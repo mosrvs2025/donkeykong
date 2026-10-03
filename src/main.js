@@ -31,6 +31,7 @@ import { Thornwell } from './thornwell.js';
 import { Clash } from './clash.js';
 import { Seeker } from './seeker.js';
 import { Goals } from './goals.js';
+import { Ghosts } from './ghost.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 // Cinematic finishing pass: gentle colour grading, vignette, film grain and a hint of lens fringing.
 const CineShader = {
@@ -156,7 +157,7 @@ class Game {
     this.loadSave();
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
-    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
+    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); this.ghosts = new Ghosts(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
@@ -185,6 +186,7 @@ class Game {
       }
     };
     $('resume-btn').onclick = () => this.togglePause();
+    $('ghost-btn').onclick = () => { const on = this.ghosts.toggle(); $('ghost-btn').textContent = `Ghost race: ${on ? 'on' : 'off'}`; };
     $('t-pause').addEventListener('pointerdown', (e) => { e.preventDefault(); if (this.state === 'play' || this.state === 'paused') this.togglePause(); });
     $('map-btn').onclick = () => { this.state = 'play'; this.leaveToMap(); };
     $('photo-btn').onclick = () => { this.state = 'play'; this.extras.togglePhoto(); };
@@ -253,7 +255,7 @@ class Game {
     if (p.comp) p.dismount(false);
     { const hk = this.progress.hero; if (hk && hk !== (p.hero || 'kiri') && this.evolve.heroes().includes(hk)) p.setHero(hk, false); else this.hud.swap(); }
     p.cart = null; p.reset(lv.start[0] + O2, lv.start[1] + 0.1);
-    this.checkpoint = { s: p.s, y: p.y }; this.levelTime = 0; this.levelGlims0 = this.stats.glims;
+    this.checkpoint = { s: p.s, y: p.y }; this.levelTime = 0; this.levelGlims0 = this.stats.glims; this.ghosts.start(lv);
     const [L, R] = this.levelWalls;
     Object.assign(L, { s0: lv.wall + O2 - 2, s1: lv.wall + O2, active: true });
     if (lv.end != null && !lv.mode) Object.assign(R, { s0: lv.end + O2 + 3, s1: lv.end + O2 + 5, active: true }); else R.active = false;
@@ -275,7 +277,7 @@ class Game {
   leaveToMap() {
     const p = this.player; if (p.comp) p.dismount(false); p.cart = null;
     if (this.bosses.busy) this.bosses.end(false);
-    this.levelWalls.forEach((w) => w.active = false); this.flight = false; this.currentLevel = null;
+    this.ghosts.stop(); this.levelWalls.forEach((w) => w.active = false); this.flight = false; this.currentLevel = null;
     this.state = 'map'; $('hud').classList.add('hidden'); $('touch').classList.add('hidden'); $('pause').classList.add('hidden');
     this.saveGame(); this.map.show();
   }
@@ -328,13 +330,14 @@ class Game {
     const tal = this.seeker.tally(lv.id), gl = Math.max(0, this.stats.glims - (this.levelGlims0 ?? this.stats.glims));
     const row = (ic, label, val, i) => val ? `<div class="rc-row" style="--d:${0.5 + i * 0.18}s"><span class="rc-ic">${ic}</span><span>${label}</span><b>${val}</b></div>` : '';
     const coinsDots = tal.list.filter((x) => x.kind === 'coin').map((x, i) => `<i class="${x.taken ? 'on' : ''}" style="--d:${0.6 + i * 0.15}s">◉</i>`).join('');
-    const gold = MEDAL_TIMES[lv.id] || 150;
+    const gold = MEDAL_TIMES[lv.id] || 150, gh = this.ghosts.finish(t);
+    const ghostRow = gh ? (gh.delta == null ? row('👻', 'Ghost', 'recorded', 4) : row('👻', gh.delta < 0 ? 'Beat your ghost' : 'Ghost was faster', `${gh.delta < 0 ? '−' : '+'}${Math.abs(gh.delta).toFixed(1)}s`, 4)) : '';
     $('clear').innerHTML = `<div class="rc-card">
       <div class="rc-ribbon">LEVEL CLEAR!</div>
       <h2>${lv.name}</h2><p class="rc-sub">${lv.sub || ''}</p>
       <div class="rc-medal"><span class="rc-m">${MEDAL_ICON[medal]}</span><div><b>${fmt(t)}</b>${newBest ? '<em>new best!</em>' : `<small>best ${fmt(st.best)}</small>`}<small>gold under ${fmt(gold)}</small></div></div>
       ${coinsDots ? `<div class="rc-coins">${coinsDots}<span>Seed Coins</span></div>` : ''}
-      <div class="rc-rows">${row('◆', 'Sun Shards', tal.shard, 0)}${row('❋', 'Echoes', tal.echo, 1)}${row('✦', 'Glims gathered', gl ? '+' + gl : '', 2)}${lv.boss && st.boss ? row('♛', 'Guardian', 'defeated', 3) : ''}</div>
+      <div class="rc-rows">${row('◆', 'Sun Shards', tal.shard, 0)}${row('❋', 'Echoes', tal.echo, 1)}${row('✦', 'Glims gathered', gl ? '+' + gl : '', 2)}${lv.boss && st.boss ? row('♛', 'Guardian', 'defeated', 3) : ''}${ghostRow}</div>
       ${extra ? `<div class="rc-unlocks">${extra}</div>` : ''}
       <div class="rc-btns"><button id="rc-go">Continue ▸</button></div>
       <p class="rc-hint">${this.input.isTouch ? 'tap to continue' : 'Space / Enter to continue'}</p></div>`;
@@ -392,7 +395,7 @@ class Game {
     this.checkpoint = { s: w.s + 1.2, y: w.y + 0.1 };
   }
   togglePause() {
-    if (this.state === 'play') { this.state = 'paused'; $('pause').classList.remove('hidden'); $('seek-box').innerHTML = this.seeker.pauseHTML(); }
+    if (this.state === 'play') { this.state = 'paused'; $('pause').classList.remove('hidden'); $('seek-box').innerHTML = this.seeker.pauseHTML(); $('ghost-btn').textContent = `Ghost race: ${this.ghosts.on ? 'on' : 'off'}`; }
     else if (this.state === 'paused') { this.state = 'play'; $('pause').classList.add('hidden'); this.last = performance.now(); }
   }
   // ───────────── events from gameplay
@@ -666,7 +669,7 @@ class Game {
       const w = this.path.world(this.player.s, 2, 0), a = this.time * 0.08;
       this.camera.position.set(w.x + Math.sin(a) * 26, w.y + 8, w.z + Math.cos(a) * 26); this.camera.lookAt(w.x, w.y + 3, w.z);
     }
-    this.coop.update(dt); this.goals.update(dt, this.time); this.eggs.update(dt); this.thornwell.update(dt, this.time); this.extras.update(dt, this.time); this.powers.update(dt, this.time); this.minis.updateWorld(dt, this.time);
+    this.coop.update(dt); this.goals.update(dt, this.time); this.ghosts.update(dt); this.eggs.update(dt); this.thornwell.update(dt, this.time); this.extras.update(dt, this.time); this.powers.update(dt, this.time); this.minis.updateWorld(dt, this.time);
     this.cine.uniforms.time.value = this.time;
     this.fx.update(dt, this.camera.position);
     this.hud.update(dt);

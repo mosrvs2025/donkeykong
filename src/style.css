@@ -310,3 +310,15 @@ body.clashing #t-pause,body.clashing #t-swap,body.clashing #t-off{display:none}
 .rc-unlocks .unlock b{color:#ffd46a}
 .rc-btns{margin:14px 0 2px}.rc-btns button{animation:rcpop .4s 1s both}
 .rc-hint{font-size:12px;opacity:.55;margin:4px 0 0}
+
+#ghost-chip{position:fixed;left:50%;transform:translateX(-50%);top:calc(56px + env(safe-area-inset-top));z-index:4;pointer-events:none;background:#0a2a3acc;color:#bff0ff;border:2px solid #60d8ff88;border-radius:14px;padding:3px 12px;font-size:13px;font-weight:700}
+#ghost-chip.lead{color:#fff4c0;border-color:#ffd46a99;background:#3a2a0acc}
+body.photo #ghost-chip,body.mini #ghost-chip{display:none}
+/* pop-ups: toasts slide up as cards, banners scale in with a flourish */
+#toast{background:linear-gradient(#0d2a20ee,#06140fee);border:2px solid #9fffd055;box-shadow:0 8px 24px #0008,inset 0 1px 0 #ffffff18;border-radius:16px;padding:10px 20px;transform:translate(-50%,14px);transition:opacity .35s,transform .35s cubic-bezier(.2,1.4,.4,1)}
+#toast.on{transform:translate(-50%,0)}
+#toast b{color:#ffd46a}
+#banner{transform:translateY(10px) scale(.92)}
+#banner.on{transform:none}
+#banner small::before,#banner small::after{content:'';display:inline-block;width:42px;height:2px;background:linear-gradient(90deg,transparent,#ffd46a);vertical-align:middle;margin:0 12px}
+#banner small::after{background:linear-gradient(90deg,#ffd46a,transparent)}

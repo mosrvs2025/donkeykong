@@ -11,6 +11,7 @@
 </head>
 <body>
 <canvas id="game"></canvas>
+<div id="ghost-chip" class="hidden"></div>
 <div id="hud" class="hidden">
   <div id="hearts"></div>
   <div id="glims"><span class="glim-ico"></span><span id="glim-count">0</span></div>
@@ -75,7 +76,7 @@
   </div>
 </div>
 <div id="intro" class="hidden"><div class="bar top"></div><div class="bar bot"></div><p id="intro-text"></p><small id="intro-skip">Space / tap to continue</small></div>
-<div id="pause" class="screen hidden"><div class="title-inner"><h2>Paused</h2><div class="menu"><button id="resume-btn">Resume</button><button id="map-btn" class="alt">World Map</button><button id="photo-btn" class="ghost">Photo Mode</button><button id="evo-btn" class="ghost">Evolutions</button><div id="evo-list" class="hidden"></div><div id="seek-box"></div><button id="save-btn" class="ghost">Save</button><button id="quit-btn" class="ghost">Save &amp; Quit to Title</button><p id="save-note" class="dimt"></p></div></div></div>
+<div id="pause" class="screen hidden"><div class="title-inner"><h2>Paused</h2><div class="menu"><button id="resume-btn">Resume</button><button id="map-btn" class="alt">World Map</button><button id="photo-btn" class="ghost">Photo Mode</button><button id="evo-btn" class="ghost">Evolutions</button><div id="evo-list" class="hidden"></div><button id="ghost-btn" class="ghost">Ghost race: on</button><div id="seek-box"></div><button id="save-btn" class="ghost">Save</button><button id="quit-btn" class="ghost">Save &amp; Quit to Title</button><p id="save-note" class="dimt"></p></div></div></div>
 <div id="end" class="screen hidden"><div class="title-inner" id="end-inner"></div></div>
 <div id="touch" class="hidden">
   <div id="t-zone"></div>
