@@ -241,3 +241,38 @@ body.mini #banner,body.mini #toast,body.mini #story,body.mini #prompt,body.mini 
 #touch.mini #t-swap{display:none}
 
 #map .mp-foot button.ghost{background:#fffaf0;color:#3a2410;border:3px solid #7a4a1a;box-shadow:0 5px 0 #7a4a1a}
+
+/* ── Seed Clash ── */
+#clash{position:fixed;inset:0;z-index:12;pointer-events:none;font-family:Fredoka,system-ui,sans-serif}
+#clash button,#clash [data-c]{pointer-events:auto}
+.cs-setup{pointer-events:auto;position:absolute;inset:0;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:max(16px,env(safe-area-inset-top)) 14px 24px;background:radial-gradient(ellipse at center,#0b2a1c99,#030805e6)}
+.cs-kicker{letter-spacing:.3em;font-size:12px;opacity:.7;text-transform:uppercase}
+.cs-setup h1{font-size:clamp(34px,8vw,64px);margin:2px 0;color:#ffd46a;letter-spacing:.08em;text-shadow:0 4px 0 #a4450f,0 0 30px #ff8a2a88}
+.cs-sub{opacity:.75;margin:0 0 12px}
+.cs-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;width:min(980px,100%)}
+.cs-card{background:#0008;border:3px solid var(--pc);border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;box-shadow:0 0 18px color-mix(in srgb,var(--pc) 30%,transparent)}
+.cs-card.off{opacity:.5;border-style:dashed}
+.cs-top{display:flex;justify-content:space-between;align-items:center}.cs-top b{color:var(--pc);font-size:20px}
+.cs-pick{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.cs-name{text-align:center}.cs-name span{font-size:24px;font-weight:800;display:block}.cs-name small{opacity:.7}
+.cs-card ul{list-style:none;padding:0;margin:0;font-size:12.5px;line-height:1.5}.cs-card li i{color:#ffd46a;font-style:normal;margin-right:4px}
+.cs-empty{text-align:center;opacity:.6;padding:30px 0}.cs-ctl{opacity:.55;font-size:11px}
+#clash button.small{padding:6px 14px;font-size:15px}
+.cs-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:14px 0 6px;align-items:center}
+.cs-help{max-width:760px;font-size:13px;opacity:.7;text-align:center;line-height:1.5}
+.cs-hud{position:absolute;left:0;right:0;top:max(10px,env(safe-area-inset-top));display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:0 60px}
+.cs-p{background:#000a;border:2px solid var(--pc);border-radius:14px;padding:5px 10px;min-width:96px;text-align:center}
+.cs-p b{font-size:12px;color:var(--pc);display:block;white-space:nowrap}
+.cs-heat{font-size:26px;font-weight:900;line-height:1;color:color-mix(in srgb,#fff calc((1 - var(--h,0))*100%),#ff6a30);text-shadow:0 2px 0 #000}
+.cs-heat span::after{content:'°';font-size:16px;opacity:.7}
+.cs-p.sun{animation:cssun .35s ease-in-out infinite alternate;border-color:#ffd040}.cs-p.sun .cs-heat{color:#ffe060}
+@keyframes cssun{to{box-shadow:0 0 22px #ffd040}}
+.cs-bar{height:5px;background:#fff2;border-radius:3px;margin:4px 0 2px;overflow:hidden}.cs-bar i{display:block;height:100%;background:var(--pc);width:0}
+.cs-p.bond .cs-bar i{background:#fff;box-shadow:0 0 8px #fff}
+.cs-st{color:var(--pc);letter-spacing:2px;font-size:12px;min-height:14px}.cs-p.gone{opacity:.35}
+.cs-big{position:absolute;left:0;right:0;top:34%;text-align:center;font-size:clamp(40px,10vw,96px);font-weight:900;color:#fff;text-shadow:0 5px 0 #a4450f,0 0 40px #ff8a2a;opacity:0;transform:scale(.6);transition:opacity .15s,transform .15s}
+.cs-big.on{opacity:1;transform:scale(1)}
+.cs-pause{position:absolute;right:max(10px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top))}
+.cs-over{pointer-events:auto;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000a}
+.cs-over h2{font-size:clamp(30px,7vw,56px);color:#fff}
+body.clashing #t-pause,body.clashing #t-swap,body.clashing #t-off{display:none}

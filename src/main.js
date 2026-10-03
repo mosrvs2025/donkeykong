@@ -28,6 +28,7 @@ import { Gfx } from './gfx.js';
 import { MapWorld } from './map3d.js';
 import { Eggs } from './eggs.js';
 import { Thornwell } from './thornwell.js';
+import { Clash } from './clash.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 // Cinematic finishing pass: gentle colour grading, vignette, film grain and a hint of lens fringing.
 const CineShader = {
@@ -153,7 +154,7 @@ class Game {
     this.loadSave();
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
-    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.thornwell = new Thornwell(this);
+    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this);
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
@@ -205,7 +206,7 @@ class Game {
     if (this.input.isTouch && innerHeight > innerWidth) this.camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.1, innerWidth, innerHeight);
     else this.camera.clearViewOffset();
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(innerWidth, innerHeight); this.composer.setSize(innerWidth, innerHeight); this.map3d?.onResize();
+    this.renderer.setSize(innerWidth, innerHeight); this.composer.setSize(innerWidth, innerHeight); this.map3d?.onResize(); this.clash?.onResize();
   }
   start(skipIntro) {
     if (this.state !== 'title') return;
@@ -603,6 +604,7 @@ class Game {
     requestAnimationFrame((t) => this.loop(t));
     this.frames = (this.frames || 0) + 1;
     let dt = Math.max(0, Math.min(0.05, (now - this.last) / 1000)); this.last = now;
+    if (this.state === 'clash') { this.input.update(); this.clash.update(dt); this.input.endFrame(); this.cine.uniforms.time.value = this.time += dt; this.audio.updateMusic(); this.composer.render(); return; }
     if (this.state === 'mini') { this.input.update(); this.minis.update(dt); this.input.endFrame(); this.hud.update(dt); this.audio.updateMusic(); this.cine.uniforms.time.value = this.time += dt; this.composer.render(); return; }
     if (this.state === 'photo') { this.input.update(); this.extras.update(dt, this.time); this.world.update(this.time, 0); this.cine.uniforms.time.value = this.time; this.composer.render(); return; }
     if (this.state === 'story') { this.input.update(); this.story.update(dt); this.entities.update(dt); this.player.render(dt); this.magic.update(dt); this.world.update(this.time += dt, dt); this.updateAtmosphere(dt); this.fx.update(dt, this.camera.position); this.hud.update(dt); this.audio.updateMusic(); this.cine.uniforms.time.value = this.time; this.composer.render(); return; }

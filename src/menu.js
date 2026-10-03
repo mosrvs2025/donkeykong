@@ -30,6 +30,7 @@ export class Menu {
     $('m-new').onclick = () => { this.slotMode = 'new'; this.renderSlots(); show('menu-slots'); };
     $('m-load').onclick = () => { this.slotMode = 'load'; this.renderSlots(); show('menu-slots'); };
     $('m-settings').onclick = () => show('menu-settings');
+    $('m-clash').onclick = () => game.clash.open();
     $('m-help').onclick = () => show('menu-help');
     const coopBtn = $('m-coop');
     const coopLabel = () => coopBtn.textContent = `Players: ${this.settings.coop ? '2 · Kiri + Lumi' : '1'}`;
