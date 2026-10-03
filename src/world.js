@@ -3,9 +3,9 @@ import { getTex } from './textures.js';
 
 export const THEMES = [
   // sky top, horizon, fog color, fog density, hemi sky, hemi ground, sun color, sun intensity, particle color, exposure, moon, stars
-  { top: 0x3f8fd8, hor: 0xcfe8c0, fog: 0x9fc8a8, dens: 0.0065, hs: 0xbfe0ff, hg: 0x3a5a20, sun: 0xfff0c8, si: 2.6, pc: 0xfff6a0, exp: 1.0, moon: 0, stars: 0 },
-  { top: 0x2f78c8, hor: 0xf4e0b0, fog: 0xb8d0b0, dens: 0.0055, hs: 0xd0e8ff, hg: 0x456a2a, sun: 0xffe0a0, si: 3.0, pc: 0xfff0c0, exp: 1.05, moon: 0, stars: 0 },
-  { top: 0x34508a, hor: 0xf0b890, fog: 0x9aa8b0, dens: 0.0075, hs: 0xd0c8ff, hg: 0x2a4a3a, sun: 0xffc890, si: 2.2, pc: 0xffe0c0, exp: 1.0, moon: 0.5, stars: 0.15 },
+  { top: 0x3f8fd8, hor: 0xcfe8c0, fog: 0x9fc8a8, dens: 0.0045, hs: 0xbfe0ff, hg: 0x3a5a20, sun: 0xfff0c8, si: 2.6, pc: 0xfff6a0, exp: 1.0, moon: 0, stars: 0 },
+  { top: 0x2f78c8, hor: 0xf4e0b0, fog: 0xb8d0b0, dens: 0.004, hs: 0xd0e8ff, hg: 0x456a2a, sun: 0xffe0a0, si: 3.0, pc: 0xfff0c0, exp: 1.05, moon: 0, stars: 0 },
+  { top: 0x34508a, hor: 0xf0b890, fog: 0x9aa8b0, dens: 0.0055, hs: 0xd0c8ff, hg: 0x2a4a3a, sun: 0xffc890, si: 2.2, pc: 0xffe0c0, exp: 1.0, moon: 0.5, stars: 0.15 },
   { top: 0x020206, hor: 0x07051a, fog: 0x050410, dens: 0.034, hs: 0x3a3070, hg: 0x081018, sun: 0x6050d0, si: 0.2, pc: 0x70f0ff, exp: 1.3, moon: 0, stars: 0 },
   { top: 0x0a0604, hor: 0x2a160a, fog: 0x1e1008, dens: 0.018, hs: 0xd09060, hg: 0x302010, sun: 0xffa050, si: 1.1, pc: 0xffb050, exp: 1.35, moon: 0, stars: 0 },
   { top: 0x060a24, hor: 0x33406e, fog: 0x1a2240, dens: 0.011, hs: 0x8a98d8, hg: 0x2a1e10, sun: 0xb8c8ff, si: 1.4, pc: 0xd0e0ff, exp: 1.15, moon: 1, stars: 1 },
@@ -464,12 +464,16 @@ export class World {
       this.sunDisc = { core, sun };
     }
     // ── god rays
-    const rayMat = new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
+    // soft shafts: edges feather out, the top/bottom fade, and they vanish when the camera gets close
+    const rayMat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+      uniforms: { opacity: { value: 0.07 }, color: { value: new THREE.Color(0xfff0c0) } },
+      vertexShader: 'varying vec3 vN; varying vec3 vV; varying float vY; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vV = -mv.xyz; vN = normalMatrix * normal; vY = uv.y; gl_Position = projectionMatrix * mv; }',
+      fragmentShader: 'uniform float opacity; uniform vec3 color; varying vec3 vN; varying vec3 vV; varying float vY; void main(){ float edge = pow(abs(dot(normalize(vN), normalize(vV))), 2.5); float d = length(vV); float a = opacity * edge * smoothstep(14.0, 32.0, d) * smoothstep(0.0, 0.35, vY) * smoothstep(1.0, 0.6, vY); gl_FragColor = vec4(color * a * 1.6, 1.0); }' });
     for (let s = -20; s < 900; s += 25 + r() * 25) {
       if (this.themeAt(s + 80) === 3) continue;
       const m = new THREE.Mesh(new THREE.CylinderGeometry(2 + r() * 3, 6 + r() * 5, 90, 12, 1, true), rayMat.clone());
       m.rotation.z = 0.35; m.rotation.x = -0.15; m.position.y = 30; const G = new THREE.Group(); G.add(m); at(G, s + 80, 0, -8 - r() * 30);
-      const ph = r() * 6; this.animated.push({ update: (t) => { m.material.opacity = (0.04 + Math.sin(t * 0.5 + ph) * 0.025) * (1 + Math.min(1.5, (this.wake || 0) * 0.15)); } });
+      const ph = r() * 6; this.animated.push({ update: (t) => { m.material.uniforms.opacity.value = (0.05 + Math.sin(t * 0.5 + ph) * 0.025) * (1 + Math.min(1.5, (this.wake || 0) * 0.15)); } });
     }
     // ── distant wildlife: the Mossback giants wander the valley; bird flocks circle
     this.mossbacks = [];

@@ -243,7 +243,7 @@ export class Magic {
       if (k >= 1) { m.state = 'walk'; m.t = 0; }
     } else if (m.state === 'walk') {
       const k = Math.min(1, m.t / 5.5), e = k * k * (3 - 2 * k);
-      m.cs = m.s + (m.toS - m.s) * e; m.cy = m.toY + Math.abs(Math.sin(m.t * 2.4)) * 0.18;
+      m.cs = m.s + (m.toS - m.s) * e; m.cy = m.toY + (1 - Math.cos(m.t * 4.8)) * 0.06;
       m.legs.forEach((l, i) => l.rotation.z = Math.sin(m.t * 2.4 + i * Math.PI / 2 * (i % 2 ? 1 : -1)) * 0.35);
       m.neck.rotation.z = -0.2 + Math.sin(m.t * 1.2) * 0.08;
       if (k >= 1) { m.state = 'rest'; m.t = 0; }

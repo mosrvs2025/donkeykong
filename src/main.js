@@ -26,12 +26,13 @@ import { MiniGames } from './minigames.js';
 import { Evolve } from './evolve.js';
 import { Gfx } from './gfx.js';
 import { MapWorld } from './map3d.js';
+import { Eggs } from './eggs.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 // Cinematic finishing pass: gentle colour grading, vignette, film grain and a hint of lens fringing.
 const CineShader = {
-  uniforms: { tDiffuse: { value: null }, time: { value: 0 }, amount: { value: 1 }, tint: { value: new THREE.Color(1, 1, 1) }, sat: { value: 1.08 } },
+  uniforms: { tDiffuse: { value: null }, time: { value: 0 }, amount: { value: 1 }, tint: { value: new THREE.Color(1, 1, 1) }, sat: { value: 1.08 }, grain: { value: matchMedia('(pointer:coarse)').matches ? 0.012 : 0.03 } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-  fragmentShader: `uniform sampler2D tDiffuse; uniform float time, amount, sat; uniform vec3 tint; varying vec2 vUv;
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float time, amount, sat, grain; uniform vec3 tint; varying vec2 vUv;
     float rnd(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233)) + time) * 43758.5453); }
     void main(){
       vec2 c = vUv - 0.5; float r = dot(c, c);
@@ -44,7 +45,7 @@ const CineShader = {
       float lum = dot(col, vec3(0.299, 0.587, 0.114));
       col += (mix(vec3(-0.012, 0.0, 0.02), vec3(0.025, 0.012, -0.015), smoothstep(0.15, 0.7, lum))) * amount;
       col *= 1.0 - r * 0.9 * amount;
-      col += (rnd(vUv * 900.0) - 0.5) * 0.035 * amount;
+      col += (rnd(vUv * 900.0) - 0.5) * grain * amount;
       gl_FragColor = vec4(col, 1.0);
     }`,
 };
@@ -151,7 +152,7 @@ class Game {
     this.loadSave();
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
-    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero);
+    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this);
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
@@ -161,7 +162,7 @@ class Game {
     this.applyTheme(THEMES[0], 1);
     this.state = 'title'; this.time = 0; this.acc = 0; this.slowmo = 1; this.slowT = 0;
     this.hud.hearts(3, 3); this.hud.glims(0); this.hud.shards(this.entities.shards);
-    addEventListener('resize', () => this.resize());
+    addEventListener('resize', () => this.resize()); window.visualViewport?.addEventListener('resize', () => this.resize());
     this.input.onKey = (code) => {
       if (code === 'KeyM') this.audio.toggleMute();
       if ((code === 'KeyP' || code === 'Escape') && (this.state === 'play' || this.state === 'paused')) this.togglePause();
@@ -617,7 +618,7 @@ class Game {
         this.entities.update(h);
         this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h);
         this.player.step(h, this.input);
-        this.coop.step(h, this.input.p2); this.extras.step(h); this.powers.step(h); this.minis.step(h);
+        this.coop.step(h, this.input.p2); this.eggs.step(h); this.extras.step(h); this.powers.step(h); this.minis.step(h);
         this.player.tick(h);
         this.player.interact(h);
         this.acc -= h; n++;
@@ -638,7 +639,7 @@ class Game {
       const w = this.path.world(this.player.s, 2, 0), a = this.time * 0.08;
       this.camera.position.set(w.x + Math.sin(a) * 26, w.y + 8, w.z + Math.cos(a) * 26); this.camera.lookAt(w.x, w.y + 3, w.z);
     }
-    this.coop.update(dt); this.extras.update(dt, this.time); this.powers.update(dt, this.time); this.minis.updateWorld(dt, this.time);
+    this.coop.update(dt); this.eggs.update(dt); this.extras.update(dt, this.time); this.powers.update(dt, this.time); this.minis.updateWorld(dt, this.time);
     this.cine.uniforms.time.value = this.time;
     this.fx.update(dt, this.camera.position);
     this.hud.update(dt);

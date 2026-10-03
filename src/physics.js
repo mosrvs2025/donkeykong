@@ -7,10 +7,14 @@ export function moveBody(b, solids, slopes, dt, onHit) {
   const wasGrounded = b.grounded, wasSlope = b.onSlope;
   b.wallDir = 0; b.hitCeil = false; b.wallSolid = null; b.ceilSolid = null;
   // carry with moving platform
-  if (b.grounded && b.ground && b.ground.dS !== undefined) { b.s += b.ground.dS; b.y += b.ground.dY; }
+  // (b.ground survives until the vertical pass, so this also carries us on the frame we jump off)
+  if (b.ground && b.ground.dS !== undefined) { b.s += b.ground.dS; b.y += b.ground.dY; b.carryVs = dt > 0 ? b.ground.dS / dt : 0; }
+  else if (b.grounded) b.carryVs = 0;
+  // jumping off something that moves keeps its momentum (fades slowly in the air)
+  if (!b.grounded && b.carryVs) { b.carryVs *= Math.max(0, 1 - dt * 0.6); if (Math.abs(b.carryVs) < 0.05) b.carryVs = 0; }
   // ── horizontal
   const ps = b.s;
-  b.s += b.vs * dt;
+  b.s += (b.vs + (b.grounded ? 0 : b.carryVs || 0)) * dt;
   for (const o of solids) {
     if (!o.active || o.oneway) continue;
     if (b.y + b.h <= o.y0 + EPS || b.y >= o.y1 - EPS) continue;
@@ -18,11 +22,14 @@ export function moveBody(b, solids, slopes, dt, onHit) {
     if (onHit && onHit(o, b.vs > 0 ? 1 : -1, 'x')) continue;
     // small step-up for ledges barely above feet (forgiveness)
     if (g === 1 && b.grounded && o.y1 - b.y < 0.35 && o.y1 - b.y > 0 && !collidesAt(b, solids, o.y1 + EPS)) { b.y = o.y1; continue; }
+    // landing on a rising surface (bobbing creatures, lifts): it's a floor, not a wall; let the vertical pass land us
+    if (g === 1 && o.y1 - b.y > 0 && o.y1 - b.y < 0.3 + Math.abs(o.dY || 0) * 2 && (b.vy <= 0.5 || ps + b.hw > o.s0 + 0.05 && ps - b.hw < o.s1 - 0.05)) { if (b.vy <= 0.5) continue; b.y = o.y1; continue; }
     if (ps + b.hw <= o.s0 + 0.05 + Math.abs(o.dS || 0)) { b.s = o.s0 - b.hw - EPS; b.wallDir = 1; }
     else if (ps - b.hw >= o.s1 - 0.05 - Math.abs(o.dS || 0)) { b.s = o.s1 + b.hw + EPS; b.wallDir = -1; }
     else { const l = b.s + b.hw - o.s0, r = o.s1 - (b.s - b.hw); if (l < r) { b.s -= l + EPS; b.wallDir = 1; } else { b.s += r + EPS; b.wallDir = -1; } }
     b.wallSolid = o;
     if (b.wallDir * b.vs > 0) b.vs = 0;
+    if (b.carryVs && b.wallDir * b.carryVs > 0) b.carryVs = 0;
   }
   // ── vertical
   const py = b.y;

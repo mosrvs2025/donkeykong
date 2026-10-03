@@ -46,7 +46,7 @@ export class Player {
     this.model = makeHero(kind); this.model.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     this.model.position.copy(old.position); this.model.rotation.copy(old.rotation);
     game.scene.remove(old); game.scene.add(this.model); game.addRim?.(this.model);
-    this.applyCosmetics(); game.extras?.applyLook();
+    this.applyCosmetics(); game.extras?.applyLook(); game.eggs?.golden();
     if (!this.mount && !this.cart) this.applyMount();
     if (fx) {
       const H = HEROES[kind]; game.audio.play('mount'); this.squash = -0.4;
