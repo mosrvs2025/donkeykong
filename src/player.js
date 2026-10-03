@@ -209,7 +209,7 @@ export class Player {
       let a = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4); dx = Math.round(Math.cos(a) * 1000) / 1000; dy = Math.round(Math.sin(a) * 1000) / 1000;
       if (this.grounded && dy < 0) { dy = 0; dx = Math.sign(dx) || this.facing; }
       if (!this.grounded) this.airDashes--;
-      this.sdashT = 0.17; this.sdashCool = 0.28; this.sdashDir = [dx, dy]; this.slamming = false; this.rollT = 0;
+      this.sdashT = 0.17; this.sdashCool = game.progress.charm === 'charm_dash' ? 0.18 : 0.28; this.sdashDir = [dx, dy]; this.slamming = false; this.rollT = 0;
       if (dx) this.facing = Math.sign(dx);
       this.vs = dx * 25; vyr = dy * 19;
       game.audio.play('leap'); game.shake(0.06); this.squash = -0.25;

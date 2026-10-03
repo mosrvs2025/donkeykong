@@ -322,3 +322,35 @@ body.photo #ghost-chip,body.mini #ghost-chip{display:none}
 #banner.on{transform:none}
 #banner small::before,#banner small::after{content:'';display:inline-block;width:42px;height:2px;background:linear-gradient(90deg,transparent,#ffd46a);vertical-align:middle;margin:0 12px}
 #banner small::after{background:linear-gradient(90deg,#ffd46a,transparent)}
+
+/* ── Pim's wardrobe ── */
+#shop{align-items:flex-start}
+.sh-wrap{width:min(980px,100%);display:flex;flex-direction:column;gap:12px;padding:8px 0}
+.sh-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.sh-head h2{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;letter-spacing:0;color:#ffe7b0;margin:0}
+.sh-wallet{display:flex;gap:8px}.sh-wallet span{background:#fffaf0;color:#3a2410;font-weight:800;border:3px solid #7a4a1a;border-radius:14px;padding:4px 12px;box-shadow:0 3px 0 #7a4a1a}
+.sh-body{display:grid;grid-template-columns:minmax(240px,340px) 1fr;gap:14px}
+@media (max-width:700px){.sh-body{grid-template-columns:1fr}}
+.sh-left{display:flex;flex-direction:column;gap:8px}
+.sh-pv{height:min(340px,42vh);border-radius:20px;background:radial-gradient(circle at 50% 60%,#2a5a44,#0b2018 70%);border:3px solid #7a4a1a;box-shadow:inset 0 0 40px #0008;overflow:hidden;cursor:grab;touch-action:none}
+.sh-pv canvas{display:block;width:100%;height:100%}
+.sh-heroes{display:flex;gap:6px;justify-content:center}
+.sh-loadout{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px}
+.sh-loadout div{background:#0b2a24;border:1px solid #6fffd833;border-radius:10px;padding:5px 8px}.sh-loadout i{display:block;font-style:normal;font-size:10px;opacity:.6;text-transform:uppercase;letter-spacing:.1em}
+.sh-right{display:flex;flex-direction:column;gap:10px;min-width:0}
+.sh-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.sh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.sh-tile{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 6px;border-radius:14px;background:#0b2a24;border:2px solid #6fffd833;text-align:center;transition:transform .12s,border-color .12s}
+.sh-tile:hover{transform:translateY(-2px)}.sh-tile.sel{border-color:#ffd46a;box-shadow:0 0 16px #ffd46a55;background:#14382e}
+.sh-tile.own{background:#10302a}.sh-tile.locked{opacity:.55}
+.sh-tile b{font-size:13px}.sh-tile small{font-size:12px;opacity:.8}.sh-tile .eq{font-style:normal;color:#9fffd0;font-weight:700}
+.sh-ic{font-size:28px;line-height:1.1;height:34px;display:flex;align-items:center}
+.sw{display:inline-block;width:30px;height:12px;border-radius:6px;border:2px solid #fff6;transform:rotate(-12deg)}
+.sh-detail{display:flex;gap:12px;align-items:center;background:linear-gradient(#fffaf0,#f1e2c2);color:#3a2410;border:3px solid #7a4a1a;border-radius:16px;padding:10px 14px;text-align:left;min-height:84px}
+.sh-detail.empty{justify-content:center;color:#7a5a3a;font-style:italic}.sh-detail b{font-size:18px}.sh-detail p{margin:2px 0}
+.sh-dicon{font-size:40px;min-width:48px;text-align:center}
+.sh-detail .perk{color:#b0602a;font-weight:700}.sh-detail .lock{display:block;color:#a04020;font-size:12px}
+.sh-act{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap}.sh-act button{padding:8px 22px;font-size:17px}
+.sh-close{align-self:center}
+.sh-none{opacity:.6;font-style:italic}
+@media (max-width:700px){.sh-pv{height:30vh}.sh-tabs button{font-size:14px;padding:6px 12px}.sh-head h2{font-size:20px}}

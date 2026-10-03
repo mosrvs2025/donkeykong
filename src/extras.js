@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { makeHero } from './models.js';
 
 // Seed Coins, the merchant's shop, hats, time medals, the Lumen Compass, glim magnetism,
 // photo mode and assist options: the "complete package" layer.
@@ -31,6 +32,12 @@ export const SHOP = [
   { id: 'hat_party', name: 'Party Hat', desc: 'Won by striking gold in a Root Hollow game', cost: 0, kind: 'hat', reward: true },
   { id: 'scarf_ember', name: 'Ember Scarf', desc: 'Warm as a forge', cost: 90, kind: 'scarf', color: 0xff6a30 },
   { id: 'scarf_tide', name: 'Tide Scarf', desc: 'Cool as the Sanctum', cost: 90, kind: 'scarf', color: 0x3ab0ff },
+  { id: 'hat_bloom', name: 'Bloom Crown', desc: 'A ring of dawnflowers that never wilt', cost: 120, kind: 'hat' },
+  { id: 'hat_lantern', name: 'Lantern Helm', desc: 'A miner’s helm with a little sun inside', cost: 140, kind: 'hat' },
+  { id: 'scarf_moss', name: 'Moss Scarf', desc: 'Soft as the Rootwild floor', cost: 70, kind: 'scarf', color: 0x5ac850 },
+  { id: 'scarf_rose', name: 'Rosepetal Scarf', desc: 'Smells faintly of the canopy', cost: 100, kind: 'scarf', color: 0xff7ab0 },
+  { id: 'charm_magnet', name: 'Glimstone Charm', desc: 'Glims fly to you from twice as far', cost: 180, kind: 'charm', perk: 'Glim pull ×2' },
+  { id: 'charm_dash', name: 'Swiftroot Charm', desc: 'Your Sprout Dash recovers faster', cost: 220, kind: 'charm', perk: 'Dash cooldown −35%' },
   { id: 'scarf_star', name: 'Starfall Scarf', desc: 'Woven from the Starwell’s sky', cost: 150, coins: 20, kind: 'scarf', color: 0xc9a0ff },
 ];
 
@@ -44,6 +51,8 @@ function makeHat(id) {
     const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.26, 0.12, 12, 1, true), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: id === 'hat_moon' ? 1.2 : 0.3, metalness: 0.7, roughness: 0.3, side: THREE.DoubleSide })); ring.position.y = 0.34; g.add(ring);
     for (let i = 0; i < 5; i++) { const s = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.16, 4), ring.material); const a = i / 5 * Math.PI * 2; s.position.set(Math.cos(a) * 0.24, 0.46, Math.sin(a) * 0.24); g.add(s); }
   }
+  if (id === 'hat_bloom') { for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; const f = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), M([0xff7ab0, 0xffe060, 0xffffff][i % 3], 0x301010)); f.position.set(Math.cos(a) * 0.27, 0.4, Math.sin(a) * 0.27); g.add(f); } const ring = new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.03, 6, 20), M(0x4fae3c)); ring.rotation.x = Math.PI / 2; ring.position.y = 0.38; g.add(ring); }
+  if (id === 'hat_lantern') { const hm = new THREE.Mesh(new THREE.SphereGeometry(0.34, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xc89030, metalness: 0.5, roughness: 0.4 })); hm.position.y = 0.2; g.add(hm); const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.08, 10), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff0a0, emissiveIntensity: 2.5 })); lamp.rotation.z = Math.PI / 2; lamp.position.set(0.32, 0.38, 0); g.add(lamp); }
   if (id === 'hat_party') { const c = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.5, 14), new THREE.MeshStandardMaterial({ color: 0xff5aa0, emissive: 0x401030 })); c.position.y = 0.52; g.add(c); const pom = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), new THREE.MeshStandardMaterial({ color: 0xfff060, emissive: 0x806000 })); pom.position.y = 0.8; g.add(pom); }
   return g;
 }
@@ -94,32 +103,92 @@ export class Extras {
   // ── the shop (opened from the world map)
   openShop() {
     const game = this.game;
-    this.shopOpen = true; $('shop').classList.remove('hidden'); this.renderShop();
-    game.audio.play('notice');
+    this.shopOpen = true; $('shop').classList.remove('hidden'); this.tab ||= 'hat'; this.sel = null; this.renderShop();
+    game.audio.play('notice'); this.startPreview();
   }
   closeShop() { this.shopOpen = false; $('shop').classList.add('hidden'); this.game.map.render(); }
+  // ── the wardrobe preview: the hero, wearing what you've picked (even before you buy it)
+  startPreview() {
+    if (!this.pv) {
+      const r = new THREE.WebGLRenderer({ antialias: true, alpha: true }); r.setPixelRatio(Math.min(2, devicePixelRatio)); r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping;
+      const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xfff4e0, 0x403020, 1.6)); const d = new THREE.DirectionalLight(0xffffff, 2.4); d.position.set(2, 4, 5); sc.add(d); const rim = new THREE.DirectionalLight(0x9fffd0, 1.6); rim.position.set(-3, 2, -3); sc.add(rim);
+      const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1, 0.25, 32), new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.8 })); ped.position.y = -0.13; sc.add(ped);
+      const cam = new THREE.PerspectiveCamera(30, 1, 0.1, 50); cam.position.set(0, 1.45, 5.8); cam.lookAt(0, 0.95, 0);
+      this.pv = { r, sc, cam, yaw: -0.5, drag: null, model: null, key: '' };
+      r.domElement.addEventListener('pointerdown', (e) => { this.pv.drag = e.clientX; this.pv.spinT = 3; });
+      addEventListener('pointermove', (e) => { if (this.pv.drag != null) { this.pv.yaw += (e.clientX - this.pv.drag) * 0.012; this.pv.drag = e.clientX; } });
+      addEventListener('pointerup', () => { this.pv.drag = null; });
+    }
+    const loop = () => { if (!this.shopOpen) return; requestAnimationFrame(loop); this.renderPreview(); };
+    loop();
+  }
+  previewLook() { // what the preview should wear: the selected item tried on over the current outfit
+    const P = this.game.progress, it = SHOP.find((x) => x.id === this.sel);
+    return { hero: this.pvHero || this.game.player.hero || 'kiri', hat: it?.kind === 'hat' ? it.id : P.hat, scarf: it?.kind === 'scarf' ? it.id : P.scarf };
+  }
+  renderPreview() {
+    const pv = this.pv, box = $('shop-pv'); if (!box) return;
+    if (pv.r.domElement.parentNode !== box) box.appendChild(pv.r.domElement);
+    const w = box.clientWidth, h = box.clientHeight; if (pv.w !== w || pv.h !== h) { pv.w = w; pv.h = h; pv.r.setSize(w, h); pv.cam.aspect = w / h; pv.cam.updateProjectionMatrix(); }
+    const L = this.previewLook(), key = `${L.hero}|${L.hat}|${L.scarf}`;
+    if (key !== pv.key) {
+      pv.key = key; if (pv.model) pv.sc.remove(pv.model);
+      const m = makeHero(L.hero); m.scale.multiplyScalar(1.15);
+      const sc = SHOP.find((x) => x.id === L.scarf); if (sc) m.traverse((o) => { if (o.isMesh && o.userData.scarf) { o.material = o.material.clone(); o.material.color.setHex(sc.color); o.material.emissive?.setHex(sc.color); o.material.emissiveIntensity = 0.3; } });
+      if (L.hat) { const hn = makeHat(L.hat); hn.rotation.z = -0.1; m.userData.head.add(hn); }
+      pv.sc.add(m); pv.model = m; pv.pop = 0.25;
+    }
+    const t = performance.now() / 1000; pv.spinT = (pv.spinT || 0) - 1 / 60; if (pv.drag == null && pv.spinT <= 0) pv.yaw += 0.006;
+    const m = pv.model; m.rotation.y = pv.yaw; const ud = m.userData;
+    pv.pop = Math.max(0, (pv.pop || 0) - 1 / 60); const s = 1 + Math.sin(pv.pop * 12) * pv.pop * 0.5; m.scale.setScalar(1.15 * s);
+    ud.body.position.y = Math.abs(Math.sin(t * 2.2)) * 0.03; ud.tail?.forEach((q, i) => q.rotation.z = Math.sin(t * 2.5 - i * 0.5) * 0.15); ud.scarf?.forEach((q, i) => q.rotation.z = Math.sin(t * 4 - i * 0.7) * 0.2 + 0.1);
+    ud.arms?.forEach((a, i) => a.rotation.z = Math.sin(t * 1.5 + i) * 0.08); ud.eyeL.scale.y = ud.eyeR.scale.y = (t % 3.2) < 0.1 ? 0.1 : 1;
+    pv.r.render(pv.sc, pv.cam);
+  }
+  itemIcon(it) {
+    if (it.kind === 'scarf') return `<span class="sw" style="background:#${it.color.toString(16).padStart(6, '0')}"></span>`;
+    return { hat_leaf: '🍃', hat_explorer: '🎩', hat_crown: '👑', hat_moon: '🌙', hat_party: '🎉', hat_bloom: '🌸', hat_lantern: '🔦', heart1: '❤', heart2: '❤', compass: '🧭', charm_magnet: '✦', charm_dash: '➶' }[it.id] || '✦';
+  }
   renderShop(msg = '') {
     const game = this.game, P = game.progress, glims = game.stats.glims, coins = this.coinCount;
-    const rows = SHOP.filter((it) => (!it.needs || P.owned.includes(it.needs)) && (!it.reward || P.owned.includes(it.id))).map((it) => {
-      const own = P.owned.includes(it.id);
-      const equipped = (it.kind === 'hat' && P.hat === it.id) || (it.kind === 'scarf' && P.scarf === it.id);
-      const locked = it.coins && coins < it.coins;
-      const btn = own ? (it.kind === 'hat' || it.kind === 'scarf' ? `<button class="small ${equipped ? 'alt' : 'ghost'}" data-eq="${it.id}">${equipped ? 'Wearing' : 'Wear'}</button>` : '<span class="owned">owned</span>')
-        : locked ? `<span class="lock">needs ${it.coins} Seed Coins</span>` : `<button class="small" data-buy="${it.id}" ${glims < it.cost ? 'disabled' : ''}>${it.cost} ✦</button>`;
-      return `<div class="shop-row"><div><b>${it.name}</b><small>${it.desc}</small></div>${btn}</div>`;
-    }).join('');
-    $('shop').innerHTML = `<div class="shop-inner"><div class="kicker">Pim’s Travelling Stall</div><h2>“Glims for goods, little one!”</h2>
-      <p class="shop-wallet">${glims} glims · ${coins} Seed Coins</p><div class="shop-list">${rows}</div><p class="shop-msg">${msg}</p><button class="ghost" data-close="1">Back to the map</button></div>`;
-    $('shop').querySelectorAll('[data-buy]').forEach((b) => b.onclick = () => this.buy(b.dataset.buy));
-    $('shop').querySelectorAll('[data-eq]').forEach((b) => b.onclick = () => this.equip(b.dataset.eq));
-    $('shop').querySelector('[data-close]').onclick = () => this.closeShop();
+    const tabs = [['hat', 'Hats'], ['scarf', 'Scarves'], ['charm', 'Charms'], ['up', 'Upgrades']];
+    const inTab = (it) => this.tab === 'up' ? (it.kind === 'heart' || !it.kind) : it.kind === this.tab;
+    const vis = SHOP.filter((it) => inTab(it) && (!it.needs || P.owned.includes(it.needs)) && (!it.reward || P.owned.includes(it.id)));
+    const isEq = (it) => (it.kind === 'hat' && P.hat === it.id) || (it.kind === 'scarf' && P.scarf === it.id) || (it.kind === 'charm' && P.charm === it.id);
+    const tiles = vis.map((it) => { const own = P.owned.includes(it.id), locked = it.coins && coins < it.coins;
+      return `<button class="sh-tile ${this.sel === it.id ? 'sel' : ''} ${own ? 'own' : ''} ${locked ? 'locked' : ''}" data-sel="${it.id}"><span class="sh-ic">${locked ? '🔒' : this.itemIcon(it)}</span><b>${it.name}</b><small>${isEq(it) ? '<i class="eq">equipped</i>' : own ? 'owned' : locked ? `${it.coins} ◉ needed` : `${it.cost} ✦`}</small></button>`; }).join('') || '<p class="sh-none">Nothing here yet. Pim is restocking!</p>';
+    const it = SHOP.find((x) => x.id === this.sel);
+    let detail = `<div class="sh-detail empty"><p>Pick something to try it on.</p></div>`;
+    if (it) { const own = P.owned.includes(it.id), locked = it.coins && coins < it.coins, wearable = ['hat', 'scarf', 'charm'].includes(it.kind);
+      const act = own ? (wearable ? `<button data-eq="${it.id}" class="${isEq(it) ? 'ghost' : ''}">${isEq(it) ? 'Take off' : 'Equip'}</button>` : '<span class="owned">owned</span>')
+        : locked ? `<span class="lock">find ${it.coins} Seed Coins to unlock (you have ${coins})</span>` : `<button data-buy="${it.id}" ${glims < it.cost ? 'disabled' : ''}>Buy · ${it.cost} ✦</button>${glims < it.cost ? `<small class="lock">${it.cost - glims} more glims</small>` : ''}`;
+      detail = `<div class="sh-detail"><div class="sh-dicon">${this.itemIcon(it)}</div><div><b>${it.name}</b><p>${it.desc}</p>${it.perk ? `<p class="perk">⚡ ${it.perk}</p>` : ''}${it.kind === 'heart' ? '<p class="perk">❤ +1 max heart</p>' : ''}<div class="sh-act">${act}</div></div></div>`; }
+    const heroes = game.evolve.heroes(), hero = this.pvHero || game.player.hero || 'kiri';
+    const eqHat = SHOP.find((x) => x.id === P.hat), eqSc = SHOP.find((x) => x.id === P.scarf), eqCh = SHOP.find((x) => x.id === P.charm);
+    $('shop').innerHTML = `<div class="sh-wrap">
+      <div class="sh-head"><div><div class="kicker">Pim’s Travelling Stall</div><h2>“Glims for goods, little one!”</h2></div><div class="sh-wallet"><span>✦ ${glims}</span><span>◉ ${coins}</span></div></div>
+      <div class="sh-body">
+        <div class="sh-left"><div id="shop-pv" class="sh-pv"></div>
+          ${heroes.length > 1 ? `<div class="sh-heroes">${heroes.map((h) => `<button class="small ${h === hero ? '' : 'ghost'}" data-hero="${h}">${h[0].toUpperCase() + h.slice(1)}</button>`).join('')}</div>` : ''}
+          <div class="sh-loadout"><div><i>Hat</i>${eqHat ? eqHat.name : '—'}</div><div><i>Scarf</i>${eqSc ? eqSc.name : '—'}</div><div><i>Charm</i>${eqCh ? eqCh.name : '—'}</div><div><i>Hearts</i>${'❤'.repeat(game.player.maxHearts)}</div></div></div>
+        <div class="sh-right"><div class="sh-tabs">${tabs.map(([k, n]) => `<button class="small ${this.tab === k ? '' : 'ghost'}" data-tab="${k}">${n}</button>`).join('')}</div>
+          <div class="sh-grid">${tiles}</div>${detail}<p class="shop-msg">${msg}</p></div>
+      </div>
+      <button class="ghost sh-close" data-close="1">Back to the map</button></div>`;
+    const S = $('shop');
+    S.querySelectorAll('[data-buy]').forEach((b) => b.onclick = () => this.buy(b.dataset.buy));
+    S.querySelectorAll('[data-eq]').forEach((b) => b.onclick = () => this.equip(b.dataset.eq));
+    S.querySelectorAll('[data-sel]').forEach((b) => b.onclick = () => { this.sel = this.sel === b.dataset.sel ? null : b.dataset.sel; game.audio.play('notice'); this.renderShop(); });
+    S.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { this.tab = b.dataset.tab; this.sel = null; this.renderShop(); });
+    S.querySelectorAll('[data-hero]').forEach((b) => b.onclick = () => { this.pvHero = b.dataset.hero; if (game.player.hero !== b.dataset.hero) game.player.setHero(b.dataset.hero, false); this.renderShop(); });
+    S.querySelector('[data-close]').onclick = () => this.closeShop();
   }
   buy(id) {
     const game = this.game, it = SHOP.find((x) => x.id === id), P = game.progress;
     if (!it || P.owned.includes(id) || game.stats.glims < it.cost) return;
     game.stats.glims -= it.cost; P.owned.push(id); game.hud.glims(game.stats.glims);
     if (it.kind === 'heart') { game.player.maxHearts++; game.player.hearts = game.player.maxHearts; }
-    if (it.kind === 'hat' || it.kind === 'scarf') this.equip(id, true);
+    if (it.kind === 'hat' || it.kind === 'scarf' || it.kind === 'charm') this.equip(id, true);
     game.audio.play('shard'); game.saveGame();
     this.renderShop(['Pleasure doing business!', 'That one suits you.', 'Come back soon, little lantern!'][Math.floor(Math.random() * 3)]);
   }
@@ -127,8 +196,10 @@ export class Extras {
     const P = this.game.progress, it = SHOP.find((x) => x.id === id);
     if (it.kind === 'hat') P.hat = P.hat === id && !silent ? null : id;
     if (it.kind === 'scarf') P.scarf = P.scarf === id && !silent ? null : id;
+    if (it.kind === 'charm') P.charm = P.charm === id && !silent ? null : id;
     if (!P.scarf) this.game.player.model.traverse((o) => { if (o.isMesh && o.userData.scarf) { o.material.color.setHex(this.game.magic.cosmetic.scarf ? 0xffc030 : 0x2fbfae); o.material.emissiveIntensity = this.game.magic.cosmetic.scarf ? 0.8 : 0; } });
     this.applyLook(); this.game.saveGame(); if (!silent) this.renderShop();
+    if (silent && this.shopOpen) this.renderShop();
   }
   // ── per-step: coins, glim magnetism, compass
   step(h) {
@@ -138,7 +209,8 @@ export class Extras {
     for (const gl of game.entities.glims) {
       if (gl.taken) continue;
       const ds = p.s - gl.s, dy = (p.y + p.h / 2) - gl.y, d = Math.hypot(ds, dy);
-      if (d < 2.6 && d > 0.01) { const k = Math.min(1, h * (14 - d * 4)); gl.s += ds * k; gl.y += dy * k; gl.p = this.path.world(gl.s, gl.y, 0); }
+      const R = game.progress.charm === 'charm_magnet' ? 5.2 : 2.6;
+      if (d < R && d > 0.01) { const k = Math.min(1, h * (14 - d * 4 * 2.6 / R)); gl.s += ds * k; gl.y += dy * k; gl.p = this.path.world(gl.s, gl.y, 0); }
     }
   }
   update(dt, t) {
