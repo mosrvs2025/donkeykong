@@ -422,7 +422,7 @@ export class Entities {
   }
   updateCompanion(c, dt) {
     c.t += dt;
-    const ud = c.model.userData;
+    const ud = c.model.userData; if (c.state !== 'ridden') ud.anim?.(c.t, dt);
     if (c.state === 'caged') {
       this.place(c.model, c.s, c.y + 0.1); ud.body.position.y = Math.abs(Math.sin(c.t * 3)) * 0.1;
       c.model.rotation.y += Math.sin(c.t * 0.7) * 0.6;

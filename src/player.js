@@ -689,7 +689,7 @@ export class Player {
     } else tl.visible = false;
   }
   animCompanion(c, dt, speed, air) {
-    const u = c.model.userData, t = this.animT;
+    const u = c.model.userData, t = this.animT; u.anim?.(t, dt);
     const ph = (c._ph = (c._ph || 0) + dt * (3 + speed * 1.2));
     u.body.position.y = 0; u.body.rotation.set(0, 0, 0);
     if (u.head) u.head.rotation.set(0, 0, 0);

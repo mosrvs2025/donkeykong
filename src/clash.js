@@ -462,7 +462,7 @@ export class Clash {
     const t = this.t;
     for (const f of this.fighters) {
       if (f.dead) continue;
-      const m = f.model, ud = m.userData, sun = f.heat >= 100;
+      const m = f.model, ud = m.userData, sun = f.heat >= 100; ud.anim?.(t, dt);
       f.anim += dt * (f.grounded ? Math.abs(f.vs) * 1.6 + 2 : 6);
       m.position.set(f.s, f.y + (f.kind === 'lumi' ? 0.2 + Math.sin(t * 4 + f.i) * 0.1 : 0), 0);
       m.rotation.set(0, f.facing > 0 ? -0.35 : Math.PI + 0.35, 0);

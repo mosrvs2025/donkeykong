@@ -105,52 +105,109 @@ export function makeBeast() {
 
 // ── Boing, the Giant Tree Frog
 export function makeFrog() {
+  // Boing: a glossy canopy tree frog with sticky toes, a throat sac and a messenger's satchel
   const root = new THREE.Group(); const b = pivot(root, 0, 0, 0);
-  const skin = M(0x3fc070, { roughness: 0.4 }), bellyM = M(0xffc060), spot = M(0x1a6a8a);
-  const bod = sph(0.7, skin); bod.scale.set(1.2, 0.8, 1); bod.position.y = 0.7; b.add(bod);
-  const bel = sph(0.6, bellyM); bel.scale.set(1.1, 0.6, 0.9); bel.position.set(0.12, 0.55, 0); b.add(bel);
-  for (let i = 0; i < 5; i++) { const s = sph(0.12, spot, 6, 4); s.position.set(-0.4 + i * 0.2, 1.15, (i % 2 ? 0.3 : -0.3)); s.scale.y = 0.4; b.add(s); }
-  const head = pivot(b, 0.55, 1.0, 0);
-  for (const z of [0.32, -0.32]) { const e = eye(head, 0.05, 0.25, z, 0.22, 0x101010); e.children[0].scale.set(0.5, 1.4, 1); }
-  const mouth = box(0.02, 0.03, 0.8, M(0x103020)); mouth.position.set(0.52, -0.05, 0); head.add(mouth);
-  const legs = [];
-  for (const [x, z] of [[-0.45, 0.55], [-0.45, -0.55]]) { const l = pivot(b, x, 0.5, z); const th = sph(0.3, skin); th.scale.set(1.5, 0.8, 0.6); l.add(th); const ft = sph(0.18, skin); ft.scale.set(1.6, 0.4, 1); ft.position.set(0.3, -0.45, 0); l.add(ft); legs.push(l); }
-  for (const [x, z] of [[0.4, 0.45], [0.4, -0.45]]) { const l = pivot(b, x, 0.4, z); const a = cap(0.08, 0.3, skin); a.position.y = -0.2; l.add(a); legs.push(l); }
-  const tongue = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1, 6), M(0xff5a7a)); tongue.visible = false; root.add(tongue);
-  root.userData = { body: b, head, legs, tongue, seat: 1.25 };
+  const skin = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.4, clearcoat: 1, clearcoatRoughness: 0.1, sheen: 0.15, sheenColor: new THREE.Color(0x90ff70) });
+  const grad = (geo, top, bot) => { const c = new THREE.Color(), ct = new THREE.Color(top), cb = new THREE.Color(bot), p = geo.attributes.position, col = []; let y0 = Infinity, y1 = -Infinity; for (let i = 0; i < p.count; i++) { y0 = Math.min(y0, p.getY(i)); y1 = Math.max(y1, p.getY(i)); } for (let i = 0; i < p.count; i++) { c.copy(cb).lerp(ct, (p.getY(i) - y0) / (y1 - y0 || 1)); col.push(c.r, c.g, c.b); } geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); return geo; };
+  const gsph = (r, top, bot, ws = 24, hs = 16) => { const m = new THREE.Mesh(grad(new THREE.SphereGeometry(r, ws, hs), top, bot), skin); m.castShadow = true; return m; };
+  const belly = new THREE.MeshPhysicalMaterial({ color: 0xfff0b0, roughness: 0.5, sheen: 0.5, sheenColor: new THREE.Color(0xffffff) });
+  const spotM = new THREE.MeshPhysicalMaterial({ color: 0x1f7aa0, roughness: 0.3, clearcoat: 1 });
+  const pad = new THREE.MeshPhysicalMaterial({ color: 0xffb070, roughness: 0.4, clearcoat: 0.6 });
+  // body: a plump teardrop, lime on top fading to sunny yellow at the flanks
+  const bod = gsph(0.7, 0x1f9a34, 0x9ccc28); bod.scale.set(1.25, 0.82, 1.02); bod.position.y = 0.72; b.add(bod);
+  const bel = sph(0.58, belly, 20, 12); bel.scale.set(1.08, 0.62, 0.92); bel.position.set(0.16, 0.56, 0); b.add(bel);
+  for (const [x, y, z, r] of [[-0.35, 1.12, 0.3, 0.13], [-0.05, 1.2, -0.26, 0.11], [-0.55, 1.0, -0.4, 0.1], [0.15, 1.16, 0.28, 0.08], [-0.7, 0.85, 0.42, 0.09], [-0.3, 1.05, -0.5, 0.08]]) { const sp = sph(r, spotM, 10, 6); sp.scale.y = 0.35; sp.position.set(x, y, z); b.add(sp); }
+  // head: wide and friendly, with domed eyes up top
+  const head = pivot(b, 0.62, 0.98, 0);
+  const hd = gsph(0.52, 0x22a63a, 0x94c82a); hd.scale.set(1.15, 0.72, 1.12); head.add(hd);
+  const chin = sph(0.42, belly, 16, 10); chin.scale.set(1.1, 0.45, 1); chin.position.set(0.12, -0.16, 0); head.add(chin);
+  const sac = sph(0.26, new THREE.MeshPhysicalMaterial({ color: 0xffe8a8, roughness: 0.25, transmission: 0.3, thickness: 0.2, clearcoat: 1 }), 16, 10); sac.position.set(0.2, -0.3, 0); sac.scale.set(1, 0.7, 1); head.add(sac);
+  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.025, 6, 24, Math.PI * 0.9), M(0x184a20)); smile.rotation.set(Math.PI / 2, 0, Math.PI * 0.55); smile.position.set(0.08, -0.06, 0); smile.scale.set(1.2, 1, 1); head.add(smile);
+  for (const z of [0.36, -0.36]) { const blush = sph(0.09, new THREE.MeshBasicMaterial({ color: 0xff8aa0, transparent: true, opacity: 0.55 }), 8, 6); blush.scale.set(1, 0.5, 0.4); blush.position.set(0.42, -0.02, z); head.add(blush); }
+  const lids = [], eyesArr = [];
+  for (const z of [0.3, -0.3]) {
+    const dome = gsph(0.2, 0x22a63a, 0x1f9a34, 18, 12); dome.position.set(-0.06, 0.28, z); head.add(dome);
+    const e = sph(0.21, M(0xfff6d0, { roughness: 0.15 }), 18, 12); e.position.set(0.1, 0.34, z); head.add(e);
+    const ir = sph(0.155, new THREE.MeshPhysicalMaterial({ color: 0xffa010, roughness: 0.1, clearcoat: 1, emissive: 0x402000, emissiveIntensity: 0.3 }), 14, 10); ir.position.set(0.09, 0.01, 0); e.add(ir);
+    const pu = box(0.05, 0.06, 0.16, M(0x0a0a0a)); pu.position.set(0.19, 0.01, 0); e.add(pu);
+    const hl = sph(0.045, new THREE.MeshBasicMaterial({ color: 0xffffff }), 6, 4); hl.position.set(0.2, 0.08, 0.05); e.add(hl);
+    const lid = new THREE.Mesh(new THREE.SphereGeometry(0.215, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), skin); grad(lid.geometry, 0x22a63a, 0x22a63a); lid.position.copy(e.position); lid.rotation.z = 1.0; head.add(lid); lids.push(lid); eyesArr.push(e);
+  }
+  // legs: big folded hind legs and little front arms, all with round sticky toe pads
+  const legs = [], toes = (parent, x, y, z, n = 4, sc = 1) => { for (let i = 0; i < n; i++) { const a = (i / (n - 1) - 0.5) * 1.4; const t = cap(0.025 * sc, 0.12 * sc, M(0x2aa83c)); t.rotation.z = -Math.PI / 2; t.rotation.y = a; t.position.set(x + Math.cos(a) * 0.08 * sc, y, z + Math.sin(a) * 0.1 * sc); parent.add(t); const pd = sph(0.045 * sc, pad, 8, 6); pd.position.set(x + Math.cos(a) * 0.17 * sc, y, z + Math.sin(a) * 0.17 * sc); pd.scale.y = 0.6; parent.add(pd); } };
+  for (const z of [0.55, -0.55]) {
+    const l = pivot(b, -0.45, 0.55, z);
+    const th = gsph(0.3, 0x1f9a34, 0x8cc028, 14, 10); th.scale.set(1.5, 0.75, 0.6); l.add(th);
+    const sh = gsph(0.2, 0x1f9a34, 0x8cc028, 12, 8); sh.scale.set(1.6, 0.5, 0.55); sh.position.set(0.25, -0.28, 0.04 * Math.sign(z)); l.add(sh);
+    toes(l, 0.5, -0.47, 0.06 * Math.sign(z), 4, 1.4); legs.push(l);
+  }
+  for (const z of [0.42, -0.42]) { const l = pivot(b, 0.45, 0.42, z); const a = cap(0.075, 0.26, M(0x2aa83c, { roughness: 0.35 })); a.position.y = -0.18; l.add(a); toes(l, 0.04, -0.36, 0, 3, 1); legs.push(l); }
+  // the messenger's satchel
+  const strap = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.03, 4, 28), M(0x8a5a2a)); strap.rotation.set(0, Math.PI / 2, 0.5); strap.position.set(0.05, 0.78, 0); strap.scale.set(1, 0.85, 1.08); b.add(strap);
+  const bag = sph(0.2, M(0xb07a3a, { roughness: 0.8 }), 14, 10); bag.scale.set(1, 0.85, 0.45); bag.position.set(-0.3, 0.5, 0.72); bag.rotation.z = 0.2; b.add(bag);
+  const flap = sph(0.19, M(0x8a5a2a), 12, 6, ); flap.scale.set(1.05, 0.4, 0.5); flap.position.set(-0.29, 0.62, 0.72); flap.rotation.z = 0.2; b.add(flap);
+  const tongue = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1, 8), M(0xff5a7a, { roughness: 0.3 })); tongue.visible = false; root.add(tongue);
+  let blinkT = 2;
+  const anim = (t, dt) => { blinkT -= dt; const shut = blinkT < 0.12; if (blinkT < 0) blinkT = 1.5 + Math.random() * 3; lids.forEach((l) => l.rotation.z = shut ? -1.2 : 1.0); const k = 1 + Math.max(0, Math.sin(t * 2.2)) * 0.35; sac.scale.set(k, 0.7 * k, k); };
+  root.userData = { body: b, head, legs, tongue, seat: 1.25, anim, eyes: eyesArr };
   return root;
 }
 
-// ── Sola, the Gliding Jungle Bird (long tail, broad wings)
+// shared: vertex-colour gradients for soft, painted-looking creatures
+function gradGeo(geo, top, bot, axis = 'y') { const c = new THREE.Color(), ct = new THREE.Color(top), cb = new THREE.Color(bot), p = geo.attributes.position, get = axis === 'y' ? 'getY' : 'getX', col = []; let a0 = Infinity, a1 = -Infinity; for (let i = 0; i < p.count; i++) { a0 = Math.min(a0, p[get](i)); a1 = Math.max(a1, p[get](i)); } for (let i = 0; i < p.count; i++) { c.copy(cb).lerp(ct, (p[get](i) - a0) / (a1 - a0 || 1)); col.push(c.r, c.g, c.b); } geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); return geo; }
+const vcMat = (o = {}) => new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.55, ...o });
+function feather(len, wid, top, bot, mat) { const g = gradGeo(new THREE.SphereGeometry(1, 12, 6), top, bot, 'x'); const m = new THREE.Mesh(g, mat); m.scale.set(len, 0.035, wid); m.castShadow = true; return m; }
+
+// ── Sola, the Sunbird of the Skyward Isles: plump, crested, with fanned feathered wings
 export function makeBird() {
   const root = new THREE.Group(); const b = pivot(root, 0, 0, 0);
-  const red = M(0xe84a3a), yel = M(0xffd040), blu = M(0x2a7ae8), beak = M(0x3a3a3a);
-  const bod = sph(0.55, red); bod.scale.set(1.5, 0.8, 0.9); bod.position.y = 0.9; b.add(bod);
-  const head = pivot(b, 0.75, 1.25, 0); head.add(sph(0.35, red));
-  const bk = cone(0.14, 0.4, beak); bk.rotation.z = -Math.PI / 2 - 0.3; bk.position.set(0.38, -0.05, 0); head.add(bk);
-  eye(head, 0.2, 0.08, 0.2, 0.08); eye(head, 0.2, 0.08, -0.2, 0.08);
-  const crest = cone(0.1, 0.5, yel); crest.position.set(-0.1, 0.4, 0); crest.rotation.z = 0.6; head.add(crest);
+  const plume = vcMat({ roughness: 0.6, sheen: 0.1, sheenColor: new THREE.Color(0xffe0a0) }), fm = vcMat({ roughness: 0.5, side: THREE.DoubleSide });
+  const bod = new THREE.Mesh(gradGeo(new THREE.SphereGeometry(0.58, 24, 16), 0xd0200e, 0xff8a10), plume); bod.castShadow = true; bod.scale.set(1.45, 0.85, 0.92); bod.position.y = 0.92; b.add(bod);
+  const chest = sph(0.42, M(0xffc030, { roughness: 0.7 }), 16, 10); chest.scale.set(0.9, 0.95, 0.85); chest.position.set(0.42, 0.85, 0); b.add(chest);
+  const head = pivot(b, 0.78, 1.32, 0);
+  const hd = new THREE.Mesh(gradGeo(new THREE.SphereGeometry(0.36, 20, 14), 0xd8240e, 0xff6a1a), plume); hd.castShadow = true; head.add(hd);
+  const bkTop = cone(0.11, 0.42, M(0xffc040, { roughness: 0.3 }), 10); bkTop.rotation.z = -Math.PI / 2 - 0.25; bkTop.position.set(0.42, -0.02, 0); head.add(bkTop);
+  const bkTip = cone(0.05, 0.14, M(0x3a2a1a), 8); bkTip.rotation.z = -Math.PI / 2 - 0.5; bkTip.position.set(0.62, -0.08, 0); head.add(bkTip);
+  const eyes = [face(head, 0.2, 0.08, 0.21, 0.095, 0x1a1010, M(0x7a2010)), face(head, 0.2, 0.08, -0.21, 0.095, 0x1a1010, M(0x7a2010))]; eyes.forEach((f) => f.brow.visible = false);
+  for (const z of [0.25, -0.25]) { const bl = sph(0.07, new THREE.MeshBasicMaterial({ color: 0xffa0a0, transparent: true, opacity: 0.5 }), 8, 6); bl.scale.set(1, 0.6, 0.4); bl.position.set(0.24, -0.08, z); head.add(bl); }
+  const crest = pivot(head, -0.05, 0.3, 0); for (let i = 0; i < 3; i++) { const f = feather(0.32 - i * 0.04, 0.08, 0xffe040, 0xff6a20, fm); f.rotation.z = 1.1 + i * 0.25; f.position.set(-0.12 - i * 0.08, 0.15, (i - 1) * 0.05); crest.add(f); }
+  // wings: fanned primaries (blue to sun-yellow tips) over soft coverts
   const wings = [];
-  for (const z of [1, -1]) { const w = pivot(b, 0.1, 1.1, 0.4 * z); const m = box(0.8, 0.06, 1.8, blu); m.position.z = 0.9 * z; w.add(m); const tip = box(0.5, 0.05, 0.8, yel); tip.position.set(-0.1, 0, 1.9 * z); w.add(tip); wings.push(w); }
-  const tail = pivot(b, -0.75, 0.9, 0); for (let i = 0; i < 3; i++) { const f = box(1.4, 0.04, 0.2, i === 1 ? yel : blu); f.position.set(-0.7, 0, (i - 1) * 0.18); f.rotation.y = (i - 1) * 0.2; tail.add(f); }
-  const legs = []; for (const z of [0.2, -0.2]) { const l = pivot(b, 0, 0.5, z); const m = cap(0.05, 0.4, M(0xffa040)); m.position.y = -0.2; l.add(m); legs.push(l); }
-  root.userData = { body: b, head, wings, tail, legs, seat: 1.4 };
+  for (const z of [1, -1]) { const w = pivot(b, 0.1, 1.1, 0.45 * z);
+    const cov = feather(0.55, 0.5, 0x2a6ae8, 0x3a8af0, fm); cov.position.set(0, 0, 0.45 * z); w.add(cov);
+    for (let i = 0; i < 6; i++) { const f = feather(0.62 - i * 0.03, 0.13, 0xffd040, 0x2a6ae8, fm); const a = (i / 5) * 0.9; f.position.set(-0.15 - i * 0.07, -0.01 * i, (0.65 + i * 0.13) * z); f.rotation.y = -z * (a - 0.2); w.add(f); }
+    wings.push(w); }
+  // tail: three long sunstreamers
+  const tail = pivot(b, -0.78, 0.95, 0);
+  for (let i = 0; i < 3; i++) { const f = feather(0.85 + (i === 1 ? 0.35 : 0), 0.11, 0xffe040, i === 1 ? 0xe8402a : 0x2a6ae8, fm); f.position.set(-0.8 - (i === 1 ? 0.18 : 0), 0, (i - 1) * 0.15); f.rotation.y = (i - 1) * 0.22; tail.add(f); }
+  const legs = []; for (const z of [0.18, -0.18]) { const l = pivot(b, 0.05, 0.55, z); const m = cap(0.045, 0.36, M(0xffa040)); m.position.y = -0.2; l.add(m); for (const a of [-0.5, 0, 0.5]) { const t = cap(0.025, 0.1, M(0xffa040)); t.rotation.z = -Math.PI / 2; t.rotation.y = a; t.position.set(0.07, -0.42, Math.sin(a) * 0.05); l.add(t); } legs.push(l); }
+  const la = lifeAnim(eyes);
+  root.userData = { body: b, head, wings, tail, legs, seat: 1.4, anim: (t, dt) => la(t, dt, { near: false, lookX: 1, lookY: 0 }) };
   return root;
 }
 
-// ── Nuu, the River Otter-seal with fin-ears
+// ── Nuu, the river otter-seal: sleek, whiskered, with coral fin-ears and a fluke tail
 export function makeFish() {
   const root = new THREE.Group(); const b = pivot(root, 0, 0, 0);
-  const skin = M(0x2a8a9a, { roughness: 0.3, metalness: 0.1 }), bel = M(0xbff0e8), fin = M(0xff7a50);
-  const bod = cap(0.45, 1.1, skin); bod.rotation.z = Math.PI / 2; bod.position.y = 0.55; b.add(bod);
-  const bb = sph(0.4, bel); bb.scale.set(1.8, 0.6, 0.9); bb.position.set(0.1, 0.35, 0); b.add(bb);
-  const head = pivot(b, 0.95, 0.7, 0); head.add(sph(0.38, skin));
-  const sn = sph(0.2, bel); sn.position.set(0.3, -0.08, 0); head.add(sn);
-  eye(head, 0.25, 0.12, 0.2, 0.09, 0x000000); eye(head, 0.25, 0.12, -0.2, 0.09, 0x000000);
-  for (const z of [0.3, -0.3]) { const f = cone(0.12, 0.4, fin); f.position.set(-0.1, 0.35, z); f.rotation.x = z > 0 ? -0.6 : 0.6; head.add(f); }
-  const tail = pivot(b, -1.0, 0.55, 0); const tf = box(0.6, 0.06, 0.7, fin); tf.position.x = -0.3; tail.add(tf);
-  const legs = []; for (const z of [0.4, -0.4]) { const l = pivot(b, 0.4, 0.4, z); const f2 = box(0.4, 0.05, 0.3, fin); f2.position.set(0, -0.2, z * 0.3); l.add(f2); legs.push(l); }
-  root.userData = { body: b, head, tail, legs, seat: 1.05 };
+  const skin = vcMat({ roughness: 0.4, clearcoat: 0.45, clearcoatRoughness: 0.3 }), fin = new THREE.MeshPhysicalMaterial({ color: 0xff7a50, roughness: 0.4, transmission: 0.25, thickness: 0.2, clearcoat: 0.6, side: THREE.DoubleSide });
+  // a lathe-turned teardrop body: teal back fading to a cream belly
+  const prof = []; for (let i = 0; i <= 16; i++) { const t = i / 16; prof.push(new THREE.Vector2(Math.sin(Math.PI * Math.pow(t, 0.8)) * 0.5 * (1 - t * 0.25) + 0.02, (t - 0.5) * 2.2)); }
+  const bg = new THREE.LatheGeometry(prof, 24); bg.rotateZ(-Math.PI / 2); gradGeo(bg, 0x0b5a6c, 0xc8ece0);
+  const bod = new THREE.Mesh(bg, skin); bod.castShadow = true; bod.scale.set(1, 0.9, 0.95); bod.position.set(-0.05, 0.55, 0); b.add(bod);
+  for (let i = 0; i < 7; i++) { const sp = sph(0.04 + (i % 3) * 0.015, M(0x9ff0ff, { roughness: 0.2, emissive: 0x206070, emissiveIntensity: 0.4 }), 6, 4); sp.position.set(-0.6 + i * 0.17, 0.9 + Math.sin(i) * 0.05, (i % 2 ? 0.18 : -0.15)); b.add(sp); }
+  const head = pivot(b, 0.95, 0.72, 0);
+  const hd = new THREE.Mesh(gradGeo(new THREE.SphereGeometry(0.4, 22, 16), 0x0e6478, 0xc0e8dc), skin); hd.castShadow = true; hd.scale.set(1.05, 0.92, 1); head.add(hd);
+  const muzzle = sph(0.22, M(0xeefaf4, { roughness: 0.5 }), 16, 10); muzzle.scale.set(1, 0.75, 1.15); muzzle.position.set(0.3, -0.1, 0); head.add(muzzle);
+  const nose = sph(0.07, M(0x2a1a1a, { roughness: 0.2 }), 10, 8); nose.scale.set(0.8, 0.7, 1.2); nose.position.set(0.52, -0.02, 0); head.add(nose);
+  for (const z of [1, -1]) for (let k = 0; k < 3; k++) { const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.004, 0.42, 4), M(0xffffff)); wh.rotation.set(z * (0.15 + k * 0.12), 0, Math.PI / 2 + (k - 1) * 0.15); wh.position.set(0.52, -0.1 + (k - 1) * 0.04, z * 0.24); head.add(wh); }
+  const eyes = [face(head, 0.28, 0.14, 0.2, 0.095, 0x101010, M(0x0f4a50)), face(head, 0.28, 0.14, -0.2, 0.095, 0x101010, M(0x0f4a50))]; eyes.forEach((f) => f.brow.visible = false);
+  for (const z of [0.3, -0.3]) { const f = new THREE.Mesh(new THREE.CircleGeometry(0.17, 12, 0, Math.PI), fin); f.position.set(-0.08, 0.3, z); f.rotation.set(z > 0 ? -0.5 : 0.5, 0, 0.3); head.add(f); }
+  // fluke tail
+  const tail = pivot(b, -1.1, 0.58, 0);
+  for (const z of [1, -1]) { const lobe = sph(0.3, fin, 12, 6); lobe.scale.set(1.1, 0.06, 0.55); lobe.position.set(-0.28, 0, z * 0.22); lobe.rotation.y = z * 0.5; tail.add(lobe); }
+  const legs = []; for (const z of [0.42, -0.42]) { const l = pivot(b, 0.45, 0.4, z); const f2 = sph(0.22, fin, 12, 6); f2.scale.set(1.2, 0.08, 0.6); f2.position.set(0.05, -0.18, z * 0.25); f2.rotation.y = -z * 0.4; l.add(f2); legs.push(l); }
+  const la = lifeAnim(eyes);
+  root.userData = { body: b, head, tail, legs, seat: 1.05, anim: (t, dt) => la(t, dt, { near: false, lookX: 1, lookY: 0 }) };
   return root;
 }
 
