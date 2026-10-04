@@ -264,7 +264,7 @@ export class Player {
         const climb = dir === this.wallD;
         vyr = climb ? 15.5 : 14.5; this.vs = -this.wallD * (climb ? 4 : 11.5); this.facing = -this.wallD; this.jumpBuf = 0; this.wallT = 0; this.wjLock = climb ? 0.07 : 0.16; this.leapReady = true; this.firstLeapDone = false; this.sdashT = 0; this.clingT = 0;
         if (game.skills.has('starstep')) { this.usedSecondLeap = false; this.airDashes = (game.evolve.has('comet') ? 2 : 1) + (game.skills.has('dash2') ? 1 : 0); game.fx.burst(game.path.world(this.s, this.y + 0.8, 0), 0xfff0a0, 14, 5, 0.5, 0.4, 0); }
-        game.audio.play('jump'); M.chainEvent(); this.squash = -0.3;
+        game.audio.play('jump'); M.chainEvent(); this.squash = -0.3; game.fx.burst(game.path.world(this.s, this.y + 0.05, 0), game.currentTheme === 3 ? 0x8070c0 : 0xe0d4b0, 6, 2.5, 0.45, 0.35, 0);
         game.fx.burst(game.path.world(this.s + this.wallD * this.hw, this.y + 0.9, 0), 0xe8d8b0, 10, 4, 0.5, 0.4, 0);
       } else if (this.mount === 'bird' && this.birdTime > 0) {
         if (M.has('leap') && this.leapReady && this.animT - this.lastFlap < 0.3) { // Sunflare: double-tap
@@ -346,6 +346,7 @@ export class Player {
     const game = this.game;
     const impact = Math.abs(prevVy);
     this.squash = Math.min(0.45, impact * 0.018);
+    if (impact > 18) game.shake(Math.min(0.25, impact * 0.008));
     if (impact > 8) { game.audio.play('land'); game.fx.burst(game.path.world(this.s, this.y + 0.1, 0), this.game.currentTheme === 3 ? 0x8070c0 : 0xd8c8a0, 8, 4, 0.7, 0.5, 0); }
     if (this.slamming) {
       this.slamming = false;
@@ -620,11 +621,14 @@ export class Player {
     else if (this.inWater) { ud.body.rotation.z = -1.2; ud.body.position.y = 0.6; legA = Math.sin(t * 8) * 0.6; armA = Math.sin(t * 8 + 1) * 1.2; }
     else if (air) {
       const up = this.vy * this.g;
-      if (up > 2) { legA = 0.8; armZ = 2.6; lean = -0.1; }
+      if (up > 2) { legA = 0.8; armZ = 2.6; lean = -0.1; ud.head.rotation.z = 0.15; }
+      else if (up > -3) { legA = 0.35; armZ = 1.3; lean = 0.05; ud.head.rotation.z = 0.05; } // apex: a little float, arms out
       else { legA = Math.sin(t * 16) * 0.5; armZ = 1.8 + Math.sin(t * 18) * 0.8; lean = 0.15; } // flailing
     } else if (speed > 0.5) {
       legA = Math.sin(runPhase) * Math.min(1.2, speed * 0.12); armA = -Math.sin(runPhase) * Math.min(1.3, speed * 0.13);
       lean = Math.min(0.35, speed * 0.03); bob = Math.abs(Math.sin(runPhase)) * 0.08;
+      ud.torso.rotation.y = Math.sin(runPhase) * Math.min(0.22, speed * 0.02); ud.head.rotation.z = -lean * 0.6 + Math.sin(runPhase * 2) * 0.04; ud.head.rotation.y = -ud.torso.rotation.y * 0.8;
+      if (Math.sign(this.vs) !== this.facing && speed > 3) { lean = -0.45; legA = 0.7; armZ = 1.2; if (Math.random() < dt * 40) game.fx.spawn(P.world(this.s, this.y + 0.1, (Math.random() - 0.5) * 0.5), new THREE.Vector3(-this.vs * 0.2, 1.2, 0), 0xd8c8a0, 0.45, 0.4, 0); } // skid
       if (Math.random() < dt * speed * 0.6) game.fx.spawn(P.world(this.s - this.facing * 0.3, this.y + 0.1, (Math.random() - 0.5) * 0.4), new THREE.Vector3(0, 1, 0), game.currentTheme === 3 ? 0x6050a0 : 0xd8c8a0, 0.4, 0.35, 0);
       this.idleT = 0;
     } else {
@@ -639,6 +643,11 @@ export class Player {
       }
     }
     if (this.hurtT > 0) { ud.head.rotation.z = Math.sin(t * 30) * 0.3; }
+    // pose blending: limbs ease toward the target pose instead of snapping between states
+    const B = (this._pose ||= { legA: 0, armA: 0, armZ: 0, lean: 0 }), k = 1 - Math.exp(-dt * (speed > 0.5 && !air ? 30 : 16));
+    B.legA += (legA - B.legA) * k; B.armA += (armA - B.armA) * k; B.armZ += (armZ - B.armZ) * k; B.lean += (lean - B.lean) * k;
+    legA = B.legA; armA = B.armA; armZ = B.armZ; lean = B.lean;
+    if (!air && speed <= 0.5) ud.torso.scale.set(1, 1 + Math.sin(t * 2.2) * 0.015, 1); else ud.torso.scale.set(1, 1, 1); // breathing
     ud.torso.rotation.z = -lean;
     ud.legs.forEach((l, i) => { l.rotation.z = i ? -legA : legA; if (riding || this.cart) { l.rotation.z = 1.3; l.rotation.x = i ? 0.5 : -0.5; } else l.rotation.x = 0; });
     ud.arms.forEach((a, i) => { a.rotation.z = (i ? armA : -armA) + armZ; if (!(this.idleT > 4 && this.grounded)) a.rotation.x = 0; });

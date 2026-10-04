@@ -203,6 +203,7 @@ export class Entities {
       const m = e.model, ud = m.userData;
       if (!e.alive) {
         e.dead += dt; e.vy -= 40 * dt; e.y += e.vy * dt; e.s += e.dvs * dt;
+        if (e.dead < 0.14 && e.vy > 0) { e.vy += 40 * dt; e.y -= e.vy * dt; this.place(m, e.s, e.y); m.scale.set(1.4, 0.25, 1.4); continue; } // flattened for a beat, then pops
         this.place(m, e.s, e.y); m.rotation.z = e.dead * 8 * -e.dvs * 0.1; m.rotation.x = e.dead * 6; m.scale.setScalar(Math.max(0, 1 - e.dead * 0.6));
         if (e.dead > 1.5) m.visible = false;
         continue;
@@ -212,7 +213,13 @@ export class Entities {
       if (ud.anim) { const dx = pl.s - e.s, dy = pl.y + 0.8 - e.y; ud.anim(e.t, dt, { near: Math.hypot(dx, dy) < 7, lookX: dx, lookY: THREE.MathUtils.clamp(dy / 5, -1, 1) * Math.sign(dx * (e.dir || 1)) }); }
       if (e.stun > 0) { e.stun -= dt; }
       if (e.kind === 'snapjaw' || e.kind === 'spikeback') {
-        const sp = e.kind === 'snapjaw' ? 2.6 : 1.5;
+        // notice Kiri: a little hop and a shake, then hurry along
+        const seen = Math.abs(pl.s - e.s) < 7 && Math.abs(pl.y - e.y) < 3 && Math.sign(pl.s - e.s) === e.dir;
+        if (seen && !e.alert) { e.alert = 0.45; e.hop = 0; this.game.fx.spawn(this.path.world(e.s, e.y + 1.8, 0), new THREE.Vector3(0, 2, 0), 0xffe060, 0.6, 0.5, 0); }
+        if (!seen && Math.abs(pl.s - e.s) > 10) e.alert = 0;
+        if (e.alert > 0.001) e.alert = Math.max(0.001, e.alert - dt);
+        const startled = e.alert > 0.001;
+        const sp = (e.kind === 'snapjaw' ? 2.6 : 1.5) * (startled ? 0 : e.alert ? 1.5 : 1);
         if (e.stun <= 0 && e.range > 0.2) {
           e.s += e.dir * sp * dt;
           const ahead = e.s + e.dir * (e.hw + 0.2);
@@ -221,10 +228,12 @@ export class Entities {
         }
         // stay on (possibly moving) ground
         const g2 = this.groundUnder(e.s, e.y + 0.5); if (g2 > -1e6 && Math.abs(g2 - e.y) < 1) e.y = g2;
-        this.place(m, e.s, e.y); m.rotation.y += e.dir < 0 ? Math.PI : 0;
-        const w = e.t * (e.kind === 'snapjaw' ? 14 : 9);
+        const tgt = e.dir < 0 ? Math.PI : 0; e.turn ??= tgt; e.turn += (tgt - e.turn) * Math.min(1, dt * 10);
+        this.place(m, e.s, e.y + (startled ? Math.sin((0.45 - e.alert) / 0.45 * Math.PI) * 0.6 : 0)); m.rotation.y += e.turn;
+        const w = e.t * (e.kind === 'snapjaw' ? 14 : 9) * (e.alert ? 1.5 : 1);
         ud.legs.forEach((l, i) => l.rotation.z = Math.sin(w + i * Math.PI) * 0.6);
-        ud.body.position.y = Math.abs(Math.sin(w)) * 0.06;
+        ud.body.position.y = Math.abs(Math.sin(w)) * 0.06; ud.body.scale.set(1 + Math.sin(w * 2) * 0.04, 1 - Math.sin(w * 2) * 0.05, 1);
+        if (startled) ud.body.rotation.x = Math.sin(e.t * 50) * 0.08; else ud.body.rotation.x = 0;
         if (ud.jaw) { const o = Math.max(0, Math.sin(e.t * 5)) * 0.5; ud.jaw.rotation.z = -o; ud.top.rotation.z = o * 0.6; }
         if (e.stun > 0) m.rotation.z = Math.PI * 0.9;
       } else if (e.kind === 'buzzmoth') {
