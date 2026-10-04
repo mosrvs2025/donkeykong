@@ -262,7 +262,7 @@ export class World {
   buildVegetation() {
     const r = rand(42), L = this.path.length, q = this.q;
     const roots = [], flowers = [], trunks = [], blobs = [], ferns = [], rocks = [], shrooms = [], crystals = [], grass = [], stal = [], hang = [], palms = [], pillars = [], posts = [], beams = [], lamps = [];
-    let nextFrame = 0;
+    let nextFrame = 0; const glowStrands = [];
     const V = (s, y, d) => this.path.world(s, y, d);
     const S = (x, y, z) => new THREE.Vector3(x, y ?? x, z ?? x);
     const col = new THREE.Color();
@@ -294,6 +294,8 @@ export class World {
         if (r() < 0.25) crystals.push({ p: V(s, y, d * 0.6), sc: S(0.4 + r() * 1.2, 1 + r() * 4, 0.4 + r()), rx: (r() - 0.5) * 0.8, rz: (r() - 0.5) * 0.8, c: new THREE.Color().setHSL(0.5 + r() * 0.3, 0.9, 0.6) });
         if (r() < 0.3) stal.push({ p: V(s, 11 + Math.abs(d) * 0.3, d * 0.5), sc: S(0.6 + r(), 2 + r() * 6, 0.6 + r()), rx: Math.PI });
         if (r() < 0.2) rocks.push({ p: V(s, y, d), sc: S(1 + r() * 3, 0.7 + r() * 2, 1 + r() * 3), ry: r() * 6, c: new THREE.Color(0x3a3448) });
+        if (r() < 0.05) shrooms.push({ p: V(s, y, Math.min(-28, d * 0.8 - 8)), sc: S(3 + r() * 4, 4 + r() * 6, 3 + r() * 4), ry: r() * 6, c: new THREE.Color().setHSL(0.5 + r() * 0.35, 0.9, 0.5) });
+        if (r() < 0.35) glowStrands.push({ p: V(s + r() * 2, (gnd ?? base) + 8 + r() * 3, -2.5 - r() * 6), sc: S(1, 2 + r() * 4, 1), c: new THREE.Color().setHSL(0.45 + r() * 0.15, 0.9, 0.65) });
         if (gnd !== null && r() < 0.15) shrooms.push({ p: V(s, gnd, -2.5 - r() * 2), sc: S(0.3 + r() * 0.4), ry: r() * 6, c: new THREE.Color().setHSL(0.45 + r() * 0.4, 0.9, 0.6) });
       } else if (th === 4) {
         if (r() < 0.2) rocks.push({ p: V(s, y, d), sc: S(1 + r() * 3, 0.7 + r() * 2, 1 + r() * 3), ry: r() * 6, c: new THREE.Color(0x4a3a2c) });
@@ -349,6 +351,11 @@ export class World {
       const lg = new THREE.OctahedronGeometry(0.28, 1); lg.scale(1, 1.4, 1);
       this.inst(lg, new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffa040, emissiveIntensity: 3 }), lamps);
       const cord = new THREE.CylinderGeometry(0.02, 0.02, 0.9, 3); cord.translate(0, 0.45, 0); this.inst(cord, wood, lamps); }
+    { // Glowdeep glow-worm strands: threads hanging from the ceiling, beaded with light
+      const sg = new THREE.CylinderGeometry(0.015, 0.015, 1, 3); sg.translate(0, -0.5, 0);
+      this.inst(sg, new THREE.MeshBasicMaterial({ color: 0x80fff0, transparent: true, opacity: 0.35 }), glowStrands);
+      const beads = []; for (const st of glowStrands) for (let k = 1; k <= 4; k++) beads.push({ p: st.p.clone().add(new THREE.Vector3(0, -st.sc.y * k / 4.2, 0)), sc: new THREE.Vector3().setScalar(0.06 + k * 0.02), c: st.c });
+      this.inst(new THREE.SphereGeometry(1, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }), beads); }
     const hangGeo = new THREE.CylinderGeometry(1, 1, 1, 3); hangGeo.translate(0, -0.5, 0);
     this.inst(hangGeo, swayMat(new THREE.MeshStandardMaterial({ color: 0x2f5a20 }), 0.0), hang);
     // glowing things

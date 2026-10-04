@@ -613,7 +613,7 @@ class Game {
       this.stats.secrets.add(sc.id); this.hud.banner('SECRET FOUND', `${sc.name} · ${this.stats.secrets.size}/${SECRETS.length}`, 3); this.audio.play('bloom');
     }
     // mount indicator
-    if (p.mount === 'bird') this.hud.mount(`🪶 SOLA ${Math.max(0, Math.ceil(p.birdTime))}s`);
+    if (p.mount === 'bird') this.hud.mount(p.birdTime > 1e6 ? '🪶 SOLA' : `🪶 SOLA ${Math.max(0, Math.ceil(p.birdTime))}s`);
     else if (p.mount) this.hud.mount({ beast: '🐗 GRUMBO', frog: '🐸 BOING', fish: '🦦 NUU', oru: '🔮 ORU' }[p.mount] + ' <small>(C or ↓+Shift to hop off)</small>');
     else if (p.cart) this.hud.mount('⛏ MINE CART'); else this.hud.mount(null);
     if (p.mount === 'bird' && p.birdTime < 5 && p.birdTime > 4.9) this.toast('Sola is getting tired…', 2);

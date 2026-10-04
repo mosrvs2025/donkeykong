@@ -41,6 +41,28 @@ export class Worlds {
     // floating Sunwright spires far away
     const stone = new THREE.MeshStandardMaterial({ color: 0xc8c0b0, roughness: 0.9 }), gold = new THREE.MeshStandardMaterial({ color: 0, emissive: 0xffc860, emissiveIntensity: 2 });
     for (let i = 0; i < 9; i++) { const G = new THREE.Group(); const h = 20 + Math.random() * 30; const sp = new THREE.Mesh(new THREE.ConeGeometry(4, h, 6), stone); sp.position.y = h / 2; G.add(sp); const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(6, 0), stone); rock.scale.y = 0.6; G.add(rock); const ring = new THREE.Mesh(new THREE.TorusGeometry(6, 0.3, 6, 30), gold); ring.rotation.x = Math.PI / 2; ring.position.y = h * 0.6; G.add(ring); P.place(G, 200 + i * 80 + O, 770 + Math.random() * 60, -80 - Math.random() * 80); g.add(G); }
+    // distant floating islets: grassy tops, rocky roots, a tree or two and a ribbon waterfall
+    const grassM = new THREE.MeshStandardMaterial({ color: 0x6cc450, roughness: 0.9, flatShading: true }), rockM = new THREE.MeshStandardMaterial({ color: 0x9a8a78, roughness: 1, flatShading: true });
+    const leafM = new THREE.MeshStandardMaterial({ color: 0x4aa83e, flatShading: true }), barkM = new THREE.MeshStandardMaterial({ color: 0x7a5432 });
+    const fallM = new THREE.MeshBasicMaterial({ color: 0xe8fbff, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide });
+    this.isles = []; this.falls = [];
+    for (let i = 0; i < 16; i++) {
+      const G = new THREE.Group(), r = 4 + Math.random() * 7;
+      const top = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.92, 1.2, 9), grassM); G.add(top);
+      const root = new THREE.Mesh(new THREE.ConeGeometry(r * 0.95, r * 1.8, 9), rockM); root.rotation.x = Math.PI; root.position.y = -r * 0.9 - 0.6; G.add(root);
+      for (let k = 0; k < 1 + Math.floor(Math.random() * 3); k++) { const x = (Math.random() - 0.5) * r, z = (Math.random() - 0.5) * r, h = 2 + Math.random() * 3;
+        const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.35, h, 5), barkM); tr.position.set(x, h / 2 + 0.6, z); G.add(tr);
+        const cr = new THREE.Mesh(new THREE.IcosahedronGeometry(1.4 + Math.random(), 0), leafM); cr.position.set(x, h + 1.2, z); G.add(cr); }
+      if (i % 2 === 0) { const L = 18 + Math.random() * 20, f = new THREE.Mesh(new THREE.PlaneGeometry(1.2 + r * 0.15, L, 1, 8), fallM.clone()); f.position.set(r * 0.85, -L / 2, 0); f.rotation.y = Math.PI / 2; G.add(f); this.falls.push(f); }
+      P.place(G, 190 + Math.random() * 720 + O, 770 + Math.random() * 80, -35 - Math.random() * 90); G.rotation.y = Math.random() * 6; g.add(G); this.isles.push({ G, y0: G.position.y, ph: Math.random() * 6 });
+    }
+    // flocks of birds wheeling between the islands
+    const birdGeo = new THREE.BufferGeometry(); birdGeo.setAttribute('position', new THREE.Float32BufferAttribute([-0.6, 0.15, 0, 0, 0, 0, 0, 0, 0.12, 0.6, 0.15, 0, 0, 0, 0, 0, 0, 0.12], 3));
+    const birdM = new THREE.MeshBasicMaterial({ color: 0x2a3040, side: THREE.DoubleSide });
+    this.flocks = [];
+    for (let f = 0; f < 6; f++) { const G = new THREE.Group(), birds = [];
+      for (let k = 0; k < 7; k++) { const b = new THREE.Mesh(birdGeo, birdM); b.position.set(-Math.abs(k - 3) * 1.1, 0, (k - 3) * 1.1); b.scale.setScalar(1.6); G.add(b); birds.push(b); }
+      P.place(G, 200 + f * 120 + O, 800 + Math.random() * 40, -25 - Math.random() * 30); g.add(G); this.flocks.push({ G, birds, c: G.position.clone(), r: 10 + Math.random() * 10, ph: Math.random() * 6 }); }
     // storm clouds
     const stormM = new THREE.MeshStandardMaterial({ color: 0x3a3a50, emissive: 0x101020, roughness: 1 });
     this.storms = this.L.storms.map((st) => {
@@ -73,6 +95,9 @@ export class Worlds {
       if (Math.random() < dt * 25) { const cp = game.camera.position; game.fx.spawn(new THREE.Vector3(cp.x + (Math.random() - 0.5) * 30, cp.y - 10, cp.z - 12 + (Math.random() - 0.5) * 12), new THREE.Vector3((Math.random() - 0.5) * 0.4, 2 + Math.random() * 2, 0), 0xc0f8ff, 0.3, 5, 0); }
     }
     if (sky) {
+      for (const is of this.isles) is.G.position.y = is.y0 + Math.sin(t * 0.5 + is.ph) * 0.8;
+      for (const f of this.falls) f.material.opacity = 0.45 + Math.sin(t * 7 + f.id) * 0.06;
+      for (const f of this.flocks) { const a = t * 0.25 + f.ph; f.G.position.set(f.c.x + Math.cos(a) * f.r, f.c.y + Math.sin(a * 2) * 2, f.c.z + Math.sin(a) * f.r); f.G.rotation.y = -a; f.birds.forEach((b, i) => b.scale.y = 1.6 * (0.3 + Math.abs(Math.sin(t * 8 + i)))); }
       for (const st of this.storms) { const on = Math.sin(t * 5 + st.ph) > 0.85; st.bolt.visible = on; st.bolt.rotation.z = Math.sin(t * 30) * 0.3; st.G.rotation.y = t * 0.1; }
       if (Math.random() < dt * 15) { const cp = game.camera.position; game.fx.spawn(new THREE.Vector3(cp.x + (Math.random() - 0.5) * 50, cp.y + (Math.random() - 0.5) * 20, cp.z - 15), new THREE.Vector3(-8, 0, 0), 0xffffff, 0.25, 2, 0); }
     }

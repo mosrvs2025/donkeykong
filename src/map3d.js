@@ -31,7 +31,7 @@ export class MapWorld {
     sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -65, right: 65, top: 50, bottom: -50, near: 1, far: 200 }); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.05; sun.shadow.radius = 3;
     S.add(sun);
     this.pos = {}; for (const l of LEVELS) this.pos[l.id] = new THREE.Vector3((l.at[0] - 470) * 0.1, 0, (l.at[1] - 385) * 0.1);
-    this.buildTerrain(); this.buildSea(); this.buildLandmarks(); this.buildDecor(); this.buildPaths(); this.buildNodes(); this.buildClouds();
+    this.buildTerrain(); this.buildSea(); this.buildLandmarks(); this.buildDecor(); this.buildPaths(); this.buildNodes(); this.buildClouds(); this.buildLife();
     this.labels = document.createElement('div'); this.labels.id = 'map-labels'; this.labels.style.display = 'none'; document.body.appendChild(this.labels);
     this.pan = new THREE.Vector3(); this.zoom = 1; this.t = 0; this.camPos = new THREE.Vector3(); this.camLook = new THREE.Vector3(); this.snap = true;
     this.ray = new THREE.Raycaster();
@@ -223,6 +223,49 @@ export class MapWorld {
       this.scene.add(c); this.clouds.push(c);
     }
   }
+  // ── life: a sailboat circling the coast, wheeling gulls, a windmill, mine smoke, fireflies over
+  // the Glowdeep, a waterfall pouring off the sky island, fish leaping and meadow flowers
+  buildLife() {
+    const S = this.scene, P = this.pos;
+    { const b = (this.boat = new THREE.Group()); const hull = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.4, 0.6), std(0x8a5a30)); hull.position.y = 0.15; b.add(hull);
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.6, 4), std(0x6a4426)); mast.position.y = 1; b.add(mast);
+      const sail = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.3, 3), std(0xfff4e0)); sail.scale.z = 0.08; sail.position.set(0.15, 1.05, 0); b.add(sail);
+      const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.15), new THREE.MeshBasicMaterial({ color: 0xff5050, side: THREE.DoubleSide })); flag.position.set(0.15, 1.85, 0); b.add(flag);
+      b.traverse((o) => { if (o.isMesh) o.castShadow = true; }); S.add(b); }
+    { const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute([-0.35, 0.1, 0, 0, 0, 0, 0, 0, 0.08, 0.35, 0.1, 0, 0, 0, 0, 0, 0, 0.08], 3));
+      const m = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }); this.gulls = [];
+      for (let i = 0; i < 10; i++) { const g = new THREE.Mesh(bg, m); S.add(g); this.gulls.push({ g, c: new THREE.Vector3((hash(i, 40) - 0.5) * 80, 7 + hash(i, 41) * 5, (hash(i, 42) - 0.5) * 50), r: 3 + hash(i, 43) * 6, v: 0.4 + hash(i, 44) * 0.5, ph: hash(i, 45) * 6 }); } }
+    { const c = this.ground('rootwild', -4, 4.5), g = new THREE.Group(); g.position.copy(c); S.add(g);
+      const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.7, 2.6, 8), std(0xf0e6d0)); tower.position.y = 1.3; g.add(tower);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(0.62, 0.8, 8), std(0xc0503a)); roof.position.y = 3; g.add(roof);
+      const hub = (this.mill = new THREE.Group()); hub.position.set(0, 2.4, 0.6); g.add(hub);
+      for (let k = 0; k < 4; k++) { const bl = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.5, 0.04), std(0xfff8ea)); bl.position.y = 0.8; const arm = new THREE.Group(); arm.rotation.z = k * Math.PI / 2; arm.add(bl); hub.add(arm); }
+      g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); }
+    { this.smoke = []; const m = new THREE.MeshStandardMaterial({ color: 0xd8d0c8, transparent: true, opacity: 0.6, roughness: 1 }); const base = this.ground('mine', 1.8, -3.4); base.y += 2.6;
+      for (let i = 0; i < 8; i++) { const p = new THREE.Mesh(new THREE.IcosahedronGeometry(0.35, 1), m.clone()); S.add(p); this.smoke.push({ p, k: i / 8, base }); } }
+    { const n = 40, pos = new Float32Array(n * 3), c = this.ground('glowdeep', 1.5, -1); this.flies = { c, n, ph: [...Array(n)].map((_, i) => hash(i, 60) * 6) };
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      this.flies.pts = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xb0ffd8, size: 0.22, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })); this.flies.pts.frustumCulled = false; S.add(this.flies.pts); }
+    if (this.sky) { const f = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 13, 1, 6), new THREE.MeshBasicMaterial({ color: 0xe8fbff, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide }));
+      f.position.set(3.3, -6.3, 0.6); f.rotation.y = Math.PI / 2; this.sky.add(f); this.skyFall = f;
+      const mist = new THREE.Mesh(new THREE.RingGeometry(0.3, 1.4, 20), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, depthWrite: false })); mist.rotation.x = -Math.PI / 2; S.add(mist); this.mist = mist; }
+    { this.fish = []; const m = std(0x7ac8e8, { metalness: 0.3, roughness: 0.3 });
+      for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.5, 5), m); f.visible = false; S.add(f);
+        let x, z, k = 0; do { x = (hash(i, 70 + k) - 0.5) * 100; z = (hash(i, 80 + k) - 0.5) * 75; k++; } while (this.heightAt(x, z) > -1.5 && k < 30);
+        this.fish.push({ f, x, z, t: hash(i, 90) * 4 }); } }
+    { const list = []; for (let i = 0; i < 1500 && list.length < 500; i++) { const x = (hash(i, 101) - 0.5) * W * 0.9, z = (hash(i, 102) - 0.5) * D * 0.9, h = this.heightAt(x, z); if (h > 0.9 && h < 4.5) list.push([x, h, z, i]); }
+      const m = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.09, 0), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x222222 }), list.length), o = new THREE.Object3D(), c = new THREE.Color(), cols = [0xff8ac0, 0xffe060, 0xffffff, 0xc8a0ff, 0xff9a50];
+      list.forEach(([x, h, z, i], k) => { o.position.set(x, h + 0.08, z); o.updateMatrix(); m.setMatrixAt(k, o.matrix); m.setColorAt(k, c.setHex(cols[i % 5])); }); S.add(m); }
+  }
+  updateLife(dt, t) {
+    if (this.boat) { const a = t * 0.05, R = 52; this.boat.position.set(Math.cos(a) * R, Math.sin(t * 1.5) * 0.06, Math.sin(a) * R * 0.72); this.boat.rotation.set(Math.sin(t * 1.2) * 0.06, -a - Math.PI / 2, Math.sin(t * 0.9) * 0.05); }
+    this.gulls?.forEach((q, i) => { const a = t * q.v + q.ph; q.g.position.set(q.c.x + Math.cos(a) * q.r, q.c.y + Math.sin(a * 1.7) * 0.6, q.c.z + Math.sin(a) * q.r); q.g.rotation.y = -a; q.g.scale.y = 0.3 + Math.abs(Math.sin(t * 7 + i)); });
+    if (this.mill) this.mill.rotation.z = t * 0.9;
+    this.smoke?.forEach((q) => { const k = (q.k + t * 0.12) % 1; q.p.position.set(q.base.x + k * 1.5, q.base.y + k * 4, q.base.z + Math.sin(k * 6) * 0.3); q.p.scale.setScalar(0.5 + k * 1.8); q.p.material.opacity = 0.55 * (1 - k); });
+    if (this.flies) { const a = this.flies.pts.geometry.attributes.position, F = this.flies; for (let i = 0; i < F.n; i++) { const ph = F.ph[i]; a.setXYZ(i, F.c.x + Math.sin(t * 0.4 + ph) * 3.5, F.c.y + 0.6 + Math.sin(t * 1.3 + ph * 2) * 0.8 + (i % 4) * 0.4, F.c.z + Math.cos(t * 0.35 + ph * 1.3) * 3); } a.needsUpdate = true; F.pts.material.opacity = 0.6 + Math.sin(t * 3) * 0.3; }
+    if (this.skyFall) { this.skyFall.material.opacity = 0.6 + Math.sin(t * 8) * 0.08; const w = new THREE.Vector3(); this.skyFall.getWorldPosition(w); this.mist.position.set(w.x, 0.12, w.z); this.mist.scale.setScalar(1 + Math.sin(t * 3) * 0.15); }
+    this.fish?.forEach((q) => { q.t -= dt; if (q.t < -1.2) q.t = 2 + Math.random() * 5; const k = -q.t / 1.2; q.f.visible = q.t < 0; if (q.f.visible) { q.f.position.set(q.x + k * 2.4, Math.sin(k * Math.PI) * 1.4, q.z); q.f.rotation.z = -Math.PI / 2 + (0.5 - k) * 2.2; } });
+  }
   // ── state
   refresh(map) {
     const P = this.game.progress;
@@ -285,6 +328,7 @@ export class MapWorld {
       if (!moving) { ud.body.position.y = Math.abs(Math.sin(t * 2.2)) * 0.05; H.rotation.y += (-0.6 - H.rotation.y) * Math.min(1, dt * 4); }
       ud.eyeL.scale.y = ud.eyeR.scale.y = (t % 3.4) < 0.1 ? 0.1 : 1;
     }
+    this.updateLife(dt, t);
     // living landmarks
     if (this.seed) { const s = 1 + Math.sin(t * 2) * 0.04; this.seed.scale.set(0.85 * s, 1.2 * s, 0.85 * s); this.seed.material.emissiveIntensity = 1.2 + Math.sin(t * 2) * 0.35; }
     if (this.sky) this.sky.position.y = this.skyY + Math.sin(t * 0.8) * 0.3;

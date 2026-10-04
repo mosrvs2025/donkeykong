@@ -371,7 +371,7 @@ body.inclash #banner,body.inclash #toast,body.inclash #story,body.inclash #hud,b
 .map-edge i{font-style:normal;display:inline-block;color:#e0502a;font-size:16px}
 @keyframes edgepulse{50%{box-shadow:0 3px 0 #a0301a,0 0 18px #ff8a5a}}
 @media (max-width:520px){.map-edge span{max-width:90px;overflow:hidden;text-overflow:ellipsis}}
-body.onmap #banner,body.onmap #story,body.onmap #prompt{display:none!important}
+body.onmap #banner,body.onmap #story,body.onmap #prompt,body.onmap #toast{display:none!important}
 
 #ctx{position:fixed;left:0;top:0;z-index:30;pointer-events:none;opacity:0;transition:opacity .25s;display:flex;flex-direction:column;align-items:center;max-width:min(320px,80vw)}
 #ctx.on{opacity:1}
