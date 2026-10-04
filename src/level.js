@@ -158,7 +158,7 @@ export function buildLevel() {
   // signature mechanic #1: Echo Totem shifts the ruins
   cam(730, 850, { dist: 21, height: 5.5, fov: 52 });
   L.totems.push({ s: 752 + O, y: 11, group: 'e1' });
-  hint(744, 766, 'Echo Totem — <b>slam</b> it (Shift in mid-air) to wake the ruins');
+  hint(744, 766, 'Echo Totem — <b>ground pound</b> it (<b>↓</b> in mid-air) to wake the ruins');
   solid(770, 775, 10.4, 11, 'glyph', { echo: { g: 'e1', dy: 2.6 } });
   solid(778, 783, 10.4, 11, 'glyph', { echo: { g: 'e1', dy: 5.2 } });
   solid(786, 791, 10.4, 11, 'glyph', { echo: { g: 'e1', dy: 7.8 } });

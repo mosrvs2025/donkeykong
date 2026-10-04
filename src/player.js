@@ -277,6 +277,10 @@ export class Player {
       }
     }
 
+    // ── ground pound: ↓ in mid-air, for every hero (the same slam as action-in-air)
+    if (input.peek('down') && !this.grounded && !this.mount && !this.cart && !this.inWater && this.state === 'normal' && !this.slamming && !this.clingT && !this.sliding && !(this.sdashT > 0)) {
+      input.consume('down'); this.slamming = true; this.rollJump = false; this.gliding = false; vyr = -30; this.vs *= 0.25; game.audio.play('flap');
+    }
     // ── action
     if (action && game.powers.tryShoot()) action = false;
     if (action) {

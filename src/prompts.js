@@ -25,7 +25,7 @@ export class Prompts {
   candidates() {
     const g = this.game, p = g.player, E = g.entities, K = (a) => this.key(a), out = [];
     const brom = p.hero === 'brom', beast = p.mount === 'beast';
-    for (const t of E.totems) out.push({ s: t.s, y: t.y + 4.2, icon: '🗿', title: 'Echo Totem', text: `${p.grounded ? `Roll into it: ${K('action')}` : `Slam it: ${K('action')} in mid-air`} · it shifts the ruins`, r: 9 });
+    for (const t of E.totems) out.push({ s: t.s, y: t.y + 4.2, icon: '🗿', title: 'Echo Totem', text: `${p.grounded ? `Roll into it ${K('action')}, or jump and pound ${K('down')}` : `Ground pound it: ${K('down')} in mid-air`} · it shifts the ruins`, r: 9 });
     for (const b of g.powers?.blocks || []) if (!b.spent) out.push({ s: (b.o.s0 + b.o.s1) / 2, y: b.o.y1 + 0.6, icon: '✦', title: 'Lumen Block', text: `Jump up and bump it from below ${K('jump')}`, r: 6 });
     for (const o of E.solids) {
       if (!o.crack || o.broken || o.active === false) continue;

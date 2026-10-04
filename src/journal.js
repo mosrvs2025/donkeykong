@@ -63,8 +63,8 @@ export class Journal {
   }
   sys() {
     const g = this.game, t = this.t;
-    const ctl = t ? [['Move', 'left joystick (appears where you touch)'], ['Jump', '⤒ · hold for higher'], ['Action / roll', '⚡'], ['Dash', '➶ + joystick direction'], ['Swap hero', '⇄'], ['Pause / Journal', '❚❚']]
-      : [['Move', '← → (A D) · gamepad stick'], ['Jump', 'Space / Z · hold for higher'], ['Action / roll', 'Shift / X'], ['Dash', 'F / E + direction'], ['Swap hero', 'Q / Tab'], ['Hop off', 'C'], ['Journal', 'Esc / P · flip pages Q E']];
+    const ctl = t ? [['Move', 'left joystick (appears where you touch)'], ['Jump', '⤒ · hold for higher'], ['Action / roll', '⚡'], ['Dash', '➶ + joystick direction'], ['Ground pound', 'stick ↓ in mid-air'], ['Swap hero', '⇄'], ['Pause / Journal', '❚❚']]
+      : [['Move', '← → (A D) · gamepad stick'], ['Jump', 'Space / Z · hold for higher'], ['Action / roll', 'Shift / X'], ['Dash', 'F / E + direction'], ['Ground pound', '↓ in mid-air'], ['Swap hero', 'Q / Tab'], ['Hop off', 'C'], ['Journal', 'Esc / P · flip pages Q E']];
     return `<div class="jp"><h3>System</h3>
       <div class="js-btns"><button data-jsys="resume">▶ Resume</button><button class="alt" data-jsys="map">🗺 World Map</button><button class="ghost" data-jsys="photo">📷 Photo Mode</button>
       <button class="ghost" data-jsys="ghost">👻 Ghost race: ${g.ghosts.on ? 'on' : 'off'}</button><button class="ghost" data-jsys="save">💾 Save</button><button class="ghost" data-jsys="quit">Save &amp; quit to title</button></div>
