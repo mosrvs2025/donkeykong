@@ -20,10 +20,29 @@ export class WorldMap {
   constructor(game) {
     this.game = game; this.el = document.getElementById('map');
     this.cur = 'rootwild'; this.buddy = null; this.moving = null;
+    // touch: drag pans the island, a quick flick walks toward the next level that way, pinch zooms, tap picks
+    const ptrs = new Map(); let g0 = null, pinch0 = 0;
     this.el.addEventListener('pointerdown', (e) => {
-      if (!e.target.closest('button') && this.game.map3d) { const id = this.game.map3d.pick(e.clientX, e.clientY); if (id) { e.preventDefault(); this.tapNode(id); } }
+      const edge = e.target.closest('[data-edge]'); if (edge) { e.preventDefault(); this.tapNode(edge.dataset.edge); return; }
+      if (!e.target.closest('button,[data-act],.mp-card') && this.game.map3d) { ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); this.el.setPointerCapture?.(e.pointerId);
+        if (ptrs.size === 1) g0 = { x: e.clientX, y: e.clientY, t: performance.now(), lx: e.clientX, ly: e.clientY, moved: 0 };
+        if (ptrs.size === 2) { const [a, b2] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b2.x, a.y - b2.y); g0 = null; } }
       const b = e.target.closest('[data-act]'); if (b) { e.preventDefault(); if (b.dataset.act === 'buddy') this.cycleBuddy(); if (b.dataset.act === 'go') this.enter(); if (b.dataset.act === 'shop') this.game.extras.openShop(); }
     });
+    this.el.addEventListener('pointermove', (e) => {
+      if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); const M3 = this.game.map3d;
+      if (ptrs.size === 2) { const [a, b2] = [...ptrs.values()], d = Math.hypot(a.x - b2.x, a.y - b2.y); if (pinch0 && d) M3.zoomBy(pinch0 / d); pinch0 = d; return; }
+      if (g0) { const dx = e.clientX - g0.lx, dy = e.clientY - g0.ly; g0.moved += Math.hypot(dx, dy); g0.lx = e.clientX; g0.ly = e.clientY; if (g0.moved > 12 && performance.now() - g0.t > 120) M3.panBy(dx, dy); }
+    });
+    const up = (e) => {
+      if (!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId); if (ptrs.size) return; pinch0 = 0;
+      const g = g0; g0 = null; if (!g) return;
+      const dx = e.clientX - g.x, dy = e.clientY - g.y, dt = performance.now() - g.t, d = Math.hypot(dx, dy);
+      if (g.moved < 12) { const id = this.game.map3d.pick(e.clientX, e.clientY); if (id) this.tapNode(id); return; }
+      if (dt < 280 && d > 50) { this.game.map3d.unpan(); this.key(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'ArrowRight' : 'ArrowLeft') : (dy > 0 ? 'ArrowDown' : 'ArrowUp')); }
+    };
+    this.el.addEventListener('pointerup', up); this.el.addEventListener('pointercancel', up);
+    this.el.addEventListener('wheel', (e) => { if (this.open) { e.preventDefault(); this.game.map3d.zoomBy(e.deltaY > 0 ? 1.1 : 0.9); } }, { passive: false });
   }
   progress() { return this.game.progress; }
   unlocked(id) { return this.progress().unlocked.includes(id); }
@@ -55,6 +74,7 @@ export class WorldMap {
     const r = []; for (let n = b; n !== a; n = prev[n]) r.unshift(n); return r;
   }
   walk(route) {
+    this.game.map3d.unpan();
     this.moving = route; this.game.audio.play('notice');
     this.game.map3d.travel(this.cur, route, (id) => { this.cur = id; this.game.audio.play('glim', 2); this.render(); }, () => { this.moving = null; });
   }
@@ -94,7 +114,7 @@ export class WorldMap {
         <button data-act="shop" class="ghost small">Pim’s Stall</button>
         <button data-act="go">Play ▸</button>
       </div>
-      <p class="map-help">${g.input.isTouch ? 'Tap a flag to walk there · tap again to play' : '←→↑↓ walk · Space play · C companion · B shop'}</p>`;
+      <p class="map-help">${g.input.isTouch ? 'Tap a flag · drag to look around · flick to walk · pinch to zoom' : '←→↑↓ walk · Space play · C companion · B shop'}</p>`;
     g.map3d.refresh(this);
   }
 }

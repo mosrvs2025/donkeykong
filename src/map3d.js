@@ -33,7 +33,7 @@ export class MapWorld {
     this.pos = {}; for (const l of LEVELS) this.pos[l.id] = new THREE.Vector3((l.at[0] - 470) * 0.1, 0, (l.at[1] - 385) * 0.1);
     this.buildTerrain(); this.buildSea(); this.buildLandmarks(); this.buildDecor(); this.buildPaths(); this.buildNodes(); this.buildClouds();
     this.labels = document.createElement('div'); this.labels.id = 'map-labels'; this.labels.style.display = 'none'; document.body.appendChild(this.labels);
-    this.t = 0; this.camPos = new THREE.Vector3(); this.camLook = new THREE.Vector3(); this.snap = true;
+    this.pan = new THREE.Vector3(); this.zoom = 1; this.t = 0; this.camPos = new THREE.Vector3(); this.camLook = new THREE.Vector3(); this.snap = true;
     this.ray = new THREE.Raycaster();
   }
   // ── terrain: a continent grown along the main road, with a mountain for the mine
@@ -250,13 +250,16 @@ export class MapWorld {
     const g = this.game, rp = g.composer.passes[0];
     this.saved = { scene: rp.scene, camera: rp.camera, ao: g.gfx.gtao.enabled };
     rp.scene = this.scene; rp.camera = this.camera; g.gfx.gtao.enabled = false;
-    this.labels.style.display = ''; this.snap = true; this.onResize();
+    this.labels.style.display = ''; this.snap = true; this.onResize(); document.body.classList.add('onmap');
   }
   exit() {
     const g = this.game, rp = g.composer.passes[0]; if (!this.saved) return;
     rp.scene = this.saved.scene; rp.camera = this.saved.camera; g.gfx.gtao.enabled = this.saved.ao; this.saved = null;
-    this.labels.style.display = 'none';
+    this.labels.style.display = 'none'; for (const k in this.edges || {}) this.edges[k].style.display = 'none'; this._ey = {}; document.body.classList.remove('onmap');
   }
+  panBy(dx, dy) { const k = 0.06 * this.zoom * (innerWidth < 600 ? 1.4 : 1); this.pan.x = Math.max(-45, Math.min(45, this.pan.x - dx * k)); this.pan.z = Math.max(-30, Math.min(30, this.pan.z - dy * k)); }
+  zoomBy(f) { this.zoom = Math.max(0.55, Math.min(1.7, this.zoom * f)); }
+  unpan() { this.pan.set(0, 0, 0); }
   onResize() { this.camera.aspect = innerWidth / innerHeight; this.camera.updateProjectionMatrix(); }
   pick(cx, cy) {
     const v = new THREE.Vector2(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); this.ray.setFromCamera(v, this.camera);
@@ -305,10 +308,25 @@ export class MapWorld {
     }
     // camera: a tilted, toy-box view that follows the hero
     const narrow = Math.min(1.45, Math.max(1, 1.25 / this.camera.aspect)), target = H ? H.position : this.pos[map.cur];
-    const cx = narrow > 1.1 ? 1 : 0.75; const want = new THREE.Vector3(target.x * cx, target.y * 0.4 + 36 * narrow, target.z + 31 * narrow), look = new THREE.Vector3(target.x * (narrow > 1.1 ? 1 : 0.92), target.y * 0.5, target.z - 3);
+    const cx = narrow > 1.1 ? 1 : 0.75, Z = this.zoom, P = this.pan; const want = new THREE.Vector3(target.x * cx + P.x, target.y * 0.4 + 36 * narrow * Z, target.z + 31 * narrow * Z + P.z), look = new THREE.Vector3(target.x * (narrow > 1.1 ? 1 : 0.92) + P.x, target.y * 0.5, target.z - 3 + P.z);
     const k = this.snap ? 1 : 1 - Math.exp(-dt * 3); this.camPos.lerp(want, k); this.camLook.lerp(look, k); this.snap = false;
     this.camera.position.copy(this.camPos); this.camera.lookAt(this.camLook);
     this.sun.position.set(this.camLook.x - 30, 60, this.camLook.z + 40); this.sun.target.position.copy(this.camLook); this.sun.target.updateMatrixWorld();
+    // edge arrows: unlocked levels not yet cleared that are off-screen
+    this.edges ||= {}; this._ey = {}; const prog = this.game.progress, ev = new THREE.Vector3();
+    for (const l of LEVELS) {
+      let el = this.edges[l.id]; const want2 = map.unlocked(l.id) && !(prog.levels[l.id] || {}).clear && l.id !== map.cur;
+      if (!want2) { if (el) el.style.display = 'none'; continue; }
+      if (!el) { el = this.edges[l.id] = document.createElement('div'); el.className = 'map-edge'; el.dataset.edge = l.id; document.getElementById('map').appendChild(el); }
+      if (!el.isConnected) document.getElementById('map').appendChild(el);
+      const n = this.nodes[l.id]; ev.set(n.g.position.x, n.y + 1.5, n.g.position.z).project(this.camera);
+      const behind = ev.z > 1; let sx = (ev.x * 0.5 + 0.5) * innerWidth, sy = (-ev.y * 0.5 + 0.5) * innerHeight; if (behind) { sx = innerWidth - sx; sy = innerHeight - sy; }
+      const m = 46, top = innerWidth < 600 ? 230 : 80, onScreen = !behind && sx > 8 && sx < innerWidth - 8 && sy > 40 && sy < innerHeight - 90;
+      if (onScreen) { el.style.display = 'none'; if (this._ey) delete this._ey[l.id]; continue; }
+      const cx2 = innerWidth / 2, cy2 = innerHeight / 2, ang = Math.atan2(sy - cy2, sx - cx2), ex = Math.max(m, Math.min(innerWidth - m, sx)); let ey = Math.max(top, Math.min(innerHeight - 140, sy)); this._ey ||= {}; for (const k in this._ey) if (k !== l.id && this._ey[k].vis && Math.abs(this._ey[k].x - ex) < 60 && Math.abs(this._ey[k].y - ey) < 34) ey = this._ey[k].y + 36; this._ey[l.id] = { x: ex, y: ey, vis: true };
+      el.style.display = ''; el.style.transform = `translate(${ex}px,${ey}px) translate(-50%,-50%)`;
+      const html = `<i style="transform:rotate(${ang}rad)">➤</i><span>${l.name}</span>`; if (el.dataset.h !== html) { el.dataset.h = html; el.innerHTML = html; }
+    }
     // floating labels
     const v = new THREE.Vector3();
     for (const l of LEVELS) {

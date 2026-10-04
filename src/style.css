@@ -366,3 +366,9 @@ body.photo #ghost-chip,body.mini #ghost-chip{display:none}
 .lt-node.can{border-color:#ffd46a;box-shadow:0 0 14px #ffd46a44;animation:cssun .9s ease-in-out infinite alternate}
 .lt-node.own{background:linear-gradient(#1e5a3a,#0f3a26);border-color:#9fffd0}.lt-node.locked{opacity:.5}.lt-node.sel{outline:3px solid #ffd46a}
 body.inclash #banner,body.inclash #toast,body.inclash #story,body.inclash #hud,body.inclash #prompt,body.inclash #ghost-chip{display:none!important}
+
+.map-edge{position:absolute;left:0;top:0;z-index:3;display:flex;align-items:center;gap:6px;background:#fff8e8;color:#3a2410;border:3px solid #e0502a;border-radius:16px;padding:4px 10px 4px 6px;font-weight:800;font-size:13px;box-shadow:0 3px 0 #a0301a,0 6px 16px #0006;cursor:pointer;white-space:nowrap;animation:edgepulse 1.2s ease-in-out infinite;pointer-events:auto}
+.map-edge i{font-style:normal;display:inline-block;color:#e0502a;font-size:16px}
+@keyframes edgepulse{50%{box-shadow:0 3px 0 #a0301a,0 0 18px #ff8a5a}}
+@media (max-width:520px){.map-edge span{max-width:90px;overflow:hidden;text-overflow:ellipsis}}
+body.onmap #banner,body.onmap #story,body.onmap #prompt{display:none!important}
