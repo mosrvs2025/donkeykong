@@ -461,12 +461,25 @@ export class Entities {
   resetCart() { for (const c of this.carts) { c.used = false; c.s = c.homeS; c.y = c.homeY; this.place(c.g, c.s, c.y); c.g.rotation.x = 0; c.body.rotation.z = 0; c.g.visible = true; } }
 }
 
-function makeJelly() {
+export function makeJelly() {
+  // a glassy bell with a glowing heart, a frilled rim, ribbon arms and long curling tentacles
   const root = new THREE.Group(); const b = new THREE.Group(); root.add(b);
-  const bell = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xff80e0, emissive: 0xc040b0, emissiveIntensity: 1.2, transparent: true, opacity: 0.8 }));
-  bell.position.y = 0.9; b.add(bell);
-  const legs = [];
-  for (let i = 0; i < 6; i++) { const t = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.02, 1.6, 4), new THREE.MeshStandardMaterial({ color: 0, emissive: 0xffa0f0, emissiveIntensity: 1.5 })); const a = i / 6 * Math.PI * 2; const pv = new THREE.Group(); pv.position.set(Math.cos(a) * 0.5, 0.9, Math.sin(a) * 0.5); t.position.y = -0.8; pv.add(t); b.add(pv); legs.push(pv); }
+  const bellM = new THREE.MeshPhysicalMaterial({ color: 0xffa0f0, emissive: 0xc040b0, emissiveIntensity: 0.6, transmission: 0.55, thickness: 0.6, roughness: 0.15, clearcoat: 1, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
+  const bell = new THREE.Mesh(new THREE.SphereGeometry(0.9, 24, 14, 0, Math.PI * 2, 0, Math.PI / 1.9), bellM); bell.position.y = 0.9; b.add(bell);
+  const heart = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 10), new THREE.MeshStandardMaterial({ color: 0, emissive: 0xffd0ff, emissiveIntensity: 2.6 })); heart.scale.y = 0.7; heart.position.y = 1.2; b.add(heart);
+  for (let i = 0; i < 4; i++) { const lobe = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.05, 6, 14), new THREE.MeshStandardMaterial({ color: 0, emissive: 0xff70d0, emissiveIntensity: 2 })); lobe.rotation.x = Math.PI / 2; lobe.position.set(Math.cos(i * Math.PI / 2) * 0.32, 1.05, Math.sin(i * Math.PI / 2) * 0.32); b.add(lobe); }
+  // frilled rim: a wavy torus
+  const fr = new THREE.TorusGeometry(0.88, 0.06, 6, 48); const fp = fr.attributes.position; for (let i = 0; i < fp.count; i++) { const x = fp.getX(i), y = fp.getY(i), a = Math.atan2(y, x); fp.setZ(i, fp.getZ(i) + Math.sin(a * 12) * 0.06); } fr.computeVertexNormals();
+  const frill = new THREE.Mesh(fr, new THREE.MeshStandardMaterial({ color: 0xffc0f8, emissive: 0xff60d0, emissiveIntensity: 1.2, transparent: true, opacity: 0.8 })); frill.rotation.x = Math.PI / 2; frill.position.y = 0.92; b.add(frill);
+  // ribbon arms (centre) and tentacles (rim) as curving tubes on pivots (legs[] sway them)
+  const legs = [], tm = new THREE.MeshStandardMaterial({ color: 0, emissive: 0xffa0f0, emissiveIntensity: 1.5, transparent: true, opacity: 0.85 });
+  for (let i = 0; i < 8; i++) {
+    const a = i / 8 * Math.PI * 2, rr = 0.78, pv = new THREE.Group(); pv.position.set(Math.cos(a) * rr, 0.9, Math.sin(a) * rr); b.add(pv);
+    const c = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.08, -0.6, 0.05), new THREE.Vector3(-0.08, -1.2, -0.05), new THREE.Vector3(0.06, -1.9, 0)]);
+    pv.add(new THREE.Mesh(new THREE.TubeGeometry(c, 16, 0.03, 5, false), tm)); legs.push(pv);
+  }
+  const ribM = new THREE.MeshPhysicalMaterial({ color: 0xffd0f8, emissive: 0xff80e0, emissiveIntensity: 0.8, transparent: true, opacity: 0.7, side: THREE.DoubleSide });
+  for (let i = 0; i < 3; i++) { const pv = new THREE.Group(); pv.position.set((i - 1) * 0.18, 0.9, 0); b.add(pv); const rib = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 1.4, 1, 8), ribM); const rp = rib.geometry.attributes.position; for (let k = 0; k < rp.count; k++) rp.setX(k, rp.getX(k) + Math.sin(rp.getY(k) * 5 + i) * 0.08); rib.position.y = -0.7; rib.rotation.y = i * 1.1; pv.add(rib); legs.push(pv); }
   root.userData = { body: b, legs };
   return root;
 }

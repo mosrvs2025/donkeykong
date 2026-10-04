@@ -261,7 +261,7 @@ export class World {
   }
   buildVegetation() {
     const r = rand(42), L = this.path.length, q = this.q;
-    const trunks = [], blobs = [], ferns = [], rocks = [], shrooms = [], crystals = [], grass = [], stal = [], hang = [], palms = [];
+    const roots = [], flowers = [], trunks = [], blobs = [], ferns = [], rocks = [], shrooms = [], crystals = [], grass = [], stal = [], hang = [], palms = [];
     const V = (s, y, d) => this.path.world(s, y, d);
     const S = (x, y, z) => new THREE.Vector3(x, y ?? x, z ?? x);
     const col = new THREE.Color();
@@ -273,6 +273,7 @@ export class World {
         if (r() < (th === 5 ? 0.05 : 0.22)) { // tree
           const h = 14 + r() * 30 + Math.abs(d) * 0.25, rad = 0.6 + r() * 1.2 + Math.abs(d) * 0.01;
           const p = V(s, y, d); trunks.push({ p, sc: S(rad, h, rad), ry: r() * 6 });
+          if (Math.abs(d) < 60) for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + r(); roots.push({ p: p.clone().add(S(Math.cos(a) * rad * 0.7, 0, Math.sin(a) * rad * 0.7)), sc: S(rad * 0.5, rad * 2.4, rad * 1.1), ry: -a, rz: 0 }); }
           const nb = 3 + Math.floor(r() * 4);
           for (let k = 0; k < nb; k++) { const bs = 4 + r() * 6 + rad * 2; col.setHSL(0.24 + r() * 0.1, 0.5 + r() * 0.2, 0.2 + r() * 0.12); blobs.push({ p: p.clone().add(S((r() - 0.5) * bs, h - r() * 4, (r() - 0.5) * bs)), sc: S(bs, bs * (0.5 + r() * 0.3), bs), ry: r() * 6, c: col.clone() }); }
           if (r() < 0.5) for (let k = 0; k < 4; k++) hang.push({ p: p.clone().add(S((r() - 0.5) * 6, h - 2, (r() - 0.5) * 6)), sc: S(0.08, 6 + r() * 10, 0.08) });
@@ -280,6 +281,7 @@ export class World {
         if (r() < 0.35 && th !== 5) { const p = V(s, y, d * 0.4 - 2); const k = 1 + r() * 2; col.setHSL(0.26 + r() * 0.08, 0.6, 0.22 + r() * 0.1); ferns.push({ p, sc: S(k, k * (0.7 + r() * 0.6), k), ry: r() * 6, c: col.clone() }); }
         if (r() < 0.1) palms.push({ p: V(s, y, d * 0.5 - 4), sc: S(1, 6 + r() * 6, 1), ry: r() * 6, rz: (r() - 0.5) * 0.3 });
         if (r() < 0.12) rocks.push({ p: V(s, y, d), sc: S(1 + r() * 3, 0.7 + r() * 2, 1 + r() * 3), ry: r() * 6, c: new THREE.Color(th === 5 ? 0x8a6a40 : 0x6a6a60) });
+        if (gnd !== null && th <= 1 && r() < 0.35) { const c2 = [0xff8ac0, 0xffe060, 0xffffff, 0xc8a0ff, 0xff9a50][Math.floor(r() * 5)]; flowers.push({ p: V(s + r(), gnd + 0.05, -2.4 - r() * 3), sc: S(1.4 + r() * 0.9), ry: r() * 6, c: new THREE.Color(c2) }); }
         // grass tufts right at path edge
         if (gnd !== null && r() < 0.8 && th !== 5) { col.setHSL(0.25 + r() * 0.07, 0.6, 0.28 + r() * 0.12); grass.push({ p: V(s + r(), gnd, -2.2 - r() * 2.5), sc: S(0.5 + r() * 0.6, 0.5 + r() * 0.9, 0.5 + r() * 0.6), ry: r() * 6, c: col.clone() }); }
         if (gnd !== null && r() < 0.25 && th !== 5 && th !== 1) { col.setHSL(0.25 + r() * 0.07, 0.6, 0.25 + r() * 0.12); grass.push({ p: V(s + r(), gnd, 2.6 + r() * 1), sc: S(0.4 + r() * 0.5, 0.4 + r() * 0.6, 0.4), ry: r() * 6, c: col.clone() }); }
@@ -297,11 +299,22 @@ export class World {
         if (r() < 0.2) stal.push({ p: V(s, 10 + Math.abs(d) * 0.3, d * 0.5), sc: S(0.6 + r(), 2 + r() * 4, 0.6 + r()), rx: Math.PI });
       }
     }
-    const leafMat = swayMat(new THREE.MeshStandardMaterial({ map: getTex('leaf'), roughness: 0.85 }), 0.02);
+    const leafMat = swayMat(new THREE.MeshStandardMaterial({ map: getTex('leaf'), roughness: 0.85, vertexColors: true }), 0.02);
     const blobGeo = new THREE.IcosahedronGeometry(0.5, 1);
-    { const p = blobGeo.attributes.position; for (let i = 0; i < p.count; i++) { const k = 1 + (Math.sin(i * 12.9898) * 0.5) * 0.25; p.setXYZ(i, p.getX(i) * k, p.getY(i) * k, p.getZ(i) * k); } blobGeo.computeVertexNormals(); }
+    { const p = blobGeo.attributes.position, cc = []; for (let i = 0; i < p.count; i++) { const k = 1 + (Math.sin(i * 12.9898) * 0.5) * 0.25; p.setXYZ(i, p.getX(i) * k, p.getY(i) * k, p.getZ(i) * k); const t = THREE.MathUtils.clamp(p.getY(i) * k + 0.5, 0, 1); const v = 0.45 + t * 0.75; cc.push(v * 0.95, v, v * 0.85); } blobGeo.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3)); blobGeo.computeVertexNormals(); }
     const trunkGeo = new THREE.CylinderGeometry(0.7, 1, 1, 7, 1); trunkGeo.translate(0, 0.5, 0);
-    this.inst(trunkGeo, new THREE.MeshStandardMaterial({ map: getTex('bark'), roughness: 1 }), trunks, true);
+    const barkM = new THREE.MeshStandardMaterial({ map: getTex('bark'), roughness: 1 });
+    this.inst(trunkGeo, barkM, trunks, true);
+    { const rg = new THREE.ConeGeometry(0.5, 1, 4, 1); rg.translate(0, 0.5, 0); rg.rotateX(0.25); this.inst(rg, barkM, roots, true); }
+    { // little wildflowers: a stem and a five-petal head
+      const fgeo = new THREE.BufferGeometry(), pos = [];
+      for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2, a2 = a + 0.6; pos.push(0, 0.42, 0, Math.cos(a) * 0.16, 0.44, Math.sin(a) * 0.16, Math.cos(a2) * 0.16, 0.44, Math.sin(a2) * 0.16); }
+      pos.push(-0.015, 0, 0, 0.015, 0, 0, 0, 0.42, 0);
+      fgeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); fgeo.computeVertexNormals();
+      this.inst(fgeo, swayMat(new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.7, emissive: 0x201010 }), 0.12), flowers);
+      const centre = new THREE.SphereGeometry(0.05, 6, 4); centre.translate(0, 0.45, 0);
+      this.inst(centre, new THREE.MeshStandardMaterial({ color: 0xffc020, emissive: 0x402000 }), flowers.map((f) => ({ ...f, c: null })));
+    }
     this.inst(blobGeo, leafMat, blobs, true);
     const fernGeo = new THREE.ConeGeometry(0.6, 1, 6, 1, true); fernGeo.translate(0, 0.5, 0);
     const fg2 = new THREE.BufferGeometry(); {
@@ -322,7 +335,8 @@ export class World {
     this.inst(palmGeo, swayMat(new THREE.MeshStandardMaterial({ color: 0x3f8a30, side: THREE.DoubleSide }), 0.1), palms);
     const palmTrunk = new THREE.CylinderGeometry(0.15, 0.25, 1, 5); palmTrunk.translate(0, 0.5, 0);
     this.inst(palmTrunk, new THREE.MeshStandardMaterial({ color: 0x7a6040 }), palms);
-    this.inst(new THREE.DodecahedronGeometry(0.6, 0), new THREE.MeshStandardMaterial({ map: getTex('stone'), roughness: 1, flatShading: true }), rocks, true);
+    { const rgeo = new THREE.DodecahedronGeometry(0.6, 1), rp = rgeo.attributes.position, rc = []; for (let i = 0; i < rp.count; i++) { const k = 1 + Math.sin(i * 7.31) * 0.12; rp.setXYZ(i, rp.getX(i) * k, rp.getY(i) * k, rp.getZ(i) * k); const top = THREE.MathUtils.smoothstep(rp.getY(i), 0.1, 0.45); rc.push(1 - top * 0.55, 1 - top * 0.2, 1 - top * 0.65); } rgeo.setAttribute('color', new THREE.Float32BufferAttribute(rc, 3)); rgeo.computeVertexNormals();
+      this.inst(rgeo, new THREE.MeshStandardMaterial({ map: getTex('stone'), roughness: 1, flatShading: true, vertexColors: true }), rocks, true); }
     const hangGeo = new THREE.CylinderGeometry(1, 1, 1, 3); hangGeo.translate(0, -0.5, 0);
     this.inst(hangGeo, swayMat(new THREE.MeshStandardMaterial({ color: 0x2f5a20 }), 0.0), hang);
     // glowing things
