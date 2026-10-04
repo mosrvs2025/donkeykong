@@ -261,7 +261,8 @@ export class World {
   }
   buildVegetation() {
     const r = rand(42), L = this.path.length, q = this.q;
-    const roots = [], flowers = [], trunks = [], blobs = [], ferns = [], rocks = [], shrooms = [], crystals = [], grass = [], stal = [], hang = [], palms = [];
+    const roots = [], flowers = [], trunks = [], blobs = [], ferns = [], rocks = [], shrooms = [], crystals = [], grass = [], stal = [], hang = [], palms = [], pillars = [], posts = [], beams = [], lamps = [];
+    let nextFrame = 0;
     const V = (s, y, d) => this.path.world(s, y, d);
     const S = (x, y, z) => new THREE.Vector3(x, y ?? x, z ?? x);
     const col = new THREE.Color();
@@ -280,6 +281,7 @@ export class World {
         }
         if (r() < 0.35 && th !== 5) { const p = V(s, y, d * 0.4 - 2); const k = 1 + r() * 2; col.setHSL(0.26 + r() * 0.08, 0.6, 0.22 + r() * 0.1); ferns.push({ p, sc: S(k, k * (0.7 + r() * 0.6), k), ry: r() * 6, c: col.clone() }); }
         if (r() < 0.1) palms.push({ p: V(s, y, d * 0.5 - 4), sc: S(1, 6 + r() * 6, 1), ry: r() * 6, rz: (r() - 0.5) * 0.3 });
+        if (th === 2 && r() < 0.07) { const ph = 4 + r() * 12, broken = r() < 0.6; pillars.push({ p: V(s, y - 0.5, d * 0.7 - 5), sc: S(1.1 + r() * 0.5, broken ? ph * 0.5 : ph, 1.1 + r() * 0.5), ry: r() * 6, rz: broken ? (r() - 0.5) * 0.25 : 0 }); if (broken && r() < 0.6) pillars.push({ p: V(s + 3 + r() * 3, y - 0.3, d * 0.7 - 5), sc: S(1.1, 2.5 + r() * 2, 1.1), rx: Math.PI / 2, ry: r() * 6 }); }
         if (r() < 0.12) rocks.push({ p: V(s, y, d), sc: S(1 + r() * 3, 0.7 + r() * 2, 1 + r() * 3), ry: r() * 6, c: new THREE.Color(th === 5 ? 0x8a6a40 : 0x6a6a60) });
         if (gnd !== null && th <= 1 && r() < 0.35) { const c2 = [0xff8ac0, 0xffe060, 0xffffff, 0xc8a0ff, 0xff9a50][Math.floor(r() * 5)]; flowers.push({ p: V(s + r(), gnd + 0.05, -2.4 - r() * 3), sc: S(1.4 + r() * 0.9), ry: r() * 6, c: new THREE.Color(c2) }); }
         // grass tufts right at path edge
@@ -296,6 +298,7 @@ export class World {
       } else if (th === 4) {
         if (r() < 0.2) rocks.push({ p: V(s, y, d), sc: S(1 + r() * 3, 0.7 + r() * 2, 1 + r() * 3), ry: r() * 6, c: new THREE.Color(0x4a3a2c) });
         if (r() < 0.1) crystals.push({ p: V(s, y, d * 0.6), sc: S(0.4 + r(), 1 + r() * 2, 0.4 + r()), rx: (r() - 0.5), c: new THREE.Color(0xffa030) });
+        if (gnd !== null && s > nextFrame) { nextFrame = s + 14 + r() * 8; const a = V(s - 1.6, gnd, -3.2), b = V(s + 1.6, gnd, -3.2); posts.push({ p: a, sc: S(0.32, 5.2, 0.32) }, { p: b, sc: S(0.32, 5.2, 0.32) }); const m = a.clone().lerp(b, 0.5); m.y += 5.2; const dx = b.x - a.x, dz = b.z - a.z; beams.push({ p: m, sc: S(Math.hypot(dx, dz) + 0.8, 0.4, 0.42), ry: -Math.atan2(dz, dx) }); const l = m.clone(); l.y -= 0.9; lamps.push({ p: l, sc: S(1) }); }
         if (r() < 0.2) stal.push({ p: V(s, 10 + Math.abs(d) * 0.3, d * 0.5), sc: S(0.6 + r(), 2 + r() * 4, 0.6 + r()), rx: Math.PI });
       }
     }
@@ -337,6 +340,15 @@ export class World {
     this.inst(palmTrunk, new THREE.MeshStandardMaterial({ color: 0x7a6040 }), palms);
     { const rgeo = new THREE.DodecahedronGeometry(0.6, 1), rp = rgeo.attributes.position, rc = []; for (let i = 0; i < rp.count; i++) { const k = 1 + Math.sin(i * 7.31) * 0.12; rp.setXYZ(i, rp.getX(i) * k, rp.getY(i) * k, rp.getZ(i) * k); const top = THREE.MathUtils.smoothstep(rp.getY(i), 0.1, 0.45); rc.push(1 - top * 0.55, 1 - top * 0.2, 1 - top * 0.65); } rgeo.setAttribute('color', new THREE.Float32BufferAttribute(rc, 3)); rgeo.computeVertexNormals();
       this.inst(rgeo, new THREE.MeshStandardMaterial({ map: getTex('stone'), roughness: 1, flatShading: true, vertexColors: true }), rocks, true); }
+    { const pg = new THREE.CylinderGeometry(1, 1, 1, 10, 1); pg.translate(0, 0.5, 0); // fluted ruin columns
+      const pp = pg.attributes.position; for (let i = 0; i < pp.count; i++) { const a = Math.atan2(pp.getZ(i), pp.getX(i)), k = 1 + Math.cos(a * 10) * 0.05; pp.setX(i, pp.getX(i) * k); pp.setZ(i, pp.getZ(i) * k); } pg.computeVertexNormals();
+      this.inst(pg, new THREE.MeshStandardMaterial({ map: getTex('ruin'), color: 0xb8c4a8, roughness: 0.95 }), pillars, true); }
+    { const wood = new THREE.MeshStandardMaterial({ map: getTex('bark'), color: 0xa07850, roughness: 1 }); // mine timber frames with lanterns
+      const bg = new THREE.BoxGeometry(1, 1, 1); const pg = bg.clone(); pg.translate(0, 0.5, 0);
+      this.inst(pg, wood, posts, true); this.inst(bg, wood, beams, true);
+      const lg = new THREE.OctahedronGeometry(0.28, 1); lg.scale(1, 1.4, 1);
+      this.inst(lg, new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffa040, emissiveIntensity: 3 }), lamps);
+      const cord = new THREE.CylinderGeometry(0.02, 0.02, 0.9, 3); cord.translate(0, 0.45, 0); this.inst(cord, wood, lamps); }
     const hangGeo = new THREE.CylinderGeometry(1, 1, 1, 3); hangGeo.translate(0, -0.5, 0);
     this.inst(hangGeo, swayMat(new THREE.MeshStandardMaterial({ color: 0x2f5a20 }), 0.0), hang);
     // glowing things
