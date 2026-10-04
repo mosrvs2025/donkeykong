@@ -27,6 +27,7 @@ import { Evolve } from './evolve.js';
 import { Gfx } from './gfx.js';
 import { MapWorld } from './map3d.js';
 import { Prompts } from './prompts.js';
+import { Journal } from './journal.js';
 import { Eggs } from './eggs.js';
 import { Thornwell } from './thornwell.js';
 import { Clash } from './clash.js';
@@ -159,7 +160,7 @@ class Game {
     this.loadSave();
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
-    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.ctx = new Prompts(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); this.ghosts = new Ghosts(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
+    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.ctx = new Prompts(this); this.journal = new Journal(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); this.ghosts = new Ghosts(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
@@ -177,7 +178,7 @@ class Game {
       if (this.state === 'title' && (code === 'ArrowDown' || code === 'ArrowUp')) { const bs = [...document.querySelectorAll('#title .menu:not(.hidden) button:not(.hidden)')]; const i = bs.indexOf(document.activeElement); const n = bs[(i + (code === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length]; n && n.focus(); }
       if (code === 'KeyF') this.extras.togglePhoto();
       if (this.state === 'map' && !this.extras.shopOpen) this.map.key(code);
-      if (this.extras.shopOpen && code === 'Escape') this.extras.closeShop();
+      if (this.extras.shopOpen && code === 'Escape' && this.extras.mode !== 'journal') this.extras.closeShop();
       if (this.state === 'travel') {
         const L = this.magic.waystones;
         const mv = (d) => { let i = this.travelSel; for (let k = 0; k < L.length; k++) { i = (i + d + L.length) % L.length; if (L[i].lit) break; } this.travelSel = i; this.renderTravel(); };
@@ -397,8 +398,8 @@ class Game {
     this.checkpoint = { s: w.s + 1.2, y: w.y + 0.1 };
   }
   togglePause() {
-    if (this.state === 'play') { this.state = 'paused'; $('pause').classList.remove('hidden'); $('seek-box').innerHTML = this.seeker.pauseHTML(); $('ghost-btn').textContent = `Ghost race: ${this.ghosts.on ? 'on' : 'off'}`; }
-    else if (this.state === 'paused') { this.state = 'play'; $('pause').classList.add('hidden'); this.last = performance.now(); }
+    if (this.state === 'play') { this.state = 'paused'; this.journal.open(); this.audio.play('notice'); }
+    else if (this.state === 'paused') { this.state = 'play'; $('pause').classList.add('hidden'); if (this.extras.mode === 'journal') this.extras.closeShop(); this.last = performance.now(); }
   }
   // ───────────── events from gameplay
   banner(a, b) { this.hud.banner(a, b, 3); }

@@ -1,3 +1,4 @@
+import { JTABS } from './journal.js';
 import * as THREE from 'three';
 import { makeHero } from './models.js';
 import { SKILLS } from './skills.js';
@@ -107,10 +108,10 @@ export class Extras {
   // ── the shop (opened from the world map)
   openShop() {
     const game = this.game;
-    this.shopOpen = true; $('shop').classList.remove('hidden'); this.tab ||= 'hat'; this.sel = null; this.renderShop();
+    this.shopOpen = true; $('shop').classList.remove('hidden'); $('shop').classList.toggle('journal', this.mode === 'journal'); document.body.classList.toggle('injournal', this.mode === 'journal'); this.tab ||= 'hat'; this.sel = null; this.renderShop();
     game.audio.play('notice'); this.startPreview();
   }
-  closeShop() { this.shopOpen = false; $('shop').classList.add('hidden'); this.game.map.render(); }
+  closeShop() { const j = this.mode === 'journal'; this.shopOpen = false; this.mode = null; $('shop').classList.add('hidden'); $('shop').classList.remove('journal'); document.body.classList.remove('injournal'); if (!j) this.game.map.render(); }
   // ── the wardrobe preview: the hero, wearing what you've picked (even before you buy it)
   startPreview() {
     if (!this.pv) {
@@ -155,41 +156,46 @@ export class Extras {
   }
   renderShop(msg = '') {
     const game = this.game, P = game.progress, glims = game.stats.glims, coins = this.coinCount;
-    const tabs = [['hat', 'Hats'], ['scarf', 'Scarves'], ['charm', 'Charms'], ['skill', 'Lumen Tree'], ['up', 'Upgrades']];
-    if (this.tab === 'skill' && !this.renderShop.__frame) return this.renderSkills(msg, tabs);
-    const frame = this.renderShop.__frame; this.renderShop.__frame = null;
-    const inTab = (it) => this.tab === 'up' ? (it.kind === 'heart' || !it.kind) : it.kind === this.tab;
+    const J = this.mode === 'journal', cur = J ? this.jtab : this.tab;
+    const tabs = J ? JTABS : [['hat', 'Hats'], ['scarf', 'Scarves'], ['charm', 'Charms'], ['skill', 'Lumen Tree'], ['up', 'Upgrades']];
+    if (cur === 'skill' && !this.renderShop.__frame) return this.renderSkills(msg, tabs);
+    let frame = this.renderShop.__frame; this.renderShop.__frame = null;
+    const tabBar = () => `<div class="sh-tabs">${tabs.map(([k, n]) => `<button class="small ${cur === k ? '' : 'ghost'}" data-tab="${k}">${n}</button>`).join('')}</div>`;
+    if (J && !frame && cur !== 'gear') frame = tabBar() + game.journal.page(cur);
+    const inTab = (it) => J ? P.owned.includes(it.id) && ['hat', 'scarf', 'charm'].includes(it.kind) : this.tab === 'up' ? (it.kind === 'heart' || !it.kind) : it.kind === this.tab;
     const vis = SHOP.filter((it) => inTab(it) && (!it.needs || P.owned.includes(it.needs)) && (!it.reward || P.owned.includes(it.id)));
     const isEq = (it) => (it.kind === 'hat' && P.hat === it.id) || (it.kind === 'scarf' && P.scarf === it.id) || (it.kind === 'charm' && game.skills.charm(it.id));
-    const tiles = vis.map((it) => { const own = P.owned.includes(it.id), locked = it.coins && coins < it.coins;
+    const tiles = vis.map((it) => { const own = P.owned.includes(it.id), locked = !P.owned.includes(it.id) && it.coins && coins < it.coins;
       return `<button class="sh-tile ${this.sel === it.id ? 'sel' : ''} ${own ? 'own' : ''} ${locked ? 'locked' : ''}" data-sel="${it.id}"><span class="sh-ic">${locked ? '🔒' : this.itemIcon(it)}</span><b>${it.name}</b><small>${isEq(it) ? '<i class="eq">equipped</i>' : own ? 'owned' : locked ? `${it.coins} ◉ needed` : `${it.cost} ✦`}</small></button>`; }).join('') || '<p class="sh-none">Nothing here yet. Pim is restocking!</p>';
     const it = SHOP.find((x) => x.id === this.sel);
     let detail = `<div class="sh-detail empty"><p>Pick something to try it on.</p></div>`;
-    if (it) { const own = P.owned.includes(it.id), locked = it.coins && coins < it.coins, wearable = ['hat', 'scarf', 'charm'].includes(it.kind);
+    if (it) { const own = P.owned.includes(it.id), locked = !P.owned.includes(it.id) && it.coins && coins < it.coins, wearable = ['hat', 'scarf', 'charm'].includes(it.kind);
       const act = own ? (wearable ? `<button data-eq="${it.id}" class="${isEq(it) ? 'ghost' : ''}">${isEq(it) ? 'Take off' : 'Equip'}</button>` : '<span class="owned">owned</span>')
         : locked ? `<span class="lock">find ${it.coins} Seed Coins to unlock (you have ${coins})</span>` : `<button data-buy="${it.id}" ${glims < it.cost ? 'disabled' : ''}>Buy · ${it.cost} ✦</button>${glims < it.cost ? `<small class="lock">${it.cost - glims} more glims</small>` : ''}`;
       detail = `<div class="sh-detail"><div class="sh-dicon">${this.itemIcon(it)}</div><div><b>${it.name}</b><p>${it.desc}</p>${it.perk ? `<p class="perk">⚡ ${it.perk}</p>` : ''}${it.kind === 'heart' ? '<p class="perk">❤ +1 max heart</p>' : ''}<div class="sh-act">${act}</div></div></div>`; }
     const heroes = game.evolve.heroes(), hero = this.pvHero || game.player.hero || 'kiri';
     const eqHat = SHOP.find((x) => x.id === P.hat), eqSc = SHOP.find((x) => x.id === P.scarf), eqCh = { name: (P.charms || []).map((c) => SHOP.find((x) => x.id === c)?.name.replace(' Charm', '')).join(' + ') || null };
     $('shop').innerHTML = `<div class="sh-wrap">
-      <div class="sh-head"><div><div class="kicker">Pim’s Travelling Stall</div><h2>“Glims for goods, little one!”</h2></div><div class="sh-wallet"><span>✦ ${glims}</span><span title="Seed Coins found">◉ ${coins}</span></div></div>
+      <div class="sh-head"><div>${J ? `<div class="kicker">Journal · paused ${game.input.isTouch ? '' : '<small>(Q / E flip pages)</small>'}</div><h2>${game.currentLevel?.name || 'Thornwild'}</h2>` : `<div class="kicker">Pim’s Travelling Stall</div><h2>“Glims for goods, little one!”</h2>`}</div><div class="sh-wallet"><span>✦ ${glims}</span><span title="Seed Coins found">◉ ${coins}</span></div></div>
       <div class="sh-body">
         <div class="sh-left"><div id="shop-pv" class="sh-pv"></div>
           ${heroes.length > 1 ? `<div class="sh-heroes">${heroes.map((h) => `<button class="small ${h === hero ? '' : 'ghost'}" data-hero="${h}">${h[0].toUpperCase() + h.slice(1)}</button>`).join('')}</div>` : ''}
           <div class="sh-loadout"><div><i>Hat</i>${eqHat ? eqHat.name : '—'}</div><div><i>Scarf</i>${eqSc ? eqSc.name : '—'}</div><div><i>Charm${game.skills.charmSlots() > 1 ? 's (2)' : ''}</i>${eqCh.name || '—'}</div><div><i>Hearts</i>${'❤'.repeat(game.player.maxHearts)}</div></div></div>
-        <div class="sh-right">${frame || `<div class="sh-tabs">${tabs.map(([k, n]) => `<button class="small ${this.tab === k ? '' : 'ghost'}" data-tab="${k}">${n}</button>`).join('')}</div>
-          <div class="sh-grid">${tiles}</div>${detail}<p class="shop-msg">${msg}</p>`}</div>
+        <div class="sh-right">${frame || `${tabBar()}
+          ${J ? `<p class="lt-seeds">Equip what you own. ${SHOP.filter((x) => ['hat', 'scarf', 'charm'].includes(x.kind) && !P.owned.includes(x.id)).length} more wait at Pim’s Stall on the world map.</p>` : ''}<div class="sh-grid">${tiles || '<p class="dimt">Nothing yet: visit Pim’s Stall on the world map.</p>'}</div>${detail}<p class="shop-msg">${msg}</p>`}</div>
       </div>
-      <button class="ghost sh-close" data-close="1">Back to the map</button></div>`;
+      <button class="ghost sh-close" data-close="1">${J ? '▶ Resume' : 'Back to the map'}</button></div>`;
     const S = $('shop');
     S.querySelectorAll('[data-buy]').forEach((b) => b.onclick = () => this.buy(b.dataset.buy));
     S.querySelectorAll('[data-eq]').forEach((b) => b.onclick = () => this.equip(b.dataset.eq));
     S.querySelectorAll('[data-sel]').forEach((b) => b.onclick = () => { this.sel = this.sel === b.dataset.sel ? null : b.dataset.sel; game.audio.play('notice'); this.renderShop(); });
-    S.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { this.tab = b.dataset.tab; this.sel = null; this.renderShop(); });
+    S.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { if (J) this.jtab = b.dataset.tab; else this.tab = b.dataset.tab; this.sel = null; game.audio.play('notice'); this.renderShop(); });
+    if (J) game.journal.bind(S);
     S.querySelectorAll('[data-hero]').forEach((b) => b.onclick = () => { this.pvHero = b.dataset.hero; if (game.player.hero !== b.dataset.hero) game.player.setHero(b.dataset.hero, false); this.renderShop(); });
     S.querySelectorAll('[data-ssel]').forEach((b) => b.onclick = () => { this.sel = this.sel === b.dataset.ssel ? null : b.dataset.ssel; game.audio.play('notice'); this.renderShop(); });
     S.querySelectorAll('[data-learn]').forEach((b) => b.onclick = () => { if (game.skills.learn(b.dataset.learn)) { game.audio.play('win'); this.renderShop('A new root grows. You feel it already.'); } });
-    S.querySelector('[data-close]').onclick = () => this.closeShop();
+    S.querySelector('[data-close]').onclick = () => J ? game.togglePause() : this.closeShop();
+    S.querySelector('.sh-tabs .small:not(.ghost)')?.scrollIntoView({ block: 'nearest', inline: 'center' });
   }
   // the Lumen Tree: Seed Coin skills, laid out as a little tree
   renderSkills(msg, tabs) {
@@ -200,7 +206,8 @@ export class Extras {
     let detail = '<div class="sh-detail empty"><p>Seed Coins grow into skills. Pick one.</p></div>';
     if (sk) { const own = K.has(sk.id), need = sk.needs && !K.has(sk.needs) ? SKILLS.find((x) => x.id === sk.needs).name : null;
       detail = `<div class="sh-detail"><div class="sh-dicon">${sk.icon}</div><div><b>${sk.name}</b><p>${sk.desc}</p><div class="sh-act">${own ? '<span class="owned">learned ✓</span>' : need ? `<span class="lock">learn ${need} first</span>` : `<button data-learn="${sk.id}" ${K.seeds() < sk.cost ? 'disabled' : ''}>Learn · ${sk.cost} ◉</button>${K.seeds() < sk.cost ? `<small class="lock">find ${sk.cost - K.seeds()} more Seed Coins</small>` : ''}`}</div></div></div>`; }
-    this.renderShopFrame(`<div class="sh-tabs">${tabs.map(([k, n]) => `<button class="small ${this.tab === k ? '' : 'ghost'}" data-tab="${k}">${n}</button>`).join('')}</div>
+    const cur = this.mode === 'journal' ? this.jtab : this.tab;
+    this.renderShopFrame(`<div class="sh-tabs">${tabs.map(([k, n]) => `<button class="small ${cur === k ? '' : 'ghost'}" data-tab="${k}">${n}</button>`).join('')}</div>
       <p class="lt-seeds">Lumen Seeds to spend: <b>${K.seeds()} ◉</b> <small>(every Seed Coin you find is a seed)</small></p>
       <div class="lt-tree"><div class="lt-col">${nodes[0]}${nodes[5]}</div><div class="lt-col">${nodes[1]}</div><div class="lt-col">${nodes[2]}<div class="lt-split">${nodes[3]}${nodes[4]}</div></div></div>${detail}<p class="shop-msg">${msg}</p>`);
   }
