@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { makeSpikeback, makeBuzzmoth } from './models.js';
+import { makeSpikeback, makeBuzzmoth, gradGeo } from './models.js';
 import { surfMat } from './world.js';
 
 // Every area ends with a guardian. None of them has a health bar you chip away with attacks:
@@ -112,6 +112,11 @@ class Boss {
       const body = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), iron); body.scale.set(2.6, 1.3, 1.8); body.position.y = 1.5; this.group.add(body);
       const core = new THREE.Mesh(new THREE.SphereGeometry(0.7, 12, 8), glow(0xff8030, 3)); core.position.y = 2.7; core.userData.keep = true; this.group.add(core); this.core = core;
       for (let i = 0; i < 6; i++) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 1.8, 6), iron); l.position.set(-1.6 + (i % 3) * 1.6, 0.6, i < 3 ? 1.5 : -1.5); l.rotation.x = i < 3 ? 0.6 : -0.6; this.group.add(l); }
+      const plate = new THREE.MeshStandardMaterial({ color: 0x8a6a40, metalness: 0.8, roughness: 0.35 });
+      for (let i = 0; i < 5; i++) { const pl = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2.2), plate); pl.scale.set(0.9, 0.5, 1.7); pl.position.set(-2 + i * 1, 2.1 - Math.abs(i - 2) * 0.15, 0); this.group.add(pl); }
+      for (let i = 0; i < 16; i++) { const rv = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 4), new THREE.MeshStandardMaterial({ color: 0xd8c090, metalness: 0.9, roughness: 0.2 })); rv.position.set(-2.4 + (i % 8) * 0.7, 1.2 + Math.floor(i / 8) * 0.6, 1.75); this.group.add(rv); }
+      for (const z of [1.6, -1.6]) for (let i = 0; i < 3; i++) { const v = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.05), glow(0xff7020, 2.5)); v.position.set(-1.2 + i * 0.8, 1.6, z * 1.12); v.userData.keep = true; this.group.add(v); }
+      const stack = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.3, 1.2, 10), iron); stack.position.set(-1.8, 2.9, 0.5); this.group.add(stack);
       const drill = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2, 8), new THREE.MeshStandardMaterial({ color: 0xc0c0c8, metalness: 0.9, roughness: 0.2 })); drill.rotation.z = -Math.PI / 2; drill.position.set(3, 1.4, 0); this.group.add(drill); this.drill = drill;
     } else {
       const m = makeSpikeback(); m.scale.setScalar(2.4); this.group.add(m); this.model = m;
@@ -187,15 +192,31 @@ class Boss {
 
   // ═══════════ WARDEN (Stone Warden) ═══════════
   build_warden() {
-    const stone = surfMat('ruin');
+    // the Stone Warden: a carved face grown over with moss, a rune-lit brow, vines, a crown of broken pillars
+    const stone = surfMat('ruin'), moss = new THREE.MeshStandardMaterial({ color: 0x5a9a3a, roughness: 1, flatShading: true }), dark = new THREE.MeshStandardMaterial({ color: 0x1a1612, roughness: 1 });
     const head = new THREE.Group(); this.group.add(head); this.head = head;
-    const b = new THREE.Mesh(new THREE.BoxGeometry(7, 8, 5), stone); head.add(b);
+    const b = new THREE.Mesh(new THREE.BoxGeometry(7, 8, 5, 3, 3, 2), stone); head.add(b);
+    const cheekL = new THREE.Mesh(new THREE.SphereGeometry(1.6, 12, 8), stone); cheekL.scale.set(1, 1.2, 0.6); cheekL.position.set(-2.6, -0.8, 2.3); head.add(cheekL); const cheekR = cheekL.clone(); cheekR.position.x = 2.6; head.add(cheekR);
     const brow = new THREE.Mesh(new THREE.BoxGeometry(7.6, 1.3, 5.6), stone); brow.position.y = 2.3; head.add(brow);
-    this.eye = new THREE.Mesh(new THREE.OctahedronGeometry(1.1, 0), glow(0x40ffd0, 3)); this.eye.position.set(0, 0.8, 2.8); this.eye.userData.keep = true; head.add(this.eye);
-    const mouth = new THREE.Mesh(new THREE.BoxGeometry(4, 0.5, 0.3), glow(0x103830, 1)); mouth.position.set(0, -2, 2.6); head.add(mouth);
+    const rune = new THREE.Mesh(new THREE.BoxGeometry(6.2, 0.18, 0.1), glow(0x40ffd0, 1.8)); rune.position.set(0, 2.3, 2.85); rune.userData.keep = true; head.add(rune);
+    for (let i = 0; i < 5; i++) { const g2 = new THREE.Mesh(new THREE.OctahedronGeometry(0.22), glow(0x40ffd0, 2)); g2.position.set(-2.4 + i * 1.2, 2.3, 2.9); g2.userData.keep = true; head.add(g2); }
+    const socket = new THREE.Mesh(new THREE.TorusGeometry(1.35, 0.28, 8, 20), stone); socket.position.set(0, 0.8, 2.55); head.add(socket);
+    this.eye = new THREE.Mesh(new THREE.OctahedronGeometry(1.1, 1), glow(0x40ffd0, 3)); this.eye.position.set(0, 0.8, 2.8); this.eye.userData.keep = true; head.add(this.eye);
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(4, 0.55, 0.3), glow(0x103830, 1)); mouth.position.set(0, -2, 2.6); head.add(mouth);
+    for (let i = 0; i < 5; i++) { const tth = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 0.3), stone); tth.position.set(-1.6 + i * 0.8, -1.7, 2.65); head.add(tth); }
+    // cracks and moss
+    for (const [x, y, r] of [[-1.8, -2.6, 0.5], [2.2, 1.2, -0.7], [1.2, -3.2, 0.2]]) { const c = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.6, 0.1), dark); c.position.set(x, y, 2.56); c.rotation.z = r; head.add(c); }
+    for (let i = 0; i < 14; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.5 + Math.random() * 0.6, 0), moss); m.scale.y = 0.45; m.position.set(-3.6 + Math.random() * 7.2, 3 + Math.random() * 1.2, -2.4 + Math.random() * 4.8); head.add(m); }
+    for (let i = 0; i < 4; i++) { const pl = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 1.2 + Math.random() * 1.8, 7), stone); pl.position.set(-2.7 + i * 1.8, 4.6, -0.5); pl.rotation.z = (Math.random() - 0.5) * 0.3; head.add(pl); }
+    const vineM = new THREE.MeshStandardMaterial({ color: 0x3a7a2a, roughness: 0.9 });
+    for (let i = 0; i < 6; i++) { const L = 2 + Math.random() * 3; const v = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, L, 5), vineM); v.position.set(-3.3 + i * 1.3, 3 - L / 2, 2.5); head.add(v); for (let k = 0; k < 3; k++) { const lf = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 4), moss); lf.scale.set(1.4, 0.3, 0.8); lf.position.set(-3.3 + i * 1.3 + 0.15, 3 - k * L / 3 - 0.4, 2.6); head.add(lf); } }
     this.hands = [0, 1].map((i) => {
-      const g = new THREE.Group(); const palm = new THREE.Mesh(new THREE.BoxGeometry(5, 1.6, 4), stone); palm.position.y = 0.8; g.add(palm);
-      for (let k = 0; k < 4; k++) { const f = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.8), stone); f.position.set(-1.8 + k * 1.2, -0.3, 1.6); g.add(f); }
+      const g = new THREE.Group();
+      const palm = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), stone); palm.scale.set(2.5, 0.85, 2); palm.position.y = 0.8; g.add(palm);
+      for (let k = 0; k < 4; k++) { const f = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 0.6, 4, 8), stone); f.position.set(-1.8 + k * 1.2, -0.2, 1.7); f.rotation.x = 0.5; g.add(f); const km = new THREE.Mesh(new THREE.IcosahedronGeometry(0.3, 0), moss); km.scale.y = 0.5; km.position.set(-1.8 + k * 1.2, 0.35, 1.5); g.add(km); }
+      const th = new THREE.Mesh(new THREE.CapsuleGeometry(0.45, 0.7, 4, 8), stone); th.position.set(i ? -2.6 : 2.6, 0.4, 0.8); th.rotation.z = i ? -0.9 : 0.9; g.add(th);
+      const pr = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.08, 6, 20), glow(0x40ffd0, 1.6)); pr.rotation.x = Math.PI / 2; pr.position.y = 1.62; pr.userData.keep = true; g.add(pr);
+      g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
       this.group.add(g);
       const sol = { s0: 0, s1: 0, y0: -999, y1: -998, active: true, dS: 0, dY: 0 };
       this.game.entities.solids.push(sol);
@@ -231,14 +252,32 @@ class Boss {
 
   // ═══════════ ANGLER (underwater) ═══════════
   build_angler() {
-    const skin = new THREE.MeshStandardMaterial({ color: 0x1a2a3a, roughness: 0.5, emissive: 0x020810 });
-    const body = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), skin); body.scale.set(3.6, 2.6, 2.4); this.group.add(body);
-    const jaw = new THREE.Mesh(new THREE.BoxGeometry(3, 0.8, 3), skin); jaw.position.set(2.6, -1.4, 0); this.group.add(jaw); this.jaw = jaw;
-    for (let i = 0; i < 8; i++) { const tth = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.7, 4), new THREE.MeshStandardMaterial({ color: 0xf0f0ff })); tth.position.set(2 + i * 0.3, -0.8, (i % 2 ? 0.8 : -0.8)); tth.rotation.z = Math.PI; this.group.add(tth); }
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.4, 10, 8), glow(0xfff080, 2)); eye.position.set(2.2, 0.9, 1.6); this.group.add(eye);
-    const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 4, 5), skin); stalk.position.set(2.4, 3.4, 0); stalk.rotation.z = -0.6; this.group.add(stalk); this.stalk = stalk;
-    this.lantern = new THREE.Mesh(new THREE.SphereGeometry(0.7, 14, 10), glow(0x80fff0, 4)); this.lantern.userData.keep = true; this.group.add(this.lantern);
-    const tail = new THREE.Mesh(new THREE.ConeGeometry(2, 3, 4), skin); tail.rotation.z = Math.PI / 2; tail.position.x = -4.6; this.group.add(tail); this.tail = tail;
+    // the Deep Angler: a bioluminescent abyss-fish with needle teeth, glassy fins and a lantern on a curved stalk
+    const skin = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.35, clearcoat: 0.8, clearcoatRoughness: 0.2, emissive: 0x020a14 });
+    const body = new THREE.Mesh(gradGeo(new THREE.SphereGeometry(1, 28, 18), 0x14304a, 0x3a6a7a), skin); body.scale.set(3.6, 2.6, 2.4); this.group.add(body);
+    const tooth = new THREE.MeshPhysicalMaterial({ color: 0xf4f4ff, roughness: 0.15, transmission: 0.3, thickness: 0.2 });
+    for (let i = 0; i < 9; i++) { const t2 = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.9 - (i % 3) * 0.2, 5), tooth); t2.position.set(2.2 + i * 0.22, -0.55, (i % 2 ? 0.9 : -0.9) * (1 - i * 0.06)); t2.rotation.z = Math.PI; this.group.add(t2); }
+    const jaw = new THREE.Group(); jaw.position.set(1.4, -0.9, 0); this.group.add(jaw); this.jaw = jaw;
+    const jm = new THREE.Mesh(gradGeo(new THREE.SphereGeometry(1, 20, 10), 0x2a4a5a, 0x5a8a8a), skin); jm.scale.set(2.2, 0.55, 1.8); jm.position.set(1.3, -0.3, 0); jaw.add(jm);
+    for (let i = 0; i < 8; i++) { const t2 = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.8, 5), tooth); t2.position.set(1.2 + i * 0.26, 0.15, (i % 2 ? 0.8 : -0.8) * (1 - i * 0.05)); jaw.add(t2); }
+    const eyeW = new THREE.Mesh(new THREE.SphereGeometry(0.55, 14, 10), new THREE.MeshPhysicalMaterial({ color: 0x101820, roughness: 0.05, clearcoat: 1 })); eyeW.position.set(2.2, 0.9, 1.65); this.group.add(eyeW);
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 8), glow(0xfff080, 2.4)); iris.position.set(2.42, 0.95, 1.95); iris.userData.keep = true; this.group.add(iris);
+    const eye2 = eyeW.clone(); eye2.position.z = -1.65; this.group.add(eye2); const iris2 = iris.clone(); iris2.position.z = -1.95; this.group.add(iris2);
+    // glowing spots along the flanks
+    for (let i = 0; i < 18; i++) { const sp = new THREE.Mesh(new THREE.SphereGeometry(0.09 + (i % 3) * 0.04, 6, 4), glow(i % 4 ? 0x60ffe0 : 0xc080ff, 2.4)); const a = (i / 18) * Math.PI * 2; sp.position.set(-2.5 + (i % 9) * 0.6, -0.4 + Math.sin(i * 1.7) * 0.6, (i < 9 ? 1 : -1) * 2.25); sp.userData.keep = true; this.group.add(sp); }
+    const finM = new THREE.MeshPhysicalMaterial({ color: 0x60c0e0, roughness: 0.3, transmission: 0.5, thickness: 0.2, transparent: true, opacity: 0.75, side: THREE.DoubleSide, emissive: 0x103040 });
+    for (let i = 0; i < 5; i++) { const sp = new THREE.Mesh(new THREE.ConeGeometry(0.08, 1.6 - i * 0.15, 5), skin); sp.position.set(-1.6 + i * 0.6, 2.8, 0); sp.rotation.z = 0.4; this.group.add(sp); }
+    const dorsal = new THREE.Mesh(new THREE.CircleGeometry(1.6, 16, 0, Math.PI), finM); dorsal.position.set(-0.4, 2.3, 0); dorsal.scale.set(1.3, 0.8, 1); this.group.add(dorsal);
+    for (const z of [1, -1]) { const pf = new THREE.Mesh(new THREE.CircleGeometry(1.2, 14), finM); pf.scale.set(1.2, 0.6, 1); pf.position.set(0.6, -0.8, z * 2.2); pf.rotation.set(z * 0.6, 0, -0.5); this.group.add(pf); }
+    // lantern on a curved stalk
+    const stalk = new THREE.Group(); this.group.add(stalk); this.stalk = stalk;
+    const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(1.2, 2.4, 0), new THREE.Vector3(2.2, 4.4, 0), new THREE.Vector3(3.6, 4.6, 0), new THREE.Vector3(4.1, 3.9, 0)]);
+    stalk.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 20, 0.09, 6, false), skin));
+    this.lantern = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12), glow(0x80fff0, 4)); this.lantern.userData.keep = true; this.group.add(this.lantern);
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(1.3, 16, 12), new THREE.MeshBasicMaterial({ color: 0x80fff0, transparent: true, opacity: 0.14, blending: THREE.AdditiveBlending, depthWrite: false })); this.lantern.add(halo);
+    const tail = new THREE.Group(); tail.position.x = -3.4; this.group.add(tail); this.tail = tail;
+    for (const z of [1, -1]) { const lobe = new THREE.Mesh(new THREE.CircleGeometry(1.6, 14), finM); lobe.scale.set(1.4, 0.7, 1); lobe.position.set(-1.4, z * 0.9, 0); lobe.rotation.z = z * 0.5; tail.add(lobe); }
+    const stem = new THREE.Mesh(gradGeo(new THREE.ConeGeometry(1.2, 2.2, 12), 0x14304a, 0x3a6a7a), skin); stem.rotation.z = Math.PI / 2; stem.position.x = -0.6; tail.add(stem);
     this.y = this.A.y + 12; this.hw = 3.2; this.h = 4.4;
   }
   lanternPos() { const droop = this.state === 'stun' ? 1 : 0; return { s: this.s + this.dir * (4.2 - droop * 1.2), y: this.y + 3.8 - droop * 3.2 }; }
@@ -275,14 +314,25 @@ class Boss {
 
   // ═══════════ HERON (sky) ═══════════
   build_heron() {
-    const white = new THREE.MeshStandardMaterial({ color: 0xe8eef8, roughness: 0.6, emissive: 0x101420 });
-    const dark = new THREE.MeshStandardMaterial({ color: 0x2a3050 });
-    const body = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), white); body.scale.set(3, 1.4, 1.4); this.group.add(body);
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 3.5, 6), white); neck.position.set(2.6, 1.6, 0); neck.rotation.z = -0.7; this.group.add(neck);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 10, 8), white); head.position.set(3.8, 2.9, 0); this.group.add(head);
-    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.25, 2, 6), new THREE.MeshStandardMaterial({ color: 0xffc040 })); beak.rotation.z = -Math.PI / 2; beak.position.set(5.2, 2.9, 0); this.group.add(beak);
-    this.crest = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.6, 5), glow(0x80c0ff, 2)); this.crest.position.set(3.4, 3.8, 0); this.crest.rotation.z = 0.8; this.crest.userData.keep = true; this.group.add(this.crest);
-    this.wings = [1, -1].map((z) => { const w = new THREE.Group(); w.position.set(0, 0.5, z * 1.2); const m = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.12, 5.5), white); m.position.z = z * 2.7; w.add(m); const tip = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.1, 2), dark); tip.position.set(-0.4, 0, z * 5.6); w.add(tip); this.group.add(w); return w; });
+    // the Storm Heron: storm-white plumage fading to slate, an S-curved neck, a crackling crest, layered wings
+    const plume = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.6, sheen: 0.4, sheenColor: new THREE.Color(0xc0d8ff), emissive: 0x0a0c18 });
+    const fm = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.55, side: THREE.DoubleSide });
+    const feather = (len, wid, top, bot) => { const m = new THREE.Mesh(gradGeo(new THREE.SphereGeometry(1, 12, 6), top, bot, 'x'), fm); m.scale.set(len, 0.06, wid); return m; };
+    const body = new THREE.Mesh(gradGeo(new THREE.SphereGeometry(1, 24, 16), 0xf2f6ff, 0x5a6a90), plume); body.scale.set(3, 1.4, 1.4); this.group.add(body);
+    const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(2.2, 0.6, 0), new THREE.Vector3(3.2, 1.2, 0), new THREE.Vector3(2.9, 2.2, 0), new THREE.Vector3(3.6, 3.0, 0)]);
+    const neck = new THREE.Mesh(gradGeo(new THREE.TubeGeometry(curve, 20, 0.38, 10, false), 0xf2f6ff, 0xc0cce8), plume); this.group.add(neck);
+    const head = new THREE.Mesh(gradGeo(new THREE.SphereGeometry(0.7, 16, 12), 0xffffff, 0xd0d8f0), plume); head.position.set(3.9, 3.1, 0); this.group.add(head);
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.22, 2.2, 8), new THREE.MeshPhysicalMaterial({ color: 0xffc040, roughness: 0.3, clearcoat: 0.6 })); beak.rotation.z = -Math.PI / 2; beak.position.set(5.4, 3.0, 0); this.group.add(beak);
+    for (const z of [0.42, -0.42]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), glow(0xa0e0ff, 2.5)); e.position.set(4.2, 3.25, z); e.userData.keep = true; this.group.add(e); }
+    this.crest = new THREE.Group(); this.crest.position.set(3.5, 3.6, 0); this.group.add(this.crest);
+    const crestM = glow(0x80c0ff, 2.2); for (let i = 0; i < 4; i++) { const c = new THREE.Mesh(new THREE.ConeGeometry(0.12, 1.6 - i * 0.2, 5), crestM); c.position.set(-0.3 - i * 0.25, 0.4, (i - 1.5) * 0.15); c.rotation.z = 1 + i * 0.12; c.userData.keep = true; this.crest.add(c); }
+    this.crest.material = this.crest.children[0].material;
+    this.wings = [1, -1].map((z) => { const w = new THREE.Group(); w.position.set(0, 0.5, z * 1.2);
+      const cov = feather(1.8, 1.6, 0xe8eeff, 0xb8c4e0); cov.position.z = z * 1.6; w.add(cov);
+      for (let i = 0; i < 7; i++) { const f = feather(1.9 - i * 0.08, 0.36, 0x3a4a7a, 0xe8eeff); f.position.set(-0.6 - i * 0.2, -0.02 * i, z * (2.4 + i * 0.42)); f.rotation.y = -z * (i * 0.12 - 0.2); w.add(f); }
+      this.group.add(w); return w; });
+    for (let i = 0; i < 5; i++) { const f = feather(2.2, 0.35, 0xe8eeff, 0x3a4a7a); f.position.set(-4.2, 0.1, (i - 2) * 0.32); f.rotation.y = (i - 2) * 0.18; this.group.add(f); }
+    for (const z of [0.5, -0.5]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4, 6), new THREE.MeshStandardMaterial({ color: 0x3a3a48 })); leg.position.set(-1.6, -1.8, z); leg.rotation.z = 0.9; this.group.add(leg); }
     this.bolts = [];
     this.y = this.A.y + 12; this.hw = 3; this.h = 2.8;
   }

@@ -199,7 +199,7 @@ export function makeFrog() {
 }
 
 // shared: vertex-colour gradients for soft, painted-looking creatures
-function gradGeo(geo, top, bot, axis = 'y') { const c = new THREE.Color(), ct = new THREE.Color(top), cb = new THREE.Color(bot), p = geo.attributes.position, get = axis === 'y' ? 'getY' : 'getX', col = []; let a0 = Infinity, a1 = -Infinity; for (let i = 0; i < p.count; i++) { a0 = Math.min(a0, p[get](i)); a1 = Math.max(a1, p[get](i)); } for (let i = 0; i < p.count; i++) { c.copy(cb).lerp(ct, (p[get](i) - a0) / (a1 - a0 || 1)); col.push(c.r, c.g, c.b); } geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); return geo; }
+export function gradGeo(geo, top, bot, axis = 'y') { const c = new THREE.Color(), ct = new THREE.Color(top), cb = new THREE.Color(bot), p = geo.attributes.position, get = axis === 'y' ? 'getY' : 'getX', col = []; let a0 = Infinity, a1 = -Infinity; for (let i = 0; i < p.count; i++) { a0 = Math.min(a0, p[get](i)); a1 = Math.max(a1, p[get](i)); } for (let i = 0; i < p.count; i++) { c.copy(cb).lerp(ct, (p[get](i) - a0) / (a1 - a0 || 1)); col.push(c.r, c.g, c.b); } geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); return geo; }
 const vcMat = (o = {}) => new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.55, ...o });
 function feather(len, wid, top, bot, mat) { const g = gradGeo(new THREE.SphereGeometry(1, 12, 6), top, bot, 'x'); const m = new THREE.Mesh(g, mat); m.scale.set(len, 0.035, wid); m.castShadow = true; return m; }
 
