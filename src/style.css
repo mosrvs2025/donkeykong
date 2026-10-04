@@ -372,3 +372,14 @@ body.inclash #banner,body.inclash #toast,body.inclash #story,body.inclash #hud,b
 @keyframes edgepulse{50%{box-shadow:0 3px 0 #a0301a,0 0 18px #ff8a5a}}
 @media (max-width:520px){.map-edge span{max-width:90px;overflow:hidden;text-overflow:ellipsis}}
 body.onmap #banner,body.onmap #story,body.onmap #prompt{display:none!important}
+
+#ctx{position:fixed;left:0;top:0;z-index:30;pointer-events:none;opacity:0;transition:opacity .25s;display:flex;flex-direction:column;align-items:center;max-width:min(320px,80vw)}
+#ctx.on{opacity:1}
+.ctx-card{display:flex;gap:10px;align-items:center;background:linear-gradient(#123a2eef,#081a14ef);border:2px solid #9fffd0aa;border-radius:14px;padding:8px 12px;box-shadow:0 6px 18px #0009;color:#e8fff4;font-size:14px;line-height:1.3}
+.ctx-card i{font-style:normal;font-size:24px}
+.ctx-card b{display:block;color:#ffd46a;font-size:15px}
+.ctx-arrow{color:#9fffd0;font-size:18px;animation:ctxb .8s ease-in-out infinite alternate;text-shadow:0 2px 4px #000}
+@keyframes ctxb{to{transform:translateY(6px)}}
+kbd.ctx-k{display:inline-block;min-width:1.4em;padding:1px 7px;margin:0 2px;border-radius:7px;background:#ffd46a;color:#2a1a00;font:700 13px system-ui;box-shadow:0 2px 0 #a07a20;text-align:center}
+body.photo #ctx,body.mini #ctx,body.inclash #ctx,body.onmap #ctx{display:none!important}
+#prompt{display:none!important}

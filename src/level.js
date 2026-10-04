@@ -39,7 +39,9 @@ export function buildLevel() {
   const portal = (s, y, ts, ty, kind) => L.portals.push({ s: s + O, y, ts: ts + O, ty, kind });
   const cam = (s0, s1, o) => L.cams.push({ s0: s0 + O, s1: s1 + O, ...o });
   const theme = (s0, t, name, sub) => { L.themes.push({ s: s0 + O, t }); if (name) L.banners.push({ s: s0 + O, name, sub }); };
-  const hint = (s0, s1, text, cond) => L.hints.push({ s0: s0 + O, s1: s1 + O, text, cond });
+  // hints fire inside an s-range AND a height band (default: the main route), so a tip for the ruins
+  // never pops up while flying the Skyward Isles high above the same spot
+  const hint = (s0, s1, text, cond, y0 = -60, y1 = 100) => L.hints.push({ s0: s0 + O, s1: s1 + O, text, cond, y0, y1 });
 
   // ───────────────────── A. THE ROOTWILD (jungle floor) ─────────────────────
   theme(-80, 0, 'The Rootwild', 'where the old roads sleep');
@@ -435,7 +437,7 @@ export function buildLevel() {
   enemy('eel', 338, -388, 9); enemy('jelly', 356, -378, 5); enemy('jelly', 370, -392, 6);
   checkpoint(302, U);
   solid(380, 382, U, -334, 'ruin', { crack: 'swim' });
-  hint(372, 380, 'Tide Form — <b>Shift</b> to dash and burst the seal');
+  hint(372, 380, 'Tide Form — <b>Shift</b> to dash and burst the seal', null, -480, -250);
   // the current tunnel
   solid(400, 482, -392, -334, 'cliff'); solid(400, 482, U, -406, 'cliff');
   L.currents.push({ s0: 398 + O, s1: 484 + O, y0: -407, y1: -391, vs: 9, vy: 0 });
@@ -508,7 +510,7 @@ export function buildLevel() {
   // chamber 1: the mouth of the well
   solid(30, 60, -640, -600, 'cliff');
   checkpoint(40, -600);
-  hint(31, 58, 'Hold toward a wall to <b>cling</b> · jump to kick off · keep holding toward it to climb');
+  hint(31, 58, 'Hold toward a wall to <b>cling</b> · jump to kick off · keep holding toward it to climb', null, -800, -520);
   line(34, 56, -598.8, -598.8, 7);
   // shaft 1 (thorns on the west face: cling to the east wall)
   solid(65, 69, -640, -588, 'cave');
