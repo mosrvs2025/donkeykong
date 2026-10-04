@@ -17,61 +17,87 @@ function eye(parent, x, y, z, r = 0.11, iris = 0x2a1a0a) {
 // ── Kiri: a ring-tailed tinkerer with brass goggles and a scarf that never stops moving
 // The same rig dresses three heroes: Kiri the ring-tail, Pip the glider and Brom the badger.
 export const HERO_LOOKS = {
-  kiri: { fur: 0xe0873a, cream: 0xf6dcb0, dark: 0x5a3018, scarf: 0x2fbfae, ear: [0.15, 1.2], eye: 0.1, tail: 'ring', gear: 'goggles', size: 1 },
-  pip: { fur: 0x8f9fc4, cream: 0xf6f2ff, dark: 0x2a2c48, scarf: 0x7ad65a, ear: [0.21, 0.95], eye: 0.125, tail: 'bushy', gear: 'leaf', size: 0.9 },
-  pim: { fur: 0x8a6aa8, cream: 0xf4e8d8, dark: 0x3a2440, scarf: 0xffc030, ear: [0.17, 1.05], eye: 0.11, tail: 'bushy', gear: 'helmet', size: 0.95 },
-  brom: { fur: 0x45454f, cream: 0xf0efe6, dark: 0x1c1c22, scarf: 0xd04a3a, ear: [0.1, 0.8], eye: 0.085, tail: 'stub', gear: 'helmet', size: 1.12 },
+  kiri: { iris: 0xb8641a, fur: 0xe0873a, cream: 0xf6dcb0, dark: 0x5a3018, scarf: 0x2fbfae, ear: [0.15, 1.2], eye: 0.1, tail: 'ring', gear: 'goggles', size: 1 },
+  pip: { iris: 0x3a8ae0, fur: 0x8f9fc4, cream: 0xf6f2ff, dark: 0x2a2c48, scarf: 0x7ad65a, ear: [0.21, 0.95], eye: 0.125, tail: 'bushy', gear: 'leaf', size: 0.9 },
+  pim: { iris: 0x8a40c8, fur: 0x8a6aa8, cream: 0xf4e8d8, dark: 0x3a2440, scarf: 0xffc030, ear: [0.17, 1.05], eye: 0.11, tail: 'bushy', gear: 'cap', size: 0.95 },
+  brom: { iris: 0x7a4a20, fur: 0x45454f, cream: 0xf0efe6, dark: 0x1c1c22, scarf: 0xd04a3a, ear: [0.1, 0.8], eye: 0.085, tail: 'stub', gear: 'helmet', size: 1.12 },
 };
 export function makeHero(kind = 'kiri') {
   const L = HERO_LOOKS[kind] || HERO_LOOKS.kiri;
   const root = new THREE.Group();
   const body = pivot(root, 0, 0, 0); // squash/stretch pivot at feet
-  const fur = new THREE.MeshPhysicalMaterial({ color: L.fur, roughness: 0.75, sheen: 1, sheenRoughness: 0.5, sheenColor: new THREE.Color(L.cream) }), cream = M(L.cream), dark = M(L.dark), scarfM = M(L.scarf, { roughness: 0.9 }), brass = M(0xd4a640, { metalness: 0.7, roughness: 0.35 });
+  // soft painted fur: the base colour fading a touch lighter underneath, with a velvet sheen
+  const lighter = new THREE.Color(L.fur).lerp(new THREE.Color(L.cream), 0.12).getHex();
+  const fur = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.78, sheen: 0.3, sheenRoughness: 0.5, sheenColor: new THREE.Color(lighter) });
+  const fsph = (r, ws = 22, hs = 16) => { const m = new THREE.Mesh(gradGeo(new THREE.SphereGeometry(r, ws, hs), L.fur, lighter), fur); m.castShadow = true; return m; };
+  const fcap = (r, l) => { const m = new THREE.Mesh(gradGeo(new THREE.CapsuleGeometry(r, l, 6, 12), L.fur, lighter), fur); m.castShadow = true; return m; };
+  const cream = new THREE.MeshPhysicalMaterial({ color: L.cream, roughness: 0.85, sheen: 0.6, sheenColor: new THREE.Color(0xffffff) }), dark = M(L.dark, { roughness: 0.6 }), scarfM = new THREE.MeshPhysicalMaterial({ color: L.scarf, roughness: 0.85, sheen: 0.5, sheenColor: new THREE.Color(0xffffff) }), brass = M(0xd4a640, { metalness: 0.75, roughness: 0.3 });
+  const bean = M(0xf2a0a8, { roughness: 0.5 });
   const torso = pivot(body, 0, 0.62, 0);
-  const chest = cap(0.3, 0.32, fur); chest.scale.set(1, 1, 0.9); torso.add(chest);
-  const belly = sph(0.24, cream); belly.position.set(0.12, -0.02, 0); belly.scale.set(0.7, 1.1, 0.9); torso.add(belly);
-  const head = pivot(torso, 0.05, 0.5, 0);
-  const skull = sph(0.34, fur); skull.scale.set(1, 0.95, 1); head.add(skull);
-  const muzzle = sph(0.2, cream); muzzle.position.set(0.24, -0.08, 0); muzzle.scale.set(1, 0.8, 1.05); head.add(muzzle);
-  const nose = sph(0.06, dark); nose.position.set(0.43, -0.03, 0); head.add(nose);
+  const chest = fcap(0.3, 0.32); chest.scale.set(1, 1, 0.9); torso.add(chest);
+  const belly = sph(0.25, cream, 18, 12); belly.position.set(0.12, -0.02, 0); belly.scale.set(0.7, 1.1, 0.9); torso.add(belly);
+  const head = pivot(torso, 0.05, 0.52, 0);
+  const skull = fsph(0.37, 26, 18); skull.scale.set(1, 0.94, 1.02); head.add(skull);
+  // cheek fluff
+  for (const z of [1, -1]) for (let k = 0; k < 3; k++) { const tuft = cone(0.06, 0.16, cream, 5); tuft.position.set(0.06 - k * 0.07, -0.12 - k * 0.02, z * (0.33 + k * 0.01)); tuft.rotation.set(z * (1.3 + k * 0.15), 0, 0.3); head.add(tuft); }
+  const muzzle = sph(0.21, cream, 18, 12); muzzle.position.set(0.26, -0.09, 0); muzzle.scale.set(1, 0.8, 1.08); head.add(muzzle);
+  const nose = sph(0.065, new THREE.MeshPhysicalMaterial({ color: L.dark, roughness: 0.15, clearcoat: 1 }), 12, 10); nose.scale.set(0.9, 0.75, 1.25); nose.position.set(0.46, -0.03, 0); head.add(nose);
+  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.012, 4, 12, Math.PI), dark); smile.position.set(0.44, -0.13, 0); smile.rotation.set(Math.PI / 2, 0, Math.PI); head.add(smile);
   const mask = sph(0.2, dark); mask.position.set(0.18, 0.06, 0); mask.scale.set(0.7, 0.6, 1.5); head.add(mask);
-  const eyeL = eye(head, 0.26, 0.07, 0.13, L.eye), eyeR = eye(head, 0.26, 0.07, -0.13, L.eye);
-  if (kind === 'brom') { mask.visible = false; const stripe = sph(0.2, cream); stripe.scale.set(1.6, 0.35, 0.5); stripe.position.set(0.08, 0.26, 0); head.add(stripe);
-    for (const z of [0.13, -0.13]) { const band = sph(0.14, dark); band.scale.set(1.4, 0.7, 0.6); band.position.set(0.2, 0.06, z); head.add(band); } }
+  // big, bright eyes: oval whites, a coloured iris, pupil, two highlights (eyeL/eyeR scale.y = blink)
+  const mkEye = (z) => { const g = new THREE.Group(); g.position.set(0.27, 0.07, z); head.add(g);
+    const w = sph(L.eye * 1.15, M(0xfffaf2, { roughness: 0.2 }), 16, 12); w.scale.set(0.75, 1.15, 0.85); g.add(w);
+    const ir = sph(L.eye * 0.8, new THREE.MeshPhysicalMaterial({ color: L.iris || 0x6a3a10, roughness: 0.15, clearcoat: 1 }), 14, 10); ir.scale.set(0.6, 1.1, 0.85); ir.position.x = L.eye * 0.5; g.add(ir);
+    const pu = sph(L.eye * 0.42, M(0x080808, { roughness: 0.1 }), 10, 8); pu.scale.set(0.6, 1.1, 0.85); pu.position.x = L.eye * 0.82; g.add(pu);
+    const h1 = sph(L.eye * 0.2, new THREE.MeshBasicMaterial({ color: 0xffffff }), 8, 6); h1.position.set(L.eye * 0.98, L.eye * 0.35, L.eye * 0.15); g.add(h1);
+    const h2 = sph(L.eye * 0.09, new THREE.MeshBasicMaterial({ color: 0xffffff }), 6, 4); h2.position.set(L.eye * 0.95, -L.eye * 0.3, -L.eye * 0.15); g.add(h2);
+    return g; };
+  const eyeL = mkEye(0.14), eyeR = mkEye(-0.14);
+  if (kind === 'brom') { mask.visible = false; const stripe = sph(0.2, cream); stripe.scale.set(1.6, 0.35, 0.5); stripe.position.set(0.08, 0.28, 0); head.add(stripe);
+    for (const z of [0.14, -0.14]) { const band = sph(0.14, dark); band.scale.set(1.4, 0.7, 0.6); band.position.set(0.2, 0.06, z); head.add(band); } }
   const ears = [];
-  for (const z of [0.24, -0.24]) {
-    const ep = pivot(head, -0.02, 0.22, z);
-    const ear = sph(L.ear[0], fur); ear.scale.set(0.5, L.ear[1], 0.9); ear.position.y = 0.12; ep.add(ear);
+  for (const z of [0.26, -0.26]) {
+    const ep = pivot(head, -0.02, 0.24, z);
+    const ear = fsph(L.ear[0], 14, 10); ear.scale.set(0.5, L.ear[1], 0.9); ear.position.y = 0.12; ep.add(ear);
     const inner = sph(0.09, M(0xf2a0a0)); inner.scale.set(0.4, 1, 0.8); inner.position.set(0.05, 0.12, 0); ep.add(inner);
+    const tuft = cone(0.04, 0.12, cream, 4); tuft.position.set(0.04, 0.08, 0); tuft.rotation.z = -0.4; ep.add(tuft);
     ep.rotation.x = z > 0 ? -0.5 : 0.5; ears.push(ep);
   }
   // headgear: Kiri's goggles, Pip's leaf, Brom's miner helmet
   const gog = new THREE.Group(); gog.position.set(0.12, 0.26, 0); head.add(gog); gog.visible = L.gear === 'goggles';
   if (L.gear === 'leaf') { const lf = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 6), M(0x6ac64a, { roughness: 0.6, side: THREE.DoubleSide })); lf.scale.set(1.4, 0.12, 0.7); lf.position.set(0, 0.36, 0); lf.rotation.z = 0.35; head.add(lf); const st = cap(0.015, 0.1, M(0x3a7a2a)); st.position.set(0.18, 0.36, 0); st.rotation.z = -1; head.add(st); }
+  if (L.gear === 'cap') { const cp = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), M(0x5a2a8a, { roughness: 0.7 })); cp.scale.set(1.1, 0.7, 1.1); cp.position.set(-0.04, 0.22, 0); head.add(cp); const band = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.03, 6, 20), M(0xffc030, { metalness: 0.5, roughness: 0.3 })); band.rotation.x = Math.PI / 2; band.position.set(-0.04, 0.23, 0); head.add(band); const pomp = sph(0.07, M(0xffc030), 10, 8); pomp.position.set(-0.04, 0.45, 0); head.add(pomp); const feather = cone(0.03, 0.3, M(0x60d0a0), 6); feather.position.set(-0.22, 0.4, 0.1); feather.rotation.z = 0.7; head.add(feather); }
   if (L.gear === 'helmet') { const hm = new THREE.Mesh(new THREE.SphereGeometry(0.37, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), M(0xe0a830, { metalness: 0.4, roughness: 0.4 })); hm.position.y = 0.08; head.add(hm); const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.04, 18), M(0xc08820, { metalness: 0.4, roughness: 0.4 })); brim.position.y = 0.08; head.add(brim);
     const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.08, 10), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff0a0, emissiveIntensity: 2.5 })); lamp.rotation.z = Math.PI / 2; lamp.position.set(0.34, 0.26, 0); head.add(lamp); }
   for (const z of [0.12, -0.12]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.03, 6, 14), brass); ring.position.set(0.12, 0, z); ring.rotation.y = Math.PI / 2; gog.add(ring);
     const lens = new THREE.Mesh(new THREE.CircleGeometry(0.07, 12), new THREE.MeshStandardMaterial({ color: 0x40ffd0, emissive: 0x20a080, emissiveIntensity: 1.2 })); lens.position.set(0.13, 0, z); lens.rotation.y = Math.PI / 2; gog.add(lens); }
   const strap = new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.025, 4, 24), dark); strap.rotation.x = Math.PI / 2; strap.rotation.z = 0.35; strap.position.set(-0.05, -0.05, 0); gog.add(strap);
   // scarf: knot + two trailing tails
-  const knot = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.08, 6, 16), scarfM); knot.rotation.x = Math.PI / 2; knot.position.y = 0.3; torso.add(knot);
+  const knot = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.085, 10, 24), scarfM); knot.rotation.x = Math.PI / 2; knot.position.y = 0.3; torso.add(knot);
+  for (const z of [1, -1]) { const bow = sph(0.07, scarfM, 10, 8); bow.scale.set(0.7, 0.9, 1.5); bow.position.set(0.24, 0.3, z * 0.08); torso.add(bow); }
   const scarf = [];
   let parent = pivot(torso, -0.2, 0.3, 0.05);
-  for (let i = 0; i < 4; i++) { const seg = box(0.26, 0.05, 0.14, scarfM); seg.position.x = -0.13; parent.add(seg); const nx = pivot(parent, -0.26, 0, 0); scarf.push(parent); parent = nx; }
+  for (let i = 0; i < 4; i++) { const seg = sph(0.15, scarfM, 12, 6); seg.scale.set(0.95, 0.18, 0.5 - i * 0.04); seg.position.x = -0.13; parent.add(seg); const nx = pivot(parent, -0.26, 0, 0); scarf.push(parent); parent = nx; }
   // arms and legs
   const arms = [], legs = [];
   for (const z of [0.3, -0.3]) {
-    const a = pivot(torso, 0.02, 0.22, z); const u = cap(0.08, 0.3, fur); u.position.y = -0.2; a.add(u);
-    const hand = sph(0.1, dark); hand.position.y = -0.42; a.add(hand); arms.push(a);
-    const l = pivot(body, -0.02, 0.42, z * 0.6); const th = cap(0.1, 0.22, fur); th.position.y = -0.18; l.add(th);
-    const foot = sph(0.13, dark); foot.scale.set(1.5, 0.6, 1); foot.position.set(0.06, -0.38, 0); l.add(foot); legs.push(l);
+    const a = pivot(torso, 0.02, 0.22, z); const u = fcap(0.08, 0.3); u.position.y = -0.2; a.add(u);
+    const hand = sph(0.105, dark, 12, 10); hand.scale.set(1, 0.95, 0.9); hand.position.y = -0.42; a.add(hand);
+    const thumb = sph(0.045, dark, 8, 6); thumb.position.set(0.07, -0.38, z > 0 ? -0.04 : 0.04); a.add(thumb); arms.push(a);
+    const l = pivot(body, -0.02, 0.42, z * 0.6); const th = fcap(0.1, 0.22); th.position.y = -0.18; l.add(th);
+    const foot = sph(0.13, dark, 14, 10); foot.scale.set(1.5, 0.6, 1); foot.position.set(0.06, -0.38, 0); l.add(foot);
+    for (const k of [-1, 0, 1]) { const b2 = sph(0.032, bean, 6, 4); b2.position.set(0.24, -0.4, k * 0.05); l.add(b2); } legs.push(l);
   }
   // ringed tail
   const tail = []; parent = pivot(torso, -0.28, -0.2, 0);
   const nT = L.tail === 'stub' ? 3 : 9;
   for (let i = 0; i < nT; i++) {
     const r = L.tail === 'bushy' ? 0.1 + Math.sin(i / 8 * Math.PI) * 0.08 : L.tail === 'stub' ? 0.11 - i * 0.02 : 0.09 - i * 0.004;
-    const seg = sph(r, L.tail === 'ring' ? (i % 2 ? dark : cream) : (i === nT - 1 ? cream : fur), 8, 6); seg.scale.set(1.4, 1, 1); seg.position.x = -0.09; parent.add(seg); const nx = pivot(parent, L.tail === 'stub' ? -0.1 : -0.16, 0, 0); tail.push(parent); parent = nx; }
+    const seg = sph(r, L.tail === 'ring' ? (i % 2 ? dark : cream) : (i === nT - 1 ? cream : fur), 14, 10); if (seg.material === fur) gradGeo(seg.geometry, L.fur, lighter); seg.scale.set(1.4, 1, 1); seg.position.x = -0.09; parent.add(seg); const nx = pivot(parent, L.tail === 'stub' ? -0.1 : -0.16, 0, 0); tail.push(parent); parent = nx; }
+  if (kind === 'kiri') { const belt = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.03, 6, 24), M(0x6a3a1a, { roughness: 0.7 })); belt.rotation.x = Math.PI / 2; belt.position.y = -0.16; torso.add(belt);
+    const buckle = box(0.06, 0.07, 0.08, brass); buckle.position.set(0.29, -0.16, 0); torso.add(buckle);
+    const pouch = sph(0.08, M(0x8a5a2a, { roughness: 0.8 }), 10, 8); pouch.scale.set(0.8, 1, 0.6); pouch.position.set(0.05, -0.22, 0.28); torso.add(pouch);
+    const wrench = box(0.03, 0.18, 0.03, M(0xb8b8c0, { metalness: 0.8, roughness: 0.3 })); wrench.position.set(-0.08, -0.24, 0.29); wrench.rotation.z = 0.3; torso.add(wrench); }
   // Pip's gliding membranes (shown while gliding)
   const wings = [];
   if (kind === 'pip') for (const z of [0.3, -0.3]) { const wm = new THREE.Mesh(new THREE.CircleGeometry(0.42, 12), new THREE.MeshStandardMaterial({ color: L.fur, side: THREE.DoubleSide, transparent: true, opacity: 0.85, roughness: 0.8 })); wm.scale.set(0.8, 1, 1); wm.position.set(-0.05, 0.05, z * 1.05); torso.add(wm); wm.visible = false; wings.push(wm); }

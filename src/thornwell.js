@@ -20,7 +20,7 @@ export class Thornwell {
     const mat = new THREE.MeshBasicMaterial({ color: 0x06140c }), list = [];
     const rnd = (i) => { const x = Math.sin(i * 57.3) * 43758.5; return x - Math.floor(x); };
     for (let s = -40; s < 540; s += 9 + rnd(s) * 14) {
-      const gy = E.groundUnder(s + O, 60); if (!(gy > -20 && gy < 60)) continue;
+      const gy = E.groundUnder(s + O, 3); if (!(gy > -4 && gy < 2.5)) continue;
       for (let k = 0; k < 5; k++) list.push([s + O + (rnd(s + k) - 0.5) * 3, gy - 0.6, 7 + rnd(s * 2 + k) * 2.5, (k - 2) * 0.35 + (rnd(k + s) - 0.5) * 0.3, 0.6 + rnd(s + k * 3) * 0.8]);
     }
     const m = new THREE.InstancedMesh(geo, mat, list.length), o = new THREE.Object3D();
