@@ -92,16 +92,18 @@ class Boss {
       game.fx.burst(this.path.world(this.s, this.y + 2, 0), 0xff4020, 60, 12, 1, 1, 0);
     } else game.hud.toast('It’s getting angry…', 1.6);
   }
-  spawnProjectile(s, y, vs, vy, r = 0.5, col = 0xff60a0, grav = -20) {
+  spawnProjectile(s, y, vs, vy, r = 0.5, col = 0xff60a0, grav = -20, life = 6) {
     const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), glow(col, 2)); this.game.scene.add(m);
-    this.projectiles.push({ s, y, vs, vy, r, m, grav, t: 0 });
+    const pr = { s, y, vs, vy, r, m, grav, t: 0, life }; this.projectiles.push(pr); return pr;
   }
+  // enraged-only attacks, one per guardian
+  shockwaves(col) { const A = this.A; for (const d of [-1, 1]) for (let k = 0; k < 2; k++) this.spawnProjectile(this.s + d * (this.hw + 0.5), A.y + 0.45, d * (9 + k * 4), 0, 0.45, col, 0, 3.2); this.game.audio.play('rumble'); }
   stepProjectiles(h) {
     const floor = this.A.y;
     for (const pr of this.projectiles) {
       pr.t += h; pr.vy += pr.grav * h; pr.s += pr.vs * h; pr.y += pr.vy * h;
       if (this.touches(pr.s, pr.y - pr.r, pr.r, pr.r * 2)) { this.hurtPlayer('Hit!'); pr.dead = true; }
-      if ((pr.grav < 0 && pr.y < floor) || pr.t > 6) { pr.dead = true; this.game.fx.burst(this.path.world(pr.s, pr.y, 0), 0xff80c0, 8, 4, 0.5, 0.4, -6); }
+      if ((pr.grav < 0 && pr.y < floor) || pr.t > pr.life || Math.abs(pr.s - this.A.s) > this.A.w + 2) { pr.dead = true; this.game.fx.burst(this.path.world(pr.s, pr.y, 0), 0xff80c0, 8, 4, 0.5, 0.4, -6); }
     }
     for (const pr of this.projectiles) if (pr.dead) this.game.scene.remove(pr.m);
     this.projectiles = this.projectiles.filter((x) => !x.dead);
@@ -164,7 +166,7 @@ class Boss {
     else if (this.state === 'charge') {
       this.s += this.dir * speed * h;
       if (Math.random() < h * 30) this.game.fx.spawn(this.path.world(this.s - this.dir * 2, this.y + 0.3, (Math.random() - 0.5) * 2), new THREE.Vector3(0, 3, 0), this.def.mech ? 0xffa040 : 0xc0a070, 0.9, 0.6, 0);
-      if (Math.abs(this.s - A.s) > A.w - this.hw - 0.5) { this.s = A.s + Math.sign(this.s - A.s) * (A.w - this.hw - 0.5); this.set('stun'); this.game.shake(0.9); this.game.audio.play('smash'); if (this.def.mech) for (let i = 0; i < 3 + (3 - this.hp); i++) this.spawnProjectile(A.s + (Math.random() - 0.5) * A.w * 1.6, A.y + 14, 0, 0, 0.7, 0xa08060, -22); }
+      if (Math.abs(this.s - A.s) > A.w - this.hw - 0.5) { this.s = A.s + Math.sign(this.s - A.s) * (A.w - this.hw - 0.5); this.set('stun'); this.game.shake(0.9); this.game.audio.play('smash'); if (this.rage) this.shockwaves(this.def.mech ? 0xffa040 : 0x9aff60); if (this.def.mech) for (let i = 0; i < 3 + (3 - this.hp); i++) this.spawnProjectile(A.s + (Math.random() - 0.5) * A.w * 1.6, A.y + 14, 0, 0, 0.7, 0xa08060, -22); }
       if (this.touches(this.s, this.y, this.hw, this.h)) { if (p.y > this.y + this.h - 0.6 && p.vy < 0) this.bounce(14); else this.hurtPlayer(this.def.mech ? 'Drilled!' : 'Trampled!'); }
     } else if (this.state === 'stun') {
       if (this.stompedOn(this.s, this.y + 1.4, this.hw) || (p.slamming && Math.abs(p.s - this.s) < this.hw + 1)) { this.bounce(17); this.hit(); if (this.hp > 0) this.set('recover'); return; }
@@ -207,7 +209,7 @@ class Boss {
     } else if (this.state === 'dive') {
       this.y -= 26 * h;
       if (this.touches(this.s, this.y, this.hw, this.h)) this.hurtPlayer('Skewered!');
-      if (this.y <= A.y) { this.y = A.y; this.set('stuck'); this.game.shake(0.8); this.game.audio.play('slam'); this.game.fx.burst(this.path.world(this.s, A.y + 0.5, 0), 0xc0a070, 30, 8, 1, 0.8, -10); }
+      if (this.y <= A.y) { this.y = A.y; this.set('stuck'); this.game.shake(0.8); if (this.rage) for (let i = 0; i < 6; i++) { const a = -1 + i * 0.4; this.spawnProjectile(this.s, A.y + 1.5, Math.sin(a) * 9, 11 + Math.cos(a) * 3, 0.35, 0xff70d0, -20); } this.game.audio.play('slam'); this.game.fx.burst(this.path.world(this.s, A.y + 0.5, 0), 0xc0a070, 30, 8, 1, 0.8, -10); }
     } else if (this.state === 'stuck') {
       if (this.stompedOn(this.s, this.y + 2.6, this.hw)) { this.bounce(17); this.hit(); if (this.hp > 0) this.set('rise'); return; }
       if (this.touches(this.s, this.y, this.hw * 0.8, 2) && !(p.y > this.y + 2)) { p.vs = Math.sign(p.s - this.s || 1) * 8; }
@@ -265,7 +267,7 @@ class Boss {
       hd.t += h * fast;
       const ps0 = hd.sol.s0, py1 = hd.sol.y1;
       if (hd.st === 'hover') { hd.s += (p.s - hd.s) * Math.min(1, h * 2) * 0.8; hd.y = A.y + 7; if (hd.t > 2.2) { hd.st = 'slam'; hd.t = 0; } }
-      else if (hd.st === 'slam') { hd.y -= 30 * h; if (this.touches(hd.s, hd.y, 2.5, 1.6)) this.hurtPlayer('Crushed!'); if (hd.y <= A.y) { hd.y = A.y; hd.st = 'rest'; hd.t = 0; this.game.shake(0.6); this.game.audio.play('slam'); } }
+      else if (hd.st === 'slam') { hd.y -= 30 * h; if (this.touches(hd.s, hd.y, 2.5, 1.6)) this.hurtPlayer('Crushed!'); if (hd.y <= A.y) { hd.y = A.y; hd.st = 'rest'; hd.t = 0; this.game.shake(0.6); if (this.rage) for (let i = 0; i < 3; i++) this.spawnProjectile(p.s + (i - 1) * 3.2 + (Math.random() - 0.5), A.y + 14 + i * 1.5, 0, 0, 0.6, 0xc8b090, -16); this.game.audio.play('slam'); } }
       else if (hd.st === 'rest') { if (hd.t > 2.2) { hd.st = 'lift'; hd.t = 0; } }
       else if (hd.st === 'lift') { hd.y += 6 * h; if (hd.y >= A.y + 7) { hd.st = 'hover'; hd.t = 0; } }
       Object.assign(hd.sol, { s0: hd.s - 2.5, s1: hd.s + 2.5, y0: hd.y, y1: hd.y + 1.6, active: this.state !== 'dead' });
@@ -321,6 +323,7 @@ class Boss {
       this.dir = p.s > this.s ? 1 : -1;
       this.s += this.dir * (2 + (3 - this.hp)) * h; this.y += ((p.y - 1) - this.y) * h * 0.8;
       this.y = Math.max(A.y + 1, Math.min(A.y + 76 - 70 + 70, this.y));
+      if (this.rage) { this.orbT = (this.orbT ?? 1.2) - h; if (this.orbT <= 0) { this.orbT = 1.6; const L = this.lanternPos(), dx = p.s - L.s, dy = p.y + 0.6 - L.y, d = Math.hypot(dx, dy) || 1; this.spawnProjectile(L.s, L.y, dx / d * 7, dy / d * 7, 0.4, 0x80fff0, 0, 3.5); this.game.audio.play('notice'); } }
       if (this.stateT > 3.5 - (3 - this.hp) * 0.6) { this.tgt = { s: p.s, y: p.y }; this.set('tell'); this.game.audio.play('notice'); }
     } else if (this.state === 'tell') { if (this.stateT > 0.7) this.set('lunge'); }
     else if (this.state === 'lunge') {
@@ -376,7 +379,7 @@ class Boss {
       const k = this.t * 0.7; this.s = A.s + Math.sin(k) * (A.w - 8); this.y = A.y + 12 + Math.sin(k * 2) * 6;
       this.dir = Math.cos(k) > 0 ? 1 : -1;
       this.boltT = (this.boltT || 0) - h;
-      if (this.boltT <= 0) { this.boltT = 1.6 - (3 - this.hp) * 0.35; this.bolts.push({ s: p.s + p.vs * 0.4, t: 0, m: this.makeBolt() }); }
+      if (this.boltT <= 0) { this.boltT = 1.6 - (3 - this.hp) * 0.35; this.bolts.push({ s: p.s + p.vs * 0.4, t: 0, m: this.makeBolt() }); if (this.rage) for (const o of [-3.2, 3.2]) this.bolts.push({ s: p.s + o, t: -0.25, m: this.makeBolt() }); }
       if (this.stateT > 6) this.set('tired');
     } else if (this.state === 'tired') {
       this.y += ((A.y + 4) - this.y) * h * 2; this.s += (A.s - this.s) * h;
