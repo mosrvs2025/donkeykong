@@ -424,3 +424,15 @@ body.injournal #banner,body.injournal #story,body.injournal #toast,body.injourna
 #shop.journal{background:radial-gradient(ellipse at 30% 20%,#123a2e,#030a08)}
 @media (max-width:700px){#shop.journal .sh-pv{height:170px}#shop.journal .sh-loadout{display:none}}
 .js-btns button{font-size:15px;padding:10px 12px;min-height:0}
+
+/* boss cinematics */
+#boss-cine{position:fixed;inset:0;pointer-events:none;z-index:12}
+#boss-cine .bc-bar{position:absolute;left:0;right:0;height:11vh;background:#000;transform:scaleY(0);transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+#boss-cine .bc-bar.t{top:0;transform-origin:top}#boss-cine .bc-bar.b{bottom:0;transform-origin:bottom}
+#boss-cine.on .bc-bar,#boss-cine.bars .bc-bar{transform:scaleY(1)}
+#boss-cine .bc-card{position:absolute;left:0;right:0;top:34%;text-align:center;opacity:0;transform:scale(1.4);letter-spacing:.3em;transition:opacity .4s,transform .7s cubic-bezier(.2,1.2,.3,1)}
+#boss-cine.on .bc-card{opacity:1;transform:scale(1)}
+#boss-cine small{display:block;color:#ffd46a;font-size:13px;letter-spacing:.6em;margin-bottom:6px}
+#boss-cine b{display:block;font-size:clamp(28px,6vw,64px);color:#fff;font-weight:900;text-shadow:0 0 30px #ff9040,0 4px 0 #6a1a00,0 8px 24px #000}
+#boss-cine span{display:block;margin-top:10px;font-size:15px;letter-spacing:.15em;color:#ffe8c0;text-shadow:0 2px 6px #000}
+body.inclash #boss-cine,body.onmap #boss-cine{display:none}

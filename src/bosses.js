@@ -6,6 +6,7 @@ import { surfMat } from './world.js';
 // each one opens up for a moment, and Kiri has to use movement to reach that moment.
 const glow = (c, i = 2) => new THREE.MeshStandardMaterial({ color: 0x000000, emissive: c, emissiveIntensity: i });
 
+const RAGE = new THREE.Color(0xff3010);
 export const BOSSES = {
   bramble: { name: 'THE BRAMBLE KING', sub: 'jump its charge, stomp its belly', kind: 'charger' },
   skyreaver: { name: 'SKYREAVER', sub: 'wait for the dive, then bounce on its head', kind: 'flyer' },
@@ -16,7 +17,16 @@ export const BOSSES = {
 };
 
 export class BossManager {
-  constructor(game) { this.game = game; this.active = null; this.defeated = new Set(); }
+  constructor(game) {
+    this.game = game; this.active = null; this.defeated = new Set();
+    // cinematic overlay: letterbox bars + a title card for entrances and defeats
+    const el = document.createElement('div'); el.id = 'boss-cine'; el.innerHTML = '<i class="bc-bar t"></i><i class="bc-bar b"></i><div class="bc-card"><small></small><b></b><span></span></div>';
+    document.body.appendChild(el); this.cine = el;
+  }
+  card(kicker, name, sub, dur = 2.6) {
+    const el = this.cine; el.querySelector('small').textContent = kicker; el.querySelector('b').textContent = name; el.querySelector('span').textContent = sub;
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); clearTimeout(this.cineT); this.cineT = setTimeout(() => el.classList.remove('on'), dur * 1000);
+  }
   get busy() { return !!this.active; }
   start(id) {
     const game = this.game, A = game.level.arenas[id]; if (!A) return;
@@ -24,7 +34,7 @@ export class BossManager {
     const b = new Boss(game, id, def, A); game.addRim?.(b.group);
     this.active = b;
     for (const o of game.level.bounds) if (o.id === id) { o.sol ||= { s0: o.s0, s1: o.s1, y0: o.y0, y1: o.y1, active: false, dS: 0, dY: 0 }; if (!game.entities.solids.includes(o.sol)) game.entities.solids.push(o.sol); o.sol.active = true; }
-    game.hud.banner(def.name, def.sub, 3.5);
+    this.card('GUARDIAN', def.name, def.sub, 2.8); ['banner', 'toast'].forEach((i) => document.getElementById(i)?.classList.remove('on'));
     game.audio.intensity = 1; game.audio.play('rumble'); game.shake(0.6);
     game.hud.bossBar(3, def.name);
   }
@@ -59,6 +69,7 @@ class Boss {
     this.s = A.s; this.y = A.y; this.dir = -1; this.vs = 0; this.projectiles = [];
     this.group = new THREE.Group(); game.scene.add(this.group);
     this['build_' + def.kind]();
+    this.rise = 0; this.rage = false; this.roared = false;
   }
   dispose() { this.game.scene.remove(this.group); for (const p of this.projectiles) this.game.scene.remove(p.m); }
   set(state) { this.state = state; this.stateT = 0; }
@@ -72,8 +83,14 @@ class Boss {
     this.hp--; this.flash = 0.6; game.shake(0.7); game.audio.play('smash'); game.hitstop?.(0.08);
     game.fx.burst(this.path.world(this.s, this.y + 2, 0), 0xfff0a0, 40, 10, 0.9, 0.9, -6);
     game.hud.bossBar(this.hp, this.def.name);
-    if (this.hp <= 0) { this.set('dead'); game.audio.play('win'); game.hud.banner(this.def.name.replace('THE ', '') + ' FALLS', 'the way forward opens', 3); }
-    else game.hud.toast(this.hp === 2 ? 'It’s getting angry…' : 'One more!', 1.6);
+    if (this.hp <= 0) { // the finishing blow: slow motion, a white flash, then it comes apart
+      this.set('dead'); game.slowT = 1.4; game.flash?.(0.4); document.getElementById('toast')?.classList.remove('on'); game.shake(1.2); game.hitstop?.(0.18); game.audio.play('smash');
+      game.fx.burst(this.path.world(this.s, this.y + 2, 0), 0xffe8a0, 50, 14, 0.9, 1, 0);
+      game.bosses.cine.classList.add('bars');
+    } else if (this.hp === 1 && !this.rage) { // second phase
+      this.rage = true; game.hud.toast('<b>It’s enraged!</b> Faster now, watch closely', 2.2); game.audio.play('rumble'); game.shake(0.9);
+      game.fx.burst(this.path.world(this.s, this.y + 2, 0), 0xff4020, 60, 12, 1, 1, 0);
+    } else game.hud.toast('It’s getting angry…', 1.6);
   }
   spawnProjectile(s, y, vs, vy, r = 0.5, col = 0xff60a0, grav = -20) {
     const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), glow(col, 2)); this.game.scene.add(m);
@@ -91,9 +108,22 @@ class Boss {
   }
   step(h) {
     this.t += h; this.stateT += h; this.flash = Math.max(0, this.flash - h);
-    if (this.state === 'intro') { if (this.stateT > 1.6) this.set('fight'); }
-    else if (this.state === 'dead') { if (this.stateT > 2.5) this.game.bosses.end(true); return; }
-    this['step_' + this.def.kind](h);
+    if (this.state === 'intro') {
+      this.rise = Math.min(1, this.stateT / 1.1);
+      if (this.stateT > 1.1 && !this.roared) { this.roared = true; const g = this.game; g.shake(1); g.audio.play('rumble'); g.audio.play('slam');
+        { const f = this.path.frame(this.s); g.fx.ring(this.path.world(this.s, this.A.y + 0.2, 0), 0xffe0b0, 40, 18, 0.8, new THREE.Vector3(f.tx, 0, f.tz), new THREE.Vector3(f.nx, 0, f.nz)); } g.fx.burst(this.path.world(this.s, this.y + 2.5, 0), 0xffd090, 50, 12, 1, 1, 0); }
+      if (this.stateT > 2.2) this.set('fight');
+    }
+    else if (this.state === 'dead') {
+      const g = this.game, k = this.stateT;
+      if (Math.random() < h * 9) { g.fx.burst(this.path.world(this.s + (Math.random() - 0.5) * 5, this.y + Math.random() * 4.5, 0), [0xffe080, 0xffffff, 0xff9050][Math.floor(Math.random() * 3)], 24, 9, 0.9, 0.7, 0); g.audio.play('stomp'); g.shake(0.3); }
+      if (k > 2.4 && !this.boomed) { this.boomed = true; g.flash?.(0.45); g.shake(1.4); g.audio.play('smash'); g.audio.play('win');
+        g.fx.burst(this.path.world(this.s, this.y + 2, 0), 0xffc860, 90, 16, 1.1, 1.3, 0);
+        g.bosses.card('GUARDIAN DEFEATED', this.def.name.replace('THE ', ''), 'the way forward opens', 2.6); }
+      if (k > 3.4) { g.bosses.cine.classList.remove('bars'); g.bosses.end(true); }
+      return;
+    }
+    this['step_' + this.def.kind](this.rage ? h * 1.3 : h);
     this.stepProjectiles(h);
   }
   update(dt, t) {
@@ -101,7 +131,10 @@ class Boss {
     this.group.visible = this.state !== 'dead' || Math.floor(this.stateT * 12) % 2 === 0;
     const e = this.flash > 0 ? 1 : 0;
     this.group.traverse((o) => { if (o.isMesh && o.material.emissive && !o.userData.keep) { o.material.emissiveIntensity = o.userData.ei ?? (o.userData.ei = o.material.emissiveIntensity); if (e) o.material.emissiveIntensity = 3; } });
-    if (this.state === 'dead') { this.group.scale.multiplyScalar(0.985); if (Math.random() < dt * 30) this.game.fx.burst(this.path.world(this.s + (Math.random() - 0.5) * 4, this.y + Math.random() * 4, 0), 0xffe080, 4, 6, 0.7, 0.8, 0); }
+    if (this.state === 'intro') { const r = this.rise, e2 = r < 1 ? 1 - Math.pow(1 - r, 3) * Math.cos(r * 9) : 1; this.group.scale.setScalar(Math.max(0.01, e2)); }
+    else if (this.state !== 'dead') this.group.scale.setScalar(1);
+    if (this.rage && this.state !== 'dead' && !e) this.group.traverse((o) => { if (o.isMesh && o.material.emissive && !o.userData.keep) { o.material.emissive.lerp?.(RAGE, 0.02); o.material.emissiveIntensity = (o.userData.ei || 0.3) + 0.6 + Math.sin(t * 10) * 0.4; } });
+    if (this.state === 'dead') { this.group.scale.multiplyScalar(this.stateT > 2.4 ? 0.9 : 0.997); if (Math.random() < dt * 30) this.game.fx.burst(this.path.world(this.s + (Math.random() - 0.5) * 4, this.y + Math.random() * 4, 0), 0xffe080, 4, 6, 0.7, 0.8, 0); }
     this['look_' + this.def.kind]?.(dt, t);
   }
 
