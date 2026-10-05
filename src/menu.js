@@ -11,7 +11,7 @@ export function currentSlot() { return +(store.get('slot') || 1); }
 export function readSlot(n) { try { return JSON.parse(store.get('slot.' + n) || 'null'); } catch { return null; } }
 export function loadSettings() {
   let s; try { s = JSON.parse(store.get('settings') || 'null'); } catch { s = null; }
-  return { vol: 70, music: true, quality: matchMedia('(pointer:coarse)').matches ? 'med' : 'high', post: true, coop: false, ...(s || {}) };
+  return { vol: 70, music: true, quality: matchMedia('(pointer:coarse)').matches ? 'med' : 'high', post: true, coop: false, musVol: 70, sfxVol: 80, shake: 1, flashes: true, bigTouch: false, ...(s || {}) };
 }
 export function saveSettings(s) { store.set('settings', JSON.stringify(s)); }
 // migrate the single save from earlier versions into slot 1
@@ -21,7 +21,7 @@ const LEVEL_NAMES = { rootwild: 'The Rootwild', canopy: 'Canopy of Hands', skywa
 
 export class Menu {
   constructor(game) {
-    this.game = game; this.settings = loadSettings();
+    this.game = game; this.settings = game.settings || loadSettings();
     const show = (id) => { for (const m of ['menu-main', 'menu-slots', 'menu-settings', 'menu-help']) $(m).classList.toggle('hidden', m !== id); const f = $(id).querySelector('button'); f && f.focus({ preventScroll: true }); };
     this.show = show;
     document.querySelectorAll('.m-back').forEach((b) => b.onclick = () => show('menu-main'));

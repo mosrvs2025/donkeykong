@@ -119,6 +119,10 @@ const SECRETS = [
   { id: 'v_glow_brom', name: 'Brom’s Dig', test: (p) => p.s > 931 + O && p.s < 937 + O && p.y < -8 && p.y > -11 },
   { id: 'v_glow_pip', name: 'The Glowworm Nook', test: (p) => p.s > 1019 + O && p.s < 1026 + O && p.y < -8 && p.y > -11 },
   { id: 'v_glow_pound', name: 'The Sunken Crypt', test: (p) => p.s > 1032 + O && p.s < 1043 + O && p.y < -8 && p.y > -11 },
+  { id: 'v_can_pound', name: 'The Root Cellar', test: (p) => p.s > 276 + O && p.s < 287 + O && p.y < -1 && p.y > -3 },
+  { id: 'v_can_pip', name: 'The Squirrel Run', test: (p) => p.s > 292 + O && p.s < 299 + O && p.y < -1 && p.y > -3 },
+  { id: 'v_ruin_brom', name: 'The Buried Archive', test: (p) => p.s > 769 + O && p.s < 775 + O && p.y < 7 && p.y > 4 },
+  { id: 'v_mine_pound', name: 'The Old Ore Store', test: (p) => p.s > 1047 + O && p.s < 1058 + O && p.y < -8 && p.y > -11 },
   { id: 'mossback', name: 'The Sleeping Hill', test: (p, g) => g.stats.mossback },
 ];
 
@@ -245,7 +249,8 @@ class Game {
     }
   }
   applySettings(S, qualityChanged) {
-    this.audio.volume = S.vol / 100; this.audio.musicWanted = S.music; this.audio.applyVolume?.();
+    this.audio.volume = S.vol / 100; this.audio.musicWanted = S.music; this.audio.musVol = (S.musVol ?? 70) / 70; this.audio.sfxVol = (S.sfxVol ?? 80) / 80; this.audio.applyVolume?.();
+    this.shakeMul = S.shake ?? 1; this.flashMul = S.flashes === false ? 0.25 : 1; document.body.classList.toggle('bigtouch', !!S.bigTouch);
     this.cine.uniforms.amount.value = S.post ? 1 : 0; this.cine.enabled = S.post; this.assist = !!S.assist; this.slow = !!S.slow;
     if (qualityChanged) {
       const q = S.quality;
@@ -411,7 +416,7 @@ class Game {
   // ───────────── events from gameplay
   banner(a, b) { this.hud.banner(a, b, 3); }
   toast(h, d) { this.hud.toast(h, d); }
-  shake(a) { this.director.shake(a); }
+  shake(a) { this.director.shake(a * (this.shakeMul ?? 1)); }
   camPunch(t) { this.director.punch = t; }
   addGlims(n, pos) { this.stats.glims += n; this.hud.glims(this.stats.glims); if (pos) this.fx.burst(pos, 0x9fffc0, 6, 4, 0.5, 0.4, 0); if (Math.floor((this.stats.glims - n) / 100) < Math.floor(this.stats.glims / 100)) this.bonusHeart(); }
   bonusHeart() {
@@ -434,7 +439,7 @@ class Game {
     if (sd.star) this.banner('STAR HEART', 'the Colossus remembers you'), this.toast('A living relic of the Sunwrights. <b>+1 max heart</b>', 4), this.player.maxHearts++, this.player.hearts = this.player.maxHearts, this.hud.hearts(this.player.hearts, this.player.maxHearts);
     else this.banner(`SUN SHARD ${got}/5`, ['it hums with warm light', 'a sliver of an old sun', 'the river kept it safe', 'hidden, but not lost', 'it beats like a heart'][sd.idx] || '');
   }
-  flash(a) { const f = $('flash'); f.style.transition = 'none'; f.style.opacity = a; requestAnimationFrame(() => { f.style.transition = 'opacity .6s'; f.style.opacity = 0; }); }
+  flash(a) { const f = $('flash'); a *= this.flashMul ?? 1; f.style.transition = 'none'; f.style.opacity = a; requestAnimationFrame(() => { f.style.transition = 'opacity .6s'; f.style.opacity = 0; }); }
   onSlam(s, y, g) {
     const E = this.entities;
     this.audio.play('slam'); this.shake(0.35);

@@ -611,7 +611,8 @@ export class Player {
     let legA = 0, armA = 0, armZ = 0, lean = 0, bob = 0;
     const speed = Math.abs(this.vs);
     const air = !this.grounded;
-    const runPhase = (this._rp = (this._rp || 0) + dt * (4 + speed * 1.3));
+    const gait = this.hero === 'pip' ? 1.25 : this.hero === 'brom' ? 0.78 : 1; // Pip scurries, Brom lumbers
+    const runPhase = (this._rp = (this._rp || 0) + dt * (4 + speed * 1.3) * gait);
     if (ud.wings) ud.wings.forEach((w) => w.visible = !!this.gliding);
     if (this.gliding) { armZ = 1.5; legA = -0.4; lean = 0.2; }
     else if (this.sdashT > 0) { const [dx, dy] = this.sdashDir; ud.body.rotation.z = -Math.atan2(dy, Math.abs(dx) || 0.001) * 0.8; lean = 0.5; legA = 1.3; armA = -1.2; armZ = 1.2; }
@@ -631,7 +632,8 @@ export class Player {
       else { legA = Math.sin(t * 16) * 0.5; armZ = 1.8 + Math.sin(t * 18) * 0.8; lean = 0.15; } // flailing
     } else if (speed > 0.5) {
       legA = Math.sin(runPhase) * Math.min(1.2, speed * 0.12); armA = -Math.sin(runPhase) * Math.min(1.3, speed * 0.13);
-      lean = Math.min(0.35, speed * 0.03); bob = Math.abs(Math.sin(runPhase)) * 0.08;
+      lean = Math.min(0.35, speed * 0.03) * (this.hero === 'pip' ? 1.3 : 1); bob = Math.abs(Math.sin(runPhase)) * (this.hero === 'brom' ? 0.13 : this.hero === 'pip' ? 0.05 : 0.08);
+      if (this.hero === 'brom') ud.body.rotation.z += Math.sin(runPhase) * 0.06; // side-to-side waddle
       ud.torso.rotation.y = Math.sin(runPhase) * Math.min(0.22, speed * 0.02); ud.head.rotation.z = -lean * 0.6 + Math.sin(runPhase * 2) * 0.04; ud.head.rotation.y = -ud.torso.rotation.y * 0.8;
       if (Math.sign(this.vs) !== this.facing && speed > 3) { lean = -0.45; legA = 0.7; armZ = 1.2; if (Math.random() < dt * 40) game.fx.spawn(P.world(this.s, this.y + 0.1, (Math.random() - 0.5) * 0.5), new THREE.Vector3(-this.vs * 0.2, 1.2, 0), 0xd8c8a0, 0.45, 0.4, 0); } // skid
       if (Math.random() < dt * speed * 0.6) game.fx.spawn(P.world(this.s - this.facing * 0.3, this.y + 0.1, (Math.random() - 0.5) * 0.4), new THREE.Vector3(0, 1, 0), game.currentTheme === 3 ? 0x6050a0 : 0xd8c8a0, 0.4, 0.35, 0);
@@ -740,6 +742,15 @@ export class Player {
         u.core.material.emissiveIntensity = 2 + Math.sin(t * 5) * 0.8;
         break;
     }
+    // weight and follow-through: lean into speed, bank on turns, squash on landings, breathe when idle
+    const k2 = 1 - Math.exp(-dt * 8), turnV = (this.turn - (c._turn0 ?? this.turn)) / Math.max(dt, 1e-4); c._turn0 = this.turn;
+    c._lean = (c._lean || 0) + ((air ? 0 : Math.min(0.22, speed * 0.016)) - (c._lean || 0)) * k2;
+    c._bank = (c._bank || 0) + (THREE.MathUtils.clamp(turnV * 0.02, -0.35, 0.35) - (c._bank || 0)) * k2;
+    if (!(c.kind === 'fish' && this.inWater)) u.body.rotation.z -= c._lean;
+    u.body.rotation.x += c._bank;
+    if (c.kind === 'bird' && air) u.body.rotation.z += THREE.MathUtils.clamp(-this.vy * 0.03, -0.4, 0.4);
+    if (c.kind !== 'frog') { const sq = this.squash, br = !air && speed < 0.5 ? Math.sin(t * 2.4) * 0.02 : 0; const b0 = (u._bs ||= u.body.scale.clone()); u.body.scale.set(b0.x * (1 + sq * 0.35), b0.y * (1 - sq * 0.5 + br), b0.z * (1 + sq * 0.35)); }
+    if (u.head && c.kind !== 'oru') u.head.rotation.z += THREE.MathUtils.clamp(this.vy * 0.015, -0.25, 0.25);
     // personality: happy hops, nerves around danger, idle habits
     c.hop = Math.max(0, (c.hop || 0) - dt * 2);
     if (c.hop > 0) u.body.position.y += Math.sin(c.hop * Math.PI) * 0.5;

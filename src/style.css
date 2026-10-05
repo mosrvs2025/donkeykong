@@ -450,3 +450,6 @@ body.inclash #boss-cine,body.onmap #boss-cine{display:none}
 .dl-btn.fresh{border-color:#ffd46a;color:#ffd46a;animation:dlp 1.4s ease-in-out infinite alternate}@keyframes dlp{to{box-shadow:0 0 14px #ffd46a88}}
 .rc-row.dl-win b{color:#ffd46a}.rc-row.dl-fail b{color:#ff9090}
 body.onmap #daily-chip,body.inclash #daily-chip{display:none}
+body.bigtouch #touch{--b:clamp(60px,22vmin,98px)}
+.js-set{display:grid;gap:8px}.js-set label{display:grid;grid-template-columns:130px 1fr auto;align-items:center;gap:10px;background:#ffffff0a;border-radius:10px;padding:8px 12px}.js-set input[type=range]{width:100%;accent-color:#ffd46a}.js-set output{min-width:2.5em;text-align:right;color:#ffd46a}.js-set .seg{display:flex;gap:4px}.js-set .seg button{padding:4px 10px;font-size:13px}
+@media (max-width:700px){.js-set label{grid-template-columns:96px 1fr auto}}

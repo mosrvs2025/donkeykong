@@ -556,7 +556,7 @@ export function buildLevel() {
   // anyone but Pip · brom: a shaft walled off by cracked stone only Brom's roll can smash
   L.vaults = [];
   const carve = (s0, s1, y, depth, mat) => { // split the ground under [s0,s1] and drop its floor
-    const S0 = s0 + O, S1 = s1 + O, g = L.solids.find((o) => o.ground && o.y1 === y && o.s0 < S0 && o.s1 > S1);
+    const S0 = s0 + O, S1 = s1 + O, g = L.solids.find((o) => (o.ground || o.y1 - o.y0 > 10) && !o.move && o.y1 === y && o.s0 < S0 && o.s1 > S1);
     if (!g) return false; const right = { ...g, id: id++, s0: S1 }; g.s1 = S0; L.solids.push(right);
     ground(s0, s1, y - depth, mat); return true;
   };
@@ -575,5 +575,8 @@ export function buildLevel() {
   };
   vault('pip', 147, 0); vault('pound', 203, 0);                 // Rootwild
   vault('brom', 926, -5, 'cave'); vault('pip', 1015, -5, 'cave'); vault('pound', 1032, -5, 'cave'); // Glowdeep
+  vault('pound', 276, 3); vault('pip', 288, 3);                  // Canopy of Hands (the opening grove)
+  vault('brom', 764, 11, 'ruin');                                   // Weeping Ruins
+  vault('pound', 1047, -5, 'mine');                                 // Sunwright Mine entrance
   return L;
 }

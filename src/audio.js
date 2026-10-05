@@ -19,7 +19,7 @@ export class Audio {
   }
   resume() { this.ctx && this.ctx.state !== 'running' && this.ctx.resume(); }
   toggleMute() { this.muted = !this.muted; this.applyVolume(); }
-  applyVolume() { if (this.master) this.master.gain.value = this.muted ? 0 : 0.55 * (this.volume ?? 0.7) / 0.7; }
+  applyVolume() { if (this.master) this.master.gain.value = this.muted ? 0 : 0.55 * (this.volume ?? 0.7) / 0.7; if (this.sfx) this.sfx.gain.value = 0.8 * (this.sfxVol ?? 1); }
   tone(freq, dur, type = 'square', vol = 0.2, slide = 0, delay = 0, dest) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime + delay;
@@ -95,10 +95,22 @@ export class Audio {
   // theme: 0 jungle, 1 canopy, 2 water, 3 cave, 4 mine/chase
   updateMusic() {
     if (!this.ctx || !this.musicOn || this.musicWanted === false) { if (this.mus) this.mus.gain.value = 0; return; }
+    if (this.theme !== this.lastTheme) { if (this.lastTheme !== undefined) this.q = 1; this.lastTheme = this.theme; } // dip and swell into a new area's band
     this.q += (this.quiet - this.q) * 0.05;
-    this.mus.gain.value = this.muted ? 0 : 0.32 * (1 - this.q * 0.92);
+    this.mus.gain.value = this.muted ? 0 : 0.32 * (this.musVol ?? 1) * (1 - this.q * 0.92);
     const calm = this.theme >= 5 && this.theme !== 5;
-    const bpm = (calm ? 84 : 112) + this.intensity * 40, sp = 60 / bpm / 2;
+    // each area has its own band: tempo, lead voice, percussion feel and an atmosphere layer
+    const V = [
+      { bpm: 112, wave: 'sine', vol: 0.09, flute: true },                 // Rootwild: marimba + wooden flute
+      { bpm: 104, wave: 'triangle', vol: 0.07, shaker: true, flute: true }, // Canopy: airy plucks, shakers
+      { bpm: 92, wave: 'sine', vol: 0.08, harp: true, soft: true },        // Weeping Ruins: harp, gentle
+      { bpm: 84, wave: 'sine', vol: 0.07, drone: 55, soft: true },         // Glowdeep: shimmer over a cave drone
+      { bpm: 132, wave: 'square', vol: 0.045, clank: true },               // Sunwright Mine: driving, clanking
+      { bpm: 124, wave: 'sawtooth', vol: 0.035, drone: 65, choir: true },  // Heart of the Seed: urgent, choral
+      { bpm: 76, wave: 'sine', vol: 0.06 },                                 // hidden worlds
+      { bpm: 96, wave: 'triangle', vol: 0.07 },
+    ][this.theme] || { bpm: 112, wave: 'sine', vol: 0.09 };
+    const bpm = (calm ? 84 : V.bpm) + this.intensity * 40, sp = 60 / bpm / 2;
     const scales = [[0, 3, 5, 7, 10], [0, 2, 4, 7, 9], [0, 2, 5, 7, 9], [0, 1, 5, 7, 8], [0, 3, 5, 6, 7], [0, 2, 4, 7, 11], [0, 4, 7, 11, 14], [0, 2, 4, 7, 9]];
     const roots = [220, 247, 196, 185, 208, 196, 262, 233];
     const sc = scales[this.theme], root = roots[this.theme];
@@ -111,14 +123,22 @@ export class Audio {
       if (st % 2 === 0 || this.intensity > 0.5) {
         const idx = [0, 2, 4, 2, 1, 3, 4, 3][st % 8] + prog;
         const n = sc[idx % 5] + 12 * Math.floor(idx / 5);
-        this.tone(root * Math.pow(2, n / 12), sp * 1.5, 'sine', 0.09, 0, t, this.mus);
+        this.tone(root * Math.pow(2, n / 12), sp * (V.harp ? 4 : 1.5), V.wave, V.vol, 0, t, this.mus);
+        if (V.harp && st % 4 === 0) this.tone(root * 2 * Math.pow(2, n / 12), sp * 5, 'triangle', 0.03, 0, t + sp * 0.5, this.mus);
         if (this.theme === 3) this.tone(root * 2 * Math.pow(2, n / 12), sp * 3, 'sine', 0.025, 0, t + sp, this.mus);
       }
+      // area layers
+      if (V.flute && st % 32 === 8) [0, 2, 1].forEach((k, i) => this.tone(root * 2 * Math.pow(2, sc[(prog + k + 2) % 5] / 12), sp * 3, 'triangle', 0.04, 0, t + i * sp * 2, this.mus));
+      if (V.drone && st % 32 === 0) { this.tone(V.drone, sp * 32, 'sine', 0.06, 0, t, this.mus); this.tone(V.drone * 1.5, sp * 32, 'sine', 0.025, 0, t, this.mus); }
+      if (V.choir && st % 16 === 0) [0, 2, 4].forEach((k) => this.tone(root * Math.pow(2, sc[(prog + k) % 5] / 12), sp * 15, 'triangle', 0.025, 0, t, this.mus));
+      if (V.shaker && st % 2 === 1) this.noise(0.04, 0.035, 7000, 'highpass', t, this.mus);
+      if (V.clank && st % 4 === 3) this.tone(1400 + (st % 8) * 60, 0.05, 'square', 0.02, -800, t, this.mus);
       // the world waking adds a warm pad; hidden worlds get bells instead of drums
       if (this.wake >= 3 && st % 16 === 0) [0, 2, 4].forEach((k) => this.tone(root / 2 * Math.pow(2, sc[(prog + k) % 5] / 12), sp * 16, 'sine', 0.035, 0, t, this.mus));
       if (calm) { if (st % 4 === 2) this.tone(root * 4 * Math.pow(2, sc[(st * 3) % 5] / 12), 1.5, 'sine', 0.03, 0, t, this.mus); this.nextNote += sp; this.step++; continue; }
       // percussion
-      if (st % 8 === 0) this.noise(0.12, 0.2, 120, 'lowpass', t, this.mus);
+      if (V.soft && this.intensity < 0.3) { if (st % 16 === 0) this.noise(0.2, 0.12, 90, 'lowpass', t, this.mus); this.nextNote += sp; this.step++; continue; }
+      if (st % 8 === 0 || (V.clank && st % 8 === 3)) this.noise(0.12, 0.2, 120, 'lowpass', t, this.mus);
       if (st % 8 === 4) this.noise(0.08, 0.1, 900, 'bandpass', t, this.mus);
       if (this.intensity > 0.3 && st % 2 === 1) this.noise(0.03, 0.05, 6000, 'highpass', t, this.mus);
       if (st % 16 === 14) this.noise(0.05, 0.08, 400, 'bandpass', t, this.mus);
