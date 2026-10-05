@@ -11,7 +11,7 @@ export function currentSlot() { return +(store.get('slot') || 1); }
 export function readSlot(n) { try { return JSON.parse(store.get('slot.' + n) || 'null'); } catch { return null; } }
 export function loadSettings() {
   let s; try { s = JSON.parse(store.get('settings') || 'null'); } catch { s = null; }
-  return { vol: 70, music: true, quality: matchMedia('(pointer:coarse)').matches ? 'med' : 'high', post: true, coop: false, musVol: 70, sfxVol: 80, shake: 1, flashes: true, bigTouch: false, ...(s || {}) };
+  return { vol: 70, music: true, quality: matchMedia('(pointer:coarse)').matches ? 'med' : 'high', post: true, coop: false, musVol: 70, sfxVol: 80, shake: 1, flashes: true, bigTouch: false, autoQ: true, ...(s || {}) };
 }
 export function saveSettings(s) { store.set('settings', JSON.stringify(s)); }
 // migrate the single save from earlier versions into slot 1

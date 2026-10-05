@@ -20,7 +20,7 @@ export class Prompts {
   // rewrite keyboard words in level hints into chips that match the device
   keys(html) {
     return html.replace(/<b>Shift<\/b>|\bShift\b/g, this.key('action')).replace(/<b>Space<\/b>|\bSpace\b/g, this.key('jump'))
-      .replace(/<b>↑↓<\/b>/g, this.touch ? '<kbd class="ctx-k">stick</kbd>' : '<kbd class="ctx-k">↑↓</kbd>');
+      .replace(/<b>F<\/b>/g, this.key('dash')).replace(/<b>↓<\/b>/g, this.key('down')).replace(/<b>↑↓<\/b>/g, this.touch ? '<kbd class="ctx-k">stick</kbd>' : '<kbd class="ctx-k">↑↓</kbd>');
   }
   candidates() {
     const g = this.game, p = g.player, E = g.entities, K = (a) => this.key(a), out = [];

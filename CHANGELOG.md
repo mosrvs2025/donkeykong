@@ -2,6 +2,10 @@
 
 Patch notes, newest first.
 
+## v1.4.1 · Polish (Oct 5)
+- 📱 **Auto graphics:** if the game stutters on your device, graphics step down automatically (switch it off in Journal › System). Graphics quality can now be changed in the Journal too.
+- 🎓 New tips in the Rootwild teach Sprout Dash and the ground pound, with buttons that match your device.
+
 ## v1.4 · "Home and Glory" (Oct 5)
 - 🏡 **Kiri's Grove:** a home island that grows with every Seed Coin (27 things to grow), where
   friends move in and guardians leave trophies.

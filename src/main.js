@@ -17,7 +17,7 @@ import { Hollowjaw, Finale } from './encounters.js';
 import { BossManager, BOSSES } from './bosses.js';
 import { WorldMap, LEVELS, levelById } from './map.js';
 import { Worlds } from './worlds.js';
-import { Menu, store, currentSlot, loadSettings } from './menu.js';
+import { Menu, store, currentSlot, loadSettings, saveSettings } from './menu.js';
 import { Story, CHAPTER_LINES } from './story.js';
 import { Coop } from './coop.js';
 import { Extras, medalFor, MEDAL_ICON, MEDAL_TIMES } from './extras.js';
@@ -249,6 +249,15 @@ class Game {
       setTimeout(() => this.hud.banner('THORNWILD', 'The Rootwild · where the old roads sleep', 4), 600);
       this.bannerSeen.add(0);
     }
+  }
+  // watch the frame rate while playing; if it stays low, step graphics down one notch (never up)
+  autoQuality(ms) {
+    const S = this.settings; if (this.state !== 'play' || S.autoQ === false || document.hidden || ms > 250) { this._fq = null; return; }
+    const f = (this._fq ||= { t: 0, n: 0, slow: 0 }); f.t += ms; f.n++;
+    if (f.t < 2000) return; const fps = f.n / (f.t / 1000); f.t = 0; f.n = 0;
+    f.slow = fps < 36 ? f.slow + 1 : 0;
+    if (f.slow >= 2 && S.quality !== 'low') { S.quality = S.quality === 'high' ? 'med' : 'low'; saveSettings(S); this.applySettings(S, true); f.slow = 0;
+      this.hud.toast(`Graphics set to <b>${S.quality === 'med' ? 'Medium' : 'Low'}</b> for smoother play · change it in Journal › System`, 3.5); }
   }
   applySettings(S, qualityChanged) {
     this.audio.volume = S.vol / 100; this.audio.musicWanted = S.music; this.audio.musVol = (S.musVol ?? 70) / 70; this.audio.sfxVol = (S.sfxVol ?? 80) / 80; this.audio.applyVolume?.();
@@ -652,6 +661,7 @@ class Game {
     requestAnimationFrame((t) => this.loop(t));
     this.frames = (this.frames || 0) + 1;
     let dt = Math.max(0, Math.min(0.05, (now - this.last) / 1000)); this.last = now;
+    this.autoQuality(now - (this._lastRaw ?? now)); this._lastRaw = now;
     if (this.state === 'clash') { this.input.update(); this.clash.update(dt); this.input.endFrame(); this.cine.uniforms.time.value = this.time += dt; this.audio.updateMusic(); this.composer.render(); return; }
     if (this.state === 'mini') { this.input.update(); this.minis.update(dt); this.input.endFrame(); this.hud.update(dt); this.audio.updateMusic(); this.cine.uniforms.time.value = this.time += dt; this.composer.render(); return; }
     if (this.state === 'photo') { this.input.update(); this.extras.update(dt, this.time); this.world.update(this.time, 0); this.cine.uniforms.time.value = this.time; this.composer.render(); return; }

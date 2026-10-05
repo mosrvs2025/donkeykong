@@ -60,6 +60,8 @@ export function buildLevel() {
   enemy('snapjaw', 106, 0, 7);
   enemy('spikeback', 118, 0, 5);
   hint(112, 124, 'Spikebacks can\'t be stomped. Jump over!');
+  hint(64, 78, 'Sprout Dash: <b>F</b> plus a direction. It works in mid-air too!', 'dash');
+  hint(188, 200, 'Cracked floor ahead! Jump, then press <b>↓</b> to ground pound through it');
   cage('beast', 132, 0);
   // Hollow mesa: cracked wall hides a relic room (needs the Horned Beast)
   solid(160, 190, 2.4, 3.3, 'stone');

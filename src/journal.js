@@ -78,12 +78,12 @@ export class Journal {
     const seg = (k, label, opts) => `<label><span>${label}</span><div class="seg">${opts.map(([v, n]) => `<button class="small ${S[k] === v ? '' : 'ghost'}" data-jseg="${k}" data-v='${JSON.stringify(v)}'>${n}</button>`).join('')}</div><span></span></label>`;
     return `<div class="js-set">${sl('vol', 'Master volume')}${sl('musVol', 'Music')}${sl('sfxVol', 'Sound effects')}
       ${seg('music', 'Music on', [[true, 'On'], [false, 'Off']])}${seg('shake', 'Screen shake', [[1, 'Full'], [0.5, 'Low'], [0, 'Off']])}
-      ${seg('flashes', 'Bright flashes', [[true, 'On'], [false, 'Soft']])}${seg('slow', 'Game speed', [[false, 'Normal'], [true, 'Relaxed']])}${this.t ? seg('bigTouch', 'Touch buttons', [[false, 'Normal'], [true, 'Big']]) : ''}</div>`;
+      ${seg('flashes', 'Bright flashes', [[true, 'On'], [false, 'Soft']])}${seg('slow', 'Game speed', [[false, 'Normal'], [true, 'Relaxed']])}${seg('quality', 'Graphics', [['high', 'High'], ['med', 'Medium'], ['low', 'Low']])}${seg('autoQ', 'Auto graphics', [[true, 'On'], [false, 'Off']])}${this.t ? seg('bigTouch', 'Touch buttons', [[false, 'Normal'], [true, 'Big']]) : ''}</div>`;
   }
   bind(S) {
     const g = this.game, save = () => { saveSettings(g.settings); g.applySettings(g.settings); };
     S.querySelectorAll('[data-jset]').forEach((r) => r.oninput = () => { g.settings[r.dataset.jset] = +r.value; r.nextElementSibling.textContent = r.value; save(); });
-    S.querySelectorAll('[data-jseg]').forEach((b) => b.onclick = () => { g.settings[b.dataset.jseg] = JSON.parse(b.dataset.v); save(); g.audio.play('notice'); g.extras.renderShop(); });
+    S.querySelectorAll('[data-jseg]').forEach((b) => b.onclick = () => { const k = b.dataset.jseg; g.settings[k] = JSON.parse(b.dataset.v); if (k === 'quality') { saveSettings(g.settings); g.applySettings(g.settings, true); } else save(); g.audio.play('notice'); g.extras.renderShop(); });
     // the makers' note (an Easter egg): tap the Journal title five times
     S.querySelector('.sh-head h2')?.addEventListener('pointerdown', () => { const now = performance.now(); this.taps = now - (this.tapT || 0) < 700 ? (this.taps || 0) + 1 : 1; this.tapT = now;
       if (this.taps >= 5) { this.taps = 0; g.eggs.egg('makers'); const n = S.querySelector('.sh-head h2'); n.innerHTML = '<small>Thornwild was grown, not built: one root at a time. Thank you for wandering it. ♥</small>'; } });
