@@ -1,0 +1,40 @@
+name: 🐛 Bug report
+description: Something broke, glitched or felt wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where were you?
+      options: [The Rootwild, Canopy of Hands, The Weeping Ruins, The Glowdeep, Sunwright Mine, Heart of the Seed, The Thornwell, Sunken Sanctum, Skyward Isles, World map, Kiri's Grove, Journal / menus, Seed Clash, Somewhere else]
+    validations:
+      required: true
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      options: [Phone, Tablet, Computer (keyboard), Computer (gamepad)]
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      placeholder: e.g. Safari on iPhone 15, Chrome on Windows
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we make it happen again?
+      placeholder: "1. Swap to Pip\n2. Ground pound the cracked floor\n3. ..."
+  - type: textarea
+    id: shot
+    attributes:
+      label: Screenshot or video
+      description: Drag images or clips here if you have them.

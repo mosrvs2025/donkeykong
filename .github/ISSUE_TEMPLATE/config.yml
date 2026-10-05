@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 How to play
+    url: https://github.com/mosrvs2025/donkeykong/blob/HEAD/docs/HOW-TO-PLAY.md
+    about: Controls, heroes, companions and tips.

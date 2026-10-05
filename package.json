@@ -6,12 +6,21 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vite build && node tests/run.mjs"
   },
   "dependencies": {
     "three": "^0.186.1"
   },
   "devDependencies": {
     "vite": "^8.3.1"
-  }
+  },
+  "description": "Thornwild: The Lumen Seed. An original 2.5D cinematic platformer that runs in the browser.",
+  "keywords": [
+    "game",
+    "platformer",
+    "threejs",
+    "browser-game",
+    "webgl"
+  ]
 }
