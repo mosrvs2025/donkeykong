@@ -27,7 +27,7 @@ export class WorldMap {
       if (!e.target.closest('button,[data-act],.mp-card') && this.game.map3d) { ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); this.el.setPointerCapture?.(e.pointerId);
         if (ptrs.size === 1) g0 = { x: e.clientX, y: e.clientY, t: performance.now(), lx: e.clientX, ly: e.clientY, moved: 0 };
         if (ptrs.size === 2) { const [a, b2] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b2.x, a.y - b2.y); g0 = null; } }
-      const b = e.target.closest('[data-act]'); if (b) { e.preventDefault(); if (b.dataset.act === 'buddy') this.cycleBuddy(); if (b.dataset.act === 'go') this.enter(); if (b.dataset.act === 'shop') this.game.extras.openShop(); if (b.dataset.act === 'daily') this.game.daily.open(); }
+      const b = e.target.closest('[data-act]'); if (b) { e.preventDefault(); if (b.dataset.act === 'buddy') this.cycleBuddy(); if (b.dataset.act === 'go') this.enter(); if (b.dataset.act === 'shop') this.game.extras.openShop(); if (b.dataset.act === 'daily') this.game.daily.open(); if (b.dataset.act === 'grove') this.game.grove.open(); }
     });
     this.el.addEventListener('pointermove', (e) => {
       if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); const M3 = this.game.map3d;
@@ -111,6 +111,7 @@ export class WorldMap {
       <div class="mp-top"><span>✦ ${g.stats.glims}</span><span>◉ ${g.extras ? g.extras.coinCount : 0}</span><span>⚑ ${doneCount}/${LEVELS.length}</span></div>
       <div class="mp-foot">
         <button data-act="buddy" class="alt small">Bring: ${this.buddy ? names[this.buddy] : 'nobody'}</button>
+        <button data-act="grove" class="ghost small ${g.grove?.hasNew() ? 'fresh dl-btn' : ''}">🏡 Grove${g.grove?.hasNew() ? ' ✨' : ''}</button>
         <button data-act="shop" class="ghost small">Pim’s Stall</button>
         <button data-act="daily" class="ghost small dl-btn ${g.daily && !g.daily.doneToday() ? 'fresh' : ''}">★ Daily${g.daily && g.daily.streakNow() ? ` 🔥${g.daily.streakNow()}` : ''}</button>
         <button data-act="go">Play ▸</button>

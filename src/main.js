@@ -27,6 +27,7 @@ import { Evolve } from './evolve.js';
 import { Gfx } from './gfx.js';
 import { MapWorld } from './map3d.js';
 import { Prompts } from './prompts.js';
+import { Grove } from './grove.js';
 import { Daily } from './daily.js';
 import { Ambience } from './ambience.js';
 import { Journal } from './journal.js';
@@ -171,7 +172,7 @@ class Game {
     this.loadSave();
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
-    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.ctx = new Prompts(this); this.daily = new Daily(this); this.ambience = new Ambience(this); this.journal = new Journal(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); this.ghosts = new Ghosts(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
+    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.ctx = new Prompts(this); this.grove = new Grove(this); this.daily = new Daily(this); this.ambience = new Ambience(this); this.journal = new Journal(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); this.ghosts = new Ghosts(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
@@ -188,7 +189,7 @@ class Game {
       if (this.state === 'story' && (code === 'Space' || code === 'Enter' || code === 'Escape')) this.story.next();
       if (this.state === 'title' && (code === 'ArrowDown' || code === 'ArrowUp')) { const bs = [...document.querySelectorAll('#title .menu:not(.hidden) button:not(.hidden)')]; const i = bs.indexOf(document.activeElement); const n = bs[(i + (code === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length]; n && n.focus(); }
       if (code === 'KeyF') this.extras.togglePhoto();
-      if (this.state === 'map' && !this.extras.shopOpen) this.map.key(code);
+      if (this.state === 'map' && !this.extras.shopOpen && !this.grove.isOpen) this.map.key(code);
       if (this.extras.shopOpen && code === 'Escape' && this.extras.mode !== 'journal') this.extras.closeShop();
       if (this.state === 'travel') {
         const L = this.magic.waystones;
@@ -654,7 +655,7 @@ class Game {
     if (this.state === 'mini') { this.input.update(); this.minis.update(dt); this.input.endFrame(); this.hud.update(dt); this.audio.updateMusic(); this.cine.uniforms.time.value = this.time += dt; this.composer.render(); return; }
     if (this.state === 'photo') { this.input.update(); this.extras.update(dt, this.time); this.world.update(this.time, 0); this.cine.uniforms.time.value = this.time; this.composer.render(); return; }
     if (this.state === 'story') { this.input.update(); this.story.update(dt); this.entities.update(dt); this.player.render(dt); this.magic.update(dt); this.world.update(this.time += dt, dt); this.updateAtmosphere(dt); this.fx.update(dt, this.camera.position); this.hud.update(dt); this.audio.updateMusic(); this.cine.uniforms.time.value = this.time; this.composer.render(); return; }
-    if (this.state === 'paused' || this.state === 'travel' || this.state === 'map') { this.input.endFrame(); if (this.state === 'map') { this.map3d.update(dt, this.map); this.composer.render(); } return; }
+    if (this.state === 'paused' || this.state === 'travel' || this.state === 'map') { this.input.endFrame(); if (this.state === 'map') { if (this.grove.isOpen) this.grove.update(dt); else this.map3d.update(dt, this.map); this.composer.render(); } return; }
     this.time += dt;
     const playing = this.state === 'play';
     this.input.update();

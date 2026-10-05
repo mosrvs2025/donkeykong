@@ -453,3 +453,17 @@ body.onmap #daily-chip,body.inclash #daily-chip{display:none}
 body.bigtouch #touch{--b:clamp(60px,22vmin,98px)}
 .js-set{display:grid;gap:8px}.js-set label{display:grid;grid-template-columns:130px 1fr auto;align-items:center;gap:10px;background:#ffffff0a;border-radius:10px;padding:8px 12px}.js-set input[type=range]{width:100%;accent-color:#ffd46a}.js-set output{min-width:2.5em;text-align:right;color:#ffd46a}.js-set .seg{display:flex;gap:4px}.js-set .seg button{padding:4px 10px;font-size:13px}
 @media (max-width:700px){.js-set label{grid-template-columns:96px 1fr auto}}
+
+/* Kiri's Grove */
+body.ingrove #map,body.ingrove #map-labels,body.ingrove .map-edge,body.ingrove #map-ui{display:none!important}
+#grove-ui{position:fixed;inset:0;pointer-events:none;z-index:11}
+#grove-ui.hidden{display:none}
+.gv-card{position:absolute;left:16px;top:16px;width:min(320px,calc(100vw - 32px));background:linear-gradient(#fff8ec,#f3e4c8);color:#3a2a14;border:3px solid #7a4a1a;border-radius:18px;padding:14px 16px;box-shadow:0 10px 30px #0006;pointer-events:auto}
+.gv-kick{font-size:11px;letter-spacing:.25em;color:#8a6a3a}.gv-card h2{margin:2px 0 8px;color:#4a2a10}
+.gv-bar{height:10px;border-radius:6px;background:#0002;overflow:hidden}.gv-bar i{display:block;height:100%;background:linear-gradient(90deg,#7ad060,#ffd46a)}
+.gv-next{margin:10px 0 6px}.gv-next b{color:#2a7a3a}.gv-list{margin:6px 0;padding-left:18px;font-size:14px}.gv-list small{color:#8a6a3a}
+.gv-row{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-size:13px;margin-top:8px;color:#5a4020}
+.gv-close{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);pointer-events:auto}
+.gv-help{position:absolute;left:0;right:0;bottom:4px;text-align:center;font-size:12px;color:#fff;text-shadow:0 1px 3px #000}
+@media (max-width:700px){.gv-card{top:10px;left:10px;padding:10px 12px;font-size:14px}.gv-list{display:none}}
+.gv-close{white-space:nowrap}
