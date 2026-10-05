@@ -436,3 +436,17 @@ body.injournal #banner,body.injournal #story,body.injournal #toast,body.injourna
 #boss-cine b{display:block;font-size:clamp(28px,6vw,64px);color:#fff;font-weight:900;text-shadow:0 0 30px #ff9040,0 4px 0 #6a1a00,0 8px 24px #000}
 #boss-cine span{display:block;margin-top:10px;font-size:15px;letter-spacing:.15em;color:#ffe8c0;text-shadow:0 2px 6px #000}
 body.inclash #boss-cine,body.onmap #boss-cine{display:none}
+
+/* daily challenge */
+#daily-chip{position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#0b2a22e6;border:1px solid #ffd46a88;border-radius:20px;padding:5px 14px;font-size:14px;color:#fff;opacity:0;pointer-events:none;transition:opacity .3s;z-index:9}
+#daily-chip.on{opacity:1}#daily-chip b{color:#ffd46a}#daily-chip .ok{color:#7affb0;font-style:normal}#daily-chip .x{color:#ff7070;font-style:normal}
+#daily-modal{position:fixed;inset:0;z-index:15;background:#020806c8;display:flex;align-items:center;justify-content:center;padding:16px}
+#daily-modal.hidden{display:none}
+.dl-card{width:min(420px,100%);background:linear-gradient(#173f31,#0a1d16);border:2px solid #ffd46a88;border-radius:20px;padding:20px;text-align:center;box-shadow:0 20px 50px #000a}
+.dl-kick{font-size:11px;letter-spacing:.25em;color:#9fffd0}.dl-ic{font-size:44px;margin:8px 0 2px}
+.dl-card h2{margin:0;color:#ffd46a}.dl-lv{margin:2px 0 8px;font-style:italic;color:#ffffffb0}.dl-goal{font-size:17px;margin:8px 0 14px}
+.dl-row{display:flex;justify-content:space-around;gap:6px;flex-wrap:wrap;background:#ffffff0c;border-radius:12px;padding:8px;font-size:14px}.dl-row b{color:#ffd46a}
+.dl-done{color:#7affb0}.dl-btns{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.dl-btn.fresh{border-color:#ffd46a;color:#ffd46a;animation:dlp 1.4s ease-in-out infinite alternate}@keyframes dlp{to{box-shadow:0 0 14px #ffd46a88}}
+.rc-row.dl-win b{color:#ffd46a}.rc-row.dl-fail b{color:#ff9090}
+body.onmap #daily-chip,body.inclash #daily-chip{display:none}
