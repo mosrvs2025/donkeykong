@@ -102,7 +102,7 @@ export class Player {
     game.shake(0.5); game.audio.play('hurt');
     if (this.comp && !game.flight) { this.dismount(true, -this.facing); this.invuln = 1.5; this.vy = 12; return; }
     if (this.hearts <= 1 && game.skills.charm('charm_wind') && !this.windUsed) { this.windUsed = true; this.invuln = 2; this.vy = 12 * this.g; game.hud.toast('<b>Second Wind!</b> one more breath', 2); game.fx.burst(game.path.world(this.s, this.y + 0.8, 0), 0xbff4ff, 30, 7, 0.6, 0.7, 0); return; }
-    this.hearts--; this.invuln = 1.7; this.hurtT = 0.5;
+    this.hearts--; this.invuln = 1.7; this.hurtT = 0.5; game.hurtFx?.();
     this.vs = -this.facing * 7; this.vy = 10 * this.g; this.state = 'normal'; this.rollT = 0; this.dashT = 0;
     game.hud.hearts(this.hearts, this.maxHearts);
     if (this.hearts <= 0) game.killPlayer(reason);

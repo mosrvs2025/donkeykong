@@ -3,6 +3,9 @@
 Patch notes, newest first.
 
 ## v1.4.1 · Polish (Oct 5)
+- 💢 **Hits feel like hits:** a red flash and a tiny freeze-frame when you're hurt; on your last heart the screen edges pulse and a soft heartbeat plays.
+- 🎮 **Rumble:** gamepads rumble and phones buzz on big impacts (follows the screen-shake setting).
+- ⏸ **Auto-pause:** switching apps or tabs mid-level opens the Journal instead of letting the game run on.
 - 📱 **Auto graphics:** if the game stutters on your device, graphics step down automatically (switch it off in Journal › System). Graphics quality can now be changed in the Journal too.
 - 🎓 New tips in the Rootwild teach Sprout Dash and the ground pound, with buttons that match your device.
 

@@ -103,6 +103,9 @@ export class Combo {
     if (this.superT <= 0) this.kind = null;
   }
   update(dt, t) {
+    const g = this.game, p = g.player, low = g.state === 'play' && p.hearts === 1 && p.state !== 'dead';
+    document.getElementById('hurt-vig')?.classList.toggle('low', low);
+    if (low) { this.beatT = (this.beatT ?? 0) - dt; if (this.beatT <= 0) { this.beatT = 1.1; g.audio.heartbeat?.(); } }
     // the meter glows; the hero sparkles while a super is running
     if (this.superT > 0 && Math.random() < dt * 40) { const p = this.game.player; this.game.fx.spawn(this.game.path.world(p.s + (Math.random() - 0.5), p.y + Math.random() * 1.5, 0), new THREE.Vector3(0, 2, 0), SUPERS[this.kind || 'kiri'].col, 0.5, 0.6, 0); }
     if (this._hero !== this.hero) { this._hero = this.hero; this.renderMeter(); }

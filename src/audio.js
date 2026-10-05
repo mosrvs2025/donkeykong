@@ -17,6 +17,7 @@ export class Audio {
     this.nextNote = this.ctx.currentTime + 0.1; this.step = 0;
     this.ambient();
   }
+  heartbeat() { if (!this.ctx || this.muted) return; this.tone(62, 0.14, 'sine', 0.18 * (this.sfxVol ?? 1)); this.tone(55, 0.16, 'sine', 0.13 * (this.sfxVol ?? 1), 0, 0.18); }
   resume() { this.ctx && this.ctx.state !== 'running' && this.ctx.resume(); }
   toggleMute() { this.muted = !this.muted; this.applyVolume(); }
   applyVolume() { if (this.master) this.master.gain.value = this.muted ? 0 : 0.55 * (this.volume ?? 0.7) / 0.7; if (this.sfx) this.sfx.gain.value = 0.8 * (this.sfxVol ?? 1); }

@@ -202,6 +202,7 @@ class Game {
       }
     };
     $('resume-btn').onclick = () => this.togglePause();
+    document.addEventListener('visibilitychange', () => { if (document.hidden && this.state === 'play' && this.player.state === 'normal') this.togglePause(); }); // auto-pause when you switch away
     $('ghost-btn').onclick = () => { const on = this.ghosts.toggle(); $('ghost-btn').textContent = `Ghost race: ${on ? 'on' : 'off'}`; };
     $('t-pause').addEventListener('pointerdown', (e) => { e.preventDefault(); if (this.state === 'play' || this.state === 'paused') this.togglePause(); });
     $('map-btn').onclick = () => { this.state = 'play'; this.leaveToMap(); };
@@ -427,7 +428,15 @@ class Game {
   // ───────────── events from gameplay
   banner(a, b) { this.hud.banner(a, b, 3); }
   toast(h, d) { this.hud.toast(h, d); }
-  shake(a) { this.director.shake(a * (this.shakeMul ?? 1)); }
+  shake(a) { this.director.shake(a * (this.shakeMul ?? 1)); if (a >= 0.3) this.rumble(a); }
+  // gamepad rumble / phone buzz on big impacts (follows the screen-shake setting)
+  rumble(a) {
+    const k = this.shakeMul ?? 1; if (!k || (this._rumbleT || 0) > performance.now()) return; this._rumbleT = performance.now() + 120;
+    const gp = navigator.getGamepads?.()[0], ms = Math.min(400, 60 + a * 200);
+    try { gp?.vibrationActuator?.playEffect?.('dual-rumble', { duration: ms, strongMagnitude: Math.min(1, a * k), weakMagnitude: Math.min(1, a * k * 0.6) }); } catch {}
+    if (this.input.isTouch && navigator.vibrate && a >= 0.5) try { navigator.vibrate(Math.min(80, 20 + a * 40)); } catch {}
+  }
+  hurtFx() { const v = $('hurt-vig'); if (!v) return; v.classList.remove('hit'); void v.offsetWidth; v.classList.add('hit'); this.player.hitstop = Math.max(this.player.hitstop || 0, 0.07); }
   camPunch(t) { this.director.punch = t; }
   addGlims(n, pos) { this.stats.glims += n; this.hud.glims(this.stats.glims); if (pos) this.fx.burst(pos, 0x9fffc0, 6, 4, 0.5, 0.4, 0); if (Math.floor((this.stats.glims - n) / 100) < Math.floor(this.stats.glims / 100)) this.bonusHeart(); }
   bonusHeart() {
