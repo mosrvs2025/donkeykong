@@ -354,8 +354,9 @@ export class Player {
     if (impact > 8) { game.audio.play('land'); game.fx.burst(game.path.world(this.s, this.y + 0.1, 0), this.game.currentTheme === 3 ? 0x8070c0 : 0xd8c8a0, 8, 4, 0.7, 0.5, 0); }
     if (this.slamming) {
       this.slamming = false;
-      game.onSlam(this.s, this.y, this.g);
-      this.vy = 7 * this.g; this.grounded = false;
+      const broke = game.onSlam(this.s, this.y, this.g);
+      if (broke) { this.vy = -8 * this.g; this.slamming = true; } else this.vy = 7 * this.g; // fell through a cracked floor: keep pounding
+      this.grounded = false;
     }
     this.chain = 0; this.lastGrap = null;
     if (this.mount === 'bird' && this.birdTime <= 0) { const c = this.comp; this.dismount(true, 1); game.toast('Sola is tired and flies home.', 2.5); }

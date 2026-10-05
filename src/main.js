@@ -113,6 +113,11 @@ const SECRETS = [
   { id: 'lookout', name: 'Mossroot Lookout', test: (p) => p.s > 103 + O && p.s < 119 + O && p.y > 21 && p.y < 30 },
   { id: 'starwell', name: 'The Starwell', test: (p) => p.y < -120 },
   { id: 'grove', name: 'The Dreaming Grove', test: (p) => p.y > 280 },
+  { id: 'v_root_pip', name: 'Pip’s Burrow', test: (p) => p.s > 151 + O && p.s < 158 + O && p.y < -3 && p.y > -6 },
+  { id: 'v_root_pound', name: 'The Hollow Under the Road', test: (p) => p.s > 203 + O && p.s < 214 + O && p.y < -3 && p.y > -6 },
+  { id: 'v_glow_brom', name: 'Brom’s Dig', test: (p) => p.s > 931 + O && p.s < 937 + O && p.y < -8 && p.y > -11 },
+  { id: 'v_glow_pip', name: 'The Glowworm Nook', test: (p) => p.s > 1019 + O && p.s < 1026 + O && p.y < -8 && p.y > -11 },
+  { id: 'v_glow_pound', name: 'The Sunken Crypt', test: (p) => p.s > 1032 + O && p.s < 1043 + O && p.y < -8 && p.y > -11 },
   { id: 'mossback', name: 'The Sleeping Hill', test: (p, g) => g.stats.mossback },
 ];
 
@@ -438,9 +443,13 @@ class Game {
     if (quake) { this.shake(0.7); this.fx.ring(p, 0xffc070, 40, 15, 0.8, new THREE.Vector3(f.tx, 0, f.tz), new THREE.Vector3(f.nx, 0, f.nz)); this.fx.burst(p, 0xc8a070, 40, 9, 0.8, 0.8, -10); this.audio.play('smash');
       for (const e of E.enemies) if (e.alive && Math.abs(e.s - s) < R && Math.abs(e.y - y) < 5) E.killEnemy(e, Math.sign(e.s - s) * 8, 12);
       for (const o of E.solids) if (o.active && o.crack === 'beast' && Math.abs((o.s0 + o.s1) / 2 - s) < R && o.y1 > y - 3 && o.y0 < y + 3) E.breakSolid(o); }
+    // cracked floors give way under any ground pound
+    let broke = false;
+    for (const o of E.solids) if (o.active && o.crack === 'pound' && s > o.s0 - 0.6 && s < o.s1 + 0.6 && Math.abs(o.y1 - y) < 0.7) { E.breakSolid(o); this.hitstop?.(0.08); broke = true; }
     for (const t of E.totems) if (Math.abs(t.s - s) < R && Math.abs(t.y - y) < 4) E.toggleTotem(t);
     for (const e of E.enemies) if (e.alive && Math.abs(e.s - s) < 3.2 && Math.abs(e.y - y) < 1.5 && e.kind !== 'buzzmoth') { if (e.kind === 'spikeback' && this.player.mount !== 'beast') e.stun = 2; else E.killEnemy(e, Math.sign(e.s - s) * 6, 10); }
     for (const b of E.blooms) if (Math.abs(b.s - s) < 3 && Math.abs(b.y - y) < 3) E.triggerBloom(b);
+    return broke;
   }
   setCheckpoint(cp) { this.checkpoint = { s: cp.s, y: cp.y }; this.audio.play('checkpoint'); this.toast('Beacon lit — checkpoint saved', 1.8); const p = this.player; if (p.hearts < p.maxHearts) { p.hearts = p.maxHearts; this.hud.hearts(p.hearts, p.maxHearts); } }
   killPlayer(reason) {

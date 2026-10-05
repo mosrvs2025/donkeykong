@@ -550,5 +550,30 @@ export function buildLevel() {
   spikes(195.55, 196, -726, -720, 'left');
   line(194, 194, -737, -724, 4);
   line(200, 210, -717.8, -717.8, 5);
+
+  // ═════════════════════ HERO VAULTS: secret rooms carved under the main road ═════════════════════
+  // pound: a cracked floor anyone can ground pound through · pip: a shaft with a tunnel too low for
+  // anyone but Pip · brom: a shaft walled off by cracked stone only Brom's roll can smash
+  L.vaults = [];
+  const carve = (s0, s1, y, depth, mat) => { // split the ground under [s0,s1] and drop its floor
+    const S0 = s0 + O, S1 = s1 + O, g = L.solids.find((o) => o.ground && o.y1 === y && o.s0 < S0 && o.s1 > S1);
+    if (!g) return false; const right = { ...g, id: id++, s0: S1 }; g.s1 = S0; L.solids.push(right);
+    ground(s0, s1, y - depth, mat); return true;
+  };
+  const vault = (kind, s, y, mat = 'stone') => {
+    const D = 5, W = 11; if (!carve(s, s + W, y, D, mat)) return;
+    if (kind === 'pound') { plat(s, s + W, y, 'ruin', 1, { crack: 'pound' }); }
+    else { // open 4-wide shaft, then the guarded chamber under a solid roof
+      solid(s + 4, s + W, y - 1, y, mat);
+      if (kind === 'pip') solid(s + 4, s + 7, y - D + 1.22, y - 1, mat, { pipOnly: true });
+      else solid(s + 4, s + 5.4, y - D, y - 1, 'ruin', { crack: 'beast' });
+    }
+    bouncer(kind === 'pound' ? s + 1.3 : s + 1.5, y - D, 28); // a bounce flower so nobody is ever stuck down here
+    const cs = kind === 'pound' ? s + W / 2 : s + 8.5;
+    line(cs - 2, cs + 2, y - D + 0.9, y - D + 0.9, 5); arc(cs - 1.5, cs + 1.5, y - D + 1.6, 1.2, 4);
+    L.vaults.push({ kind, s: s + O, y, s0: s + O, s1: s + W + O, y0: y - D, cs: cs + O });
+  };
+  vault('pip', 147, 0); vault('pound', 203, 0);                 // Rootwild
+  vault('brom', 926, -5, 'cave'); vault('pip', 1015, -5, 'cave'); vault('pound', 1032, -5, 'cave'); // Glowdeep
   return L;
 }

@@ -14,7 +14,7 @@ export class Prompts {
   get touch() { return this.game.input.isTouch; }
   // a button chip, in the right vocabulary for the device
   key(a) {
-    const T = { jump: ['⤒', 'Space'], action: ['⚡', 'Shift'], dash: ['➶', 'F'], down: ['stick ↓', '↓'], up: ['stick ↑', '↑'], dismount: ['⏏', 'C'] }[a];
+    const T = { jump: ['⤒', 'Space'], action: ['⚡', 'Shift'], dash: ['➶', 'F'], down: ['stick ↓', '↓'], up: ['stick ↑', '↑'], dismount: ['⏏', 'C'], swap: ['⇄', 'Q'] }[a];
     return `<kbd class="ctx-k">${this.touch ? T[0] : T[1]}</kbd>`;
   }
   // rewrite keyboard words in level hints into chips that match the device
@@ -36,6 +36,10 @@ export class Prompts {
       else if (o.crack === 'song') Object.assign(c, { icon: '♪', title: 'Blight', text: 'Sing the old song near it to melt it' });
       else continue;
       out.push(c);
+    }
+    for (const v of g.level.vaults || []) {
+      if (v.kind === 'pound') { const o = E.solids.find((x) => x.crack === 'pound' && x.s0 === v.s0); if (o?.active) out.push({ s: v.cs, y: v.y + 3, icon: '💥', title: 'Cracked floor', text: `Something's hollow below. Jump and ground pound ${K('down')}`, r: 8 }); }
+      else if (v.kind === 'pip') out.push({ s: v.s0 + 5.5, y: v.y0 + 3.4, icon: '🐿', title: 'Tiny tunnel', text: p.hero === 'pip' ? `Pip fits! Run on through` : `Only Pip is small enough. Swap heroes ${K('swap')}`, r: 6 });
     }
     for (const h of g.minis?.hollows || []) out.push({ s: h.s, y: h.y + 3, icon: '🕳', title: `Root Hollow · ${h.name}`, text: `Stand on it and press ${K('down')} to dive in`, r: 7 });
     for (const w of g.magic?.waystones || []) out.push({ s: w.s, y: w.y + 5, icon: '◈', title: w.lit ? 'Waystone' : 'Waystone (asleep)', text: w.lit ? `Press ${K('up')} to open the world map` : 'Walk up to it to wake it', r: w.lit ? 7 : 4.5 });
