@@ -258,7 +258,7 @@ export class Entities {
     const p = this.path.world(e.s, e.y + 0.5, 0);
     this.game.fx.burst(p, 0xffe070, 14, 7, 0.7, 0.6, -10);
     this.game.fx.burst(p, 0xffffff, 6, 4, 1.0, 0.25, 0);
-    this.game.stats.enemies++;
+    this.game.stats.enemies++; this.game.combo?.kill(e);
   }
   // ───────── misc: checkpoints, portals, grapples, updrafts, blooms, totems, carts, chase, altar
   buildMisc() {

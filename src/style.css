@@ -467,3 +467,22 @@ body.ingrove #map,body.ingrove #map-labels,body.ingrove .map-edge,body.ingrove #
 .gv-help{position:absolute;left:0;right:0;bottom:4px;text-align:center;font-size:12px;color:#fff;text-shadow:0 1px 3px #000}
 @media (max-width:700px){.gv-card{top:10px;left:10px;padding:10px 12px;font-size:14px}.gv-list{display:none}}
 .gv-close{white-space:nowrap}
+
+/* combos + Lumen meter + super button */
+#combo{position:fixed;top:92px;right:22px;text-align:right;pointer-events:none;opacity:0;transform:scale(.8);transition:opacity .25s,transform .25s;z-index:9;--rc:#fff}
+#combo.on{opacity:1;transform:scale(1)}
+#combo b{display:block;font-size:44px;font-weight:900;line-height:1;color:var(--rc);text-shadow:0 0 18px var(--rc),0 3px 0 #0008}
+#combo span{display:block;font-size:16px;font-weight:800;letter-spacing:.2em;color:var(--rc);text-shadow:0 2px 4px #000}
+#combo i{display:block;font-style:normal;font-size:18px;font-weight:800;color:#ffd46a;text-shadow:0 2px 4px #000}
+#combo.pop b{animation:cbpop .45s cubic-bezier(.2,1.6,.4,1)}@keyframes cbpop{from{transform:scale(1.8)}}
+#combo.cash b,#combo.cash span{opacity:.5}
+#lumen{position:absolute;left:16px;top:58px;display:flex;align-items:center;gap:8px;pointer-events:none}
+#lumen .lm-bar{width:120px;height:9px;border-radius:6px;background:#0007;border:1px solid #ffffff40;overflow:hidden}
+#lumen .lm-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7affd0,#ffe080);transition:width .2s}
+#lumen.full .lm-bar{border-color:#ffe080;box-shadow:0 0 12px #ffe080;animation:lmg .8s ease-in-out infinite alternate}@keyframes lmg{to{box-shadow:0 0 22px #ffb040}}
+#lumen span{font-size:12px;font-weight:800;color:#ffe080;letter-spacing:.06em;text-shadow:0 1px 3px #000}
+#t-super{right:calc(var(--g) + var(--b) * .2);bottom:calc(var(--bb) + var(--b) * 2.25);width:var(--s);height:var(--s);flex-direction:column;line-height:1;background:#ffe08044;border-color:#ffe080;animation:lmg .8s ease-in-out infinite alternate}
+#t-super span{font-size:9px;text-transform:uppercase}
+#t-super.hidden{display:none}
+@media (max-width:700px){#combo{top:84px;right:12px}#combo b{font-size:34px}#lumen{top:52px}#lumen .lm-bar{width:90px}}
+body.photo #combo,body.mini #combo,body.inclash #combo,body.onmap #combo,body.injournal #combo{display:none}

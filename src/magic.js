@@ -395,7 +395,7 @@ export class Magic {
     for (const e of game.entities.enemies) if (e.alive && Math.abs(e.s - p.s) < 10 && Math.abs(e.y - p.y) < 6 && e.kind !== 'eel') { e.stun = 3.5; this.emote(e.model, 'z', 3); }
   }
   chainEvent() {
-    this.chain++;
+    this.chain++; this.game.combo?.event(1, 3);
     if (this.chain > this.bestChain) this.bestChain = this.chain;
     this.game.hud.chain(this.chain);
     if (this.chain === 6 || this.chain === 12 || this.chain === 20) { this.game.audio.play('checkpoint'); this.game.addGlims(this.chain / 2, this.path.world(this.game.player.s, this.game.player.y + 2, 0)); this.game.hud.toast(this.chain >= 20 ? '<b>SKYBORNE</b>: Kiri forgot the ground exists' : this.chain >= 12 ? '<b>Windsong!</b>' : '<b>Flowing!</b>', 1.5); }

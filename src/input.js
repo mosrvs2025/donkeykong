@@ -82,7 +82,7 @@ export class Input {
     const g0 = pads[0];
     if (g0) {
       const ax = g0.axes[0] || 0, ay = g0.axes[1] || 0, b = (i) => !!(g0.buttons[i] && g0.buttons[i].pressed);
-      Object.assign(pad, { left: ax < -0.28 || b(14), right: ax > 0.28 || b(15), up: ay < -0.6 || b(12), down: ay > 0.6 || b(13), jump: b(0), action: b(2) || b(1), dismount: b(3), dash: b(5) || b(7) || b(4) || b(6), swap: b(8) });
+      Object.assign(pad, { left: ax < -0.28 || b(14), right: ax > 0.28 || b(15), up: ay < -0.6 || b(12), down: ay > 0.6 || b(13), jump: b(0), action: b(2) || b(1), dismount: b(3), dash: b(5) || b(7) || b(4) || b(6), swap: b(8), super: b(10) || b(11) });
       if (Math.abs(ax) > 0.28 || Math.abs(ay) > 0.28) { pad.sx = ax; pad.sy = -ay; }
       const prev = this.padPrev[0];
       for (const k in pad) { if (k === 'sx' || k === 'sy') continue; if (pad[k] && !prev[k]) this.pressed[k] = true; prev[k] = pad[k]; }

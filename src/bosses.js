@@ -80,7 +80,7 @@ class Boss {
   hurtPlayer(msg) { const p = this.p; if (p.invuln <= 0 && p.state === 'normal') p.hurt(msg); }
   hit() {
     const game = this.game;
-    this.hp--; this.flash = 0.6; game.shake(0.7); game.audio.play('smash'); game.hitstop?.(0.08);
+    this.hp--; this.flash = 0.6; game.combo?.event(3, 12); game.shake(0.7); game.audio.play('smash'); game.hitstop?.(0.08);
     game.fx.burst(this.path.world(this.s, this.y + 2, 0), 0xfff0a0, 40, 10, 0.9, 0.9, -6);
     game.hud.bossBar(this.hp, this.def.name);
     if (this.hp <= 0) { // the finishing blow: slow motion, a white flash, then it comes apart

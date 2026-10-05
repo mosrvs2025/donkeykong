@@ -27,6 +27,7 @@ import { Evolve } from './evolve.js';
 import { Gfx } from './gfx.js';
 import { MapWorld } from './map3d.js';
 import { Prompts } from './prompts.js';
+import { Combo } from './combo.js';
 import { Grove } from './grove.js';
 import { Daily } from './daily.js';
 import { Ambience } from './ambience.js';
@@ -93,7 +94,7 @@ class HUD {
   bossBar(hp, name) { const el = $('bossbar'); if (!hp) { el.classList.remove('on'); return; } el.innerHTML = `<span>${name}</span><b>${'◆'.repeat(hp)}${'◇'.repeat(3 - hp)}</b>`; el.classList.add('on'); }
   coins(n) { $('coins').textContent = n ? `◉ ${n}` : ''; }
   echoes(n) { $('echoes').textContent = n ? `❋ ${n}/8` : ''; }
-  chain(n) { const el = $('chain'); if (n >= 3) { el.textContent = `airborne ×${n}`; el.classList.add('on'); } else el.classList.remove('on'); }
+  chain(n) { const el = $('chain'); if (false && n >= 3) { el.textContent = `airborne ×${n}`; el.classList.add('on'); } else el.classList.remove('on'); }
   prompt(t, src = 'way') { (this.prompts ||= {})[src] = t; const v = Object.values(this.prompts).find(Boolean); const el = $('prompt'); if (v) { el.textContent = v; el.classList.add('on'); } else el.classList.remove('on'); }
   power(kind) { const el = $('power'); if (kind) { el.textContent = POWERS[kind].icon; el.classList.add('on'); } else el.classList.remove('on'); }
   story(text, sub) { $('story-text').textContent = text; $('story-sub').textContent = sub; $('story').classList.add('on'); this.storyT = 6.5; }
@@ -172,7 +173,7 @@ class Game {
     this.loadSave();
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
-    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.ctx = new Prompts(this); this.grove = new Grove(this); this.daily = new Daily(this); this.ambience = new Ambience(this); this.journal = new Journal(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); this.ghosts = new Ghosts(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
+    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.ctx = new Prompts(this); this.combo = new Combo(this); this.grove = new Grove(this); this.daily = new Daily(this); this.ambience = new Ambience(this); this.journal = new Journal(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); this.ghosts = new Ghosts(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
@@ -424,7 +425,7 @@ class Game {
     const p = this.player; if (p.hearts < p.maxHearts) { p.hearts++; } else if (p.maxHearts < 5) { p.maxHearts++; p.hearts = p.maxHearts; }
     this.hud.hearts(p.hearts, p.maxHearts); this.toast('100 glims! <b>+1 heart</b>', 2); this.audio.play('checkpoint');
   }
-  collectGlim(g) {
+  collectGlim(g) { this.combo?.glim();
     const n = (this.glimStreak = (this.glimStreakT > 0 ? (this.glimStreak || 0) + 1 : 0)); this.glimStreakT = 0.5;
     this.audio.play('glim', n);
     this.fx.burst(g.p, 0xa0ffc0, 6, 3, 0.45, 0.35, 0);
@@ -642,7 +643,7 @@ class Game {
     const h = 1 / 120;
     for (let i = 0; i < secs * 120; i++) {
       this.input.update();
-      this.entities.update(h); this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h); this.player.step(h, this.input); this.thornwell.step(h); this.extras.step(h); this.powers.step(h); this.player.tick(h); this.player.interact(h);
+      this.entities.update(h); this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h); this.player.step(h, this.input); this.thornwell.step(h); this.extras.step(h); this.powers.step(h); this.combo.step(h); this.player.tick(h); this.player.interact(h);
       if (i === 0) this.input.endFrame();
     }
     const p = this.player; return { s: +(p.s - O).toFixed(2), y: +p.y.toFixed(2), vs: +p.vs.toFixed(2), vy: +p.vy.toFixed(2), st: p.state, g: p.grounded, mount: p.mount, cart: !!p.cart, glims: this.stats.glims, hearts: p.hearts, deaths: this.stats.deaths, water: p.inWater };
@@ -672,7 +673,7 @@ class Game {
         this.entities.update(h);
         this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h);
         this.player.step(h, this.input);
-        this.coop.step(h, this.input.p2); this.eggs.step(h); this.thornwell.step(h); this.extras.step(h); this.powers.step(h); this.minis.step(h);
+        this.coop.step(h, this.input.p2); this.eggs.step(h); this.combo.step(h); this.thornwell.step(h); this.extras.step(h); this.powers.step(h); this.minis.step(h);
         this.player.tick(h);
         this.player.interact(h);
         this.acc -= h; n++;
@@ -693,7 +694,7 @@ class Game {
       const w = this.path.world(this.player.s, 2, 0), a = this.time * 0.08;
       this.camera.position.set(w.x + Math.sin(a) * 26, w.y + 8, w.z + Math.cos(a) * 26); this.camera.lookAt(w.x, w.y + 3, w.z);
     }
-    this.coop.update(dt); this.goals.update(dt, this.time); this.ghosts.update(dt); this.eggs.update(dt); this.ctx.update(); this.daily.step(); this.ambience.update(dt, this.time); this.thornwell.update(dt, this.time); this.extras.update(dt, this.time); this.powers.update(dt, this.time); this.minis.updateWorld(dt, this.time);
+    this.coop.update(dt); this.goals.update(dt, this.time); this.ghosts.update(dt); this.eggs.update(dt); this.ctx.update(); this.combo.update(dt, this.time); this.daily.step(); this.ambience.update(dt, this.time); this.thornwell.update(dt, this.time); this.extras.update(dt, this.time); this.powers.update(dt, this.time); this.minis.updateWorld(dt, this.time);
     this.cine.uniforms.time.value = this.time;
     this.fx.update(dt, this.camera.position);
     this.hud.update(dt);
