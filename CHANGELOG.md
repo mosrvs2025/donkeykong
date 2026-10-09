@@ -2,6 +2,11 @@
 
 Patch notes, newest first.
 
+## v1.4.2 · Clear touch controls (Oct 9)
+- 📱 **Touch controls you can actually see:** the joystick now has a solid dark backing, bright rim, direction arrows and a MOVE label; Jump, Action and Dash buttons have high-contrast backs and labels. Visible on any background.
+- 👆 **First-time coach:** a pulsing "drag to move" bubble sits on the joystick until you use it once.
+- Fix: the level timer no longer overlaps the pause button on phones.
+
 ## v1.4.1 · Polish (Oct 5)
 - 💢 **Hits feel like hits:** a red flash and a tiny freeze-frame when you're hurt; on your last heart the screen edges pulse and a soft heartbeat plays.
 - 🎮 **Rumble:** gamepads rumble and phones buzz on big impacts (follows the screen-shake setting).

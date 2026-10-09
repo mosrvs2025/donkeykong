@@ -39,6 +39,8 @@ export class Input {
     };
     // floating joystick: lands wherever the left thumb goes down, follows if dragged past its rim
     const stickEl = document.getElementById('stick'), knob = document.getElementById('stick-knob');
+    // first-time coach: a pulsing "drag to move" on the joystick until it's used once
+    try { if (this.isTouch && !localStorage.getItem('thornwild.moved')) document.body.classList.add('coach'); } catch {}
     const js = { id: null, ox: 0, oy: 0 };
     const R = () => Math.max(38, Math.min(70, Math.min(innerWidth, innerHeight) * 0.13));
     const setStick = (x, y) => {
@@ -59,7 +61,7 @@ export class Input {
     const onDown = (e) => {
       const k = hit(e.clientX, e.clientY);
       if (!k) {
-        if (js.id === null && e.target.id === 't-zone') { e.preventDefault(); js.id = e.pointerId; js.ox = e.clientX; js.oy = e.clientY; stickEl.classList.add('live'); setStick(e.clientX, e.clientY); }
+        if (js.id === null && e.target.id === 't-zone') { e.preventDefault(); js.id = e.pointerId; js.ox = e.clientX; js.oy = e.clientY; stickEl.classList.add('live'); if (document.body.classList.contains('coach')) { document.body.classList.remove('coach'); try { localStorage.setItem('thornwild.moved', '1'); } catch {} } setStick(e.clientX, e.clientY); }
         return;
       }
       e.preventDefault();
