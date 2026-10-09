@@ -2,6 +2,10 @@
 
 Patch notes, newest first.
 
+## v1.4.3 · Save fix (Oct 9)
+- 💾 **No more lost progress:** the game now saves the moment you leave or close the app, every 15 seconds while you play, and at checkpoints, Sun Shards, secrets and guardian wins. Before, mid-level progress was only saved when you reached the world map or finished a level, so phones that closed the browser in the background could lose it.
+- The game asks the browser to keep its save data instead of clearing it when space runs low.
+
 ## v1.4.2 · Clear touch controls (Oct 9)
 - 📱 **Touch controls you can actually see:** the joystick now has a solid dark backing, bright rim, direction arrows and a MOVE label; Jump, Action and Dash buttons have high-contrast backs and labels. Visible on any background.
 - 👆 **First-time coach:** a pulsing "drag to move" bubble sits on the joystick until you use it once.

@@ -171,6 +171,12 @@ class Game {
     this.forms = new Set(); this.levelWalls = [0, 1].map(() => { const w = { s0: 0, s1: 0, y0: -2000, y1: 2000, active: false, dS: 0, dY: 0 }; this.entities.solids.push(w); return w; });
     this.progress = { unlocked: ['rootwild'], levels: {} };
     this.loadSave();
+    // never lose progress: save when the app is hidden/closed, every 15s while playing, and at key moments
+    const autosave = () => { if (this.state !== 'title' && this.state !== 'clash' && this.extras) this.saveGame(); };
+    document.addEventListener('visibilitychange', () => { if (document.hidden) autosave(); });
+    addEventListener('pagehide', autosave); addEventListener('beforeunload', autosave);
+    setInterval(() => { if (this.state === 'play' || this.state === 'paused' || this.state === 'map') autosave(); }, 15000);
+    try { navigator.storage?.persist?.(); } catch {} // ask the browser not to clear our storage when space is low
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
     this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.ctx = new Prompts(this); this.combo = new Combo(this); this.grove = new Grove(this); this.daily = new Daily(this); this.ambience = new Ambience(this); this.journal = new Journal(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); this.ghosts = new Ghosts(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
@@ -331,6 +337,7 @@ class Game {
     }, 500);
   }
   onBossDefeated(id) {
+    this.saveGame();
     const lv = this.currentLevel; if (!lv) return;
     this.addGlims(15, this.path.world(this.player.s, this.player.y + 2, 0));
     this.magic.celebrate();
@@ -449,7 +456,7 @@ class Game {
     this.fx.burst(g.p, 0xa0ffc0, 6, 3, 0.45, 0.35, 0);
     this.addGlims(1);
   }
-  collectShard(sd) {
+  collectShard(sd) { setTimeout(() => this.saveGame(), 0);
     this.audio.play('shard'); this.hud.shards(this.entities.shards);
     const got = this.entities.shards.filter((s) => s.taken && !s.star).length;
     const p = this.path.world(sd.s, sd.y, 0);
@@ -477,7 +484,7 @@ class Game {
     for (const b of E.blooms) if (Math.abs(b.s - s) < 3 && Math.abs(b.y - y) < 3) E.triggerBloom(b);
     return broke;
   }
-  setCheckpoint(cp) { this.checkpoint = { s: cp.s, y: cp.y }; this.audio.play('checkpoint'); this.toast('Beacon lit — checkpoint saved', 1.8); const p = this.player; if (p.hearts < p.maxHearts) { p.hearts = p.maxHearts; this.hud.hearts(p.hearts, p.maxHearts); } }
+  setCheckpoint(cp) { this.checkpoint = { s: cp.s, y: cp.y }; this.saveGame(); this.audio.play('checkpoint'); this.toast('Beacon lit — checkpoint saved', 1.8); const p = this.player; if (p.hearts < p.maxHearts) { p.hearts = p.maxHearts; this.hud.hearts(p.hearts, p.maxHearts); } }
   killPlayer(reason) {
     const p = this.player; if (p.state === 'dead' || p.state === 'cutscene') return;
     p.state = 'dead'; p.deadT = 0; this.stats.deaths++;
@@ -646,7 +653,7 @@ class Game {
       this.hintSeen.add(key); this.hud.toast(this.ctx.keys(h.text), 5.5);
     }
     for (const sc of SECRETS) if (!this.stats.secrets.has(sc.id) && p.state !== 'dead' && sc.test(p, this)) {
-      this.stats.secrets.add(sc.id); this.hud.banner('SECRET FOUND', `${sc.name} · ${this.stats.secrets.size}/${SECRETS.length}`, 3); this.audio.play('bloom');
+      this.stats.secrets.add(sc.id); this.saveGame(); this.hud.banner('SECRET FOUND', `${sc.name} · ${this.stats.secrets.size}/${SECRETS.length}`, 3); this.audio.play('bloom');
     }
     // mount indicator
     if (p.mount === 'bird') this.hud.mount(p.birdTime > 1e6 ? '🪶 SOLA' : `🪶 SOLA ${Math.max(0, Math.ceil(p.birdTime))}s`);
