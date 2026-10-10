@@ -3,6 +3,8 @@
 Patch notes, newest first.
 
 ## v1.5 · "Connected Worlds" (Oct 10)
+- 🎥 **Cinematic transitions:** an iris wipe opens from Kiri when a level starts and from the centre when the world map appears; the first time you enter each level the camera sweeps in from deep inside it.
+- 💨 **Movement visuals:** dashes leave a streak in each hero's colour; landing dust matches the ground (soil, leaf litter, sand, cave grit, mine sparks) and bigger falls kick up bigger clouds.
 - 🎬 **A real title screen:** an animated logo with a light sweep and vine ornament, drifting glowing motes, the forest visible behind, and "press any key / tap to begin" before the menu slides in. Menu buttons highlight with a soft sound.
 - 🍂 **Atmosphere:** leaves drift and tumble through the forests (some right past the camera), glowing spores rise in the caves.
 - ⚑ **Beacon warp:** stand at any lit beacon and press ↑ to warp to another one you've lit in that level. Beacons you've lit stay lit when you come back.

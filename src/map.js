@@ -51,7 +51,7 @@ export class WorldMap {
   show() {
     this.el.classList.remove('hidden'); this.open = true;
     if (this.progress().levels.rootwild?.clear && !this.unlocked('thornwell')) { this.progress().unlocked.push('thornwell'); this.justUnlocked = 'thornwell'; (this.reveals ||= []).push(['rootwild', 'thornwell']); }
-    const M3 = this.game.map3d; M3.enter(); this.render();
+    const M3 = this.game.map3d; M3.enter(); this.render(); this.game.cinema?.iris(0.5, 0.55);
     for (const [a, b] of this.reveals || []) M3.reveal(a, b); this.reveals = [];
     if (this.justUnlocked) { const n = levelById(this.justUnlocked); setTimeout(() => this.game.hud.toast(`New path: <b>${n.name}</b>${n.optional ? ' (optional)' : ''}`, 3), 400); this.justUnlocked = null; }
   }

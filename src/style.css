@@ -548,3 +548,7 @@ body.coach #stick::before{animation:skr 1s ease-in-out infinite alternate}
 @keyframes mote{0%{transform:translate(0,0);opacity:0}10%{opacity:.9}100%{transform:translate(30px,-105vh);opacity:0}}
 #fade.iris{transition:opacity .5s!important}
 @media (max-width:520px){#title .logo{font-size:10.2vw;letter-spacing:.02em}}
+
+/* iris wipe */
+#iris{position:fixed;inset:0;z-index:40;pointer-events:none;display:none;background:#030806;--r:0px;-webkit-mask:radial-gradient(circle at var(--x) var(--y),transparent var(--r),#000 calc(var(--r) + 2px));mask:radial-gradient(circle at var(--x) var(--y),transparent var(--r),#000 calc(var(--r) + 2px))}
+#iris.on{display:block}

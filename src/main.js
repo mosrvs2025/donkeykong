@@ -27,6 +27,7 @@ import { Evolve } from './evolve.js';
 import { Gfx } from './gfx.js';
 import { MapWorld } from './map3d.js';
 import { Prompts } from './prompts.js';
+import { Cinema } from './cinema.js';
 import { LevelNav } from './levelnav.js';
 import { Combo } from './combo.js';
 import { Grove } from './grove.js';
@@ -180,7 +181,7 @@ class Game {
     try { navigator.storage?.persist?.(); } catch {} // ask the browser not to clear our storage when space is low
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
-    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.ctx = new Prompts(this); this.nav = new LevelNav(this);
+    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.ctx = new Prompts(this); this.cinema = new Cinema(this); this.nav = new LevelNav(this);
     for (const [i, b] of (this.level.branches || []).entries()) SECRETS.push({ id: 'br_' + i, name: b.name, test: (p) => p.s > b.s && p.s < b.s + 15 && p.y > b.y + 15 && p.y < b.y + 23 }); this.combo = new Combo(this); this.grove = new Grove(this); this.daily = new Daily(this); this.ambience = new Ambience(this); this.journal = new Journal(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); this.ghosts = new Ghosts(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
@@ -302,7 +303,7 @@ class Game {
     const comps = this.entities.companions;
     if (this.flight) { const bird = comps.find((c) => c.kind === 'bird'); this.stats.met.bird = true; bird.cage.visible = false; bird.state = 'idle'; p.mountOn(bird); p.birdTime = 1e9; this.hud.toast('Sola carries Kiri into the sky. <b>↑↓</b> steer · <b>Space</b> flap · <b>Shift</b> dash', 5); }
     else if (buddy) { const c = comps.find((x) => x.kind === buddy); if (c) { c.cage.visible = false; c.state = 'idle'; p.mountOn(c); } }
-    this.nav.relight();
+    this.nav.relight(); this.cinema?.enterLevel(lv);
     this.hud.hearts(p.hearts, p.maxHearts); this.snapTheme = true; this.director.update(0.016, p, true);
     this.audio.intensity = 0.2; this.last = performance.now();
     if (lv.id === 'rootwild' && !this.progress.introSeen) {

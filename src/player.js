@@ -351,7 +351,7 @@ export class Player {
     const impact = Math.abs(prevVy);
     this.squash = Math.min(0.45, impact * 0.018);
     if (impact > 18) game.shake(Math.min(0.25, impact * 0.008));
-    if (impact > 8) { game.audio.play('land'); game.fx.burst(game.path.world(this.s, this.y + 0.1, 0), this.game.currentTheme === 3 ? 0x8070c0 : 0xd8c8a0, 8, 4, 0.7, 0.5, 0); }
+    if (impact > 8) { game.audio.play('land'); const dc = this.dustColor(); game.fx.burst(game.path.world(this.s, this.y + 0.1, 0), dc, 8 + Math.min(14, impact * 0.5) | 0, 4, 0.7, 0.5, 0); if (impact > 18) game.fx.burst(game.path.world(this.s, this.y + 0.1, 0), dc, 16, 7, 0.9, 0.6, -4); }
     if (this.slamming) {
       this.slamming = false;
       const broke = game.onSlam(this.s, this.y, this.g);
@@ -591,6 +591,8 @@ export class Player {
   }
 
   // ───────────────────────── rendering / animation
+  // dust that matches the ground: soil, leaf litter, sand, cave grit, mine sparks, temple stone
+  dustColor() { const t = this.game.currentTheme ?? 0; return { 0: 0xc8b088, 1: 0x9ab070, 2: 0xe6d6b0, 3: 0x8070c0, 4: 0xffa050, 5: 0xf0e0b0, 8: 0xbff4ff, 9: 0xffffff, 10: 0x70e0c8 }[t] ?? 0xd8c8a0; }
   render(dt) {
     const game = this.game, P = game.path, ud = this.model.userData, t = this.animT;
     const m = this.model;
@@ -611,6 +613,9 @@ export class Player {
     let legA = 0, armA = 0, armZ = 0, lean = 0, bob = 0;
     const speed = Math.abs(this.vs);
     const air = !this.grounded;
+    // dash trail: a bright streak in the hero's colour
+    if (this.sdashT > 0 || this.dashT > 0.3) { const col = { kiri: 0x9fffd0, pip: 0x9fd0ff, brom: 0xffd060 }[this.hero || 'kiri'];
+      for (let k = 0; k < 3; k++) game.fx.spawn(P.world(this.s - this.facing * k * 0.25, this.y + 0.5 + Math.random() * 0.6, (Math.random() - 0.5) * 0.4), new THREE.Vector3(0, 0, 0), col, 0.55 - k * 0.1, 0.32, 0); }
     const gait = this.hero === 'pip' ? 1.25 : this.hero === 'brom' ? 0.78 : 1; // Pip scurries, Brom lumbers
     const runPhase = (this._rp = (this._rp || 0) + dt * (4 + speed * 1.3) * gait);
     if (ud.wings) ud.wings.forEach((w) => w.visible = !!this.gliding);
