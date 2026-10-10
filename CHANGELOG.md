@@ -2,6 +2,10 @@
 
 Patch notes, newest first.
 
+## v1.4.4 · Portal back in (Oct 10)
+- 🌀 **Pick up where you left off:** leaving a level for the world map remembers exactly where you were, and who you were riding. Press Play and choose **Continue where you left off**, any **beacon** you've lit in that level, or the **start of the level**.
+- The world map now opens on the level you just left.
+
 ## v1.4.3 · Save fix (Oct 9)
 - 💾 **No more lost progress:** the game now saves the moment you leave or close the app, every 15 seconds while you play, and at checkpoints, Sun Shards, secrets and guardian wins. Before, mid-level progress was only saved when you reached the world map or finished a level, so phones that closed the browser in the background could lose it.
 - The game asks the browser to keep its save data instead of clearing it when space runs low.

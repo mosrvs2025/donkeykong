@@ -279,7 +279,7 @@ class Game {
     }
   }
   // ───────────── levels & the world map
-  enterLevel(lv, buddy) {
+  enterLevel(lv, buddy, at) {
     const p = this.player, O2 = O;
     this.currentLevel = lv; this.state = 'play'; this.endSeq = null; this.progress.last = lv.id;
     const seen = (this.progress.chapters ||= []); if (!seen.includes(lv.id) && CHAPTER_LINES[lv.id]) { seen.push(lv.id); setTimeout(() => this.hud.story(CHAPTER_LINES[lv.id][1], CHAPTER_LINES[lv.id][0]), 5200); }
@@ -287,7 +287,7 @@ class Game {
     $('hud').classList.remove('hidden'); if (this.input.isTouch) $('touch').classList.remove('hidden');
     if (p.comp) p.dismount(false);
     { const hk = this.progress.hero; if (hk && hk !== (p.hero || 'kiri') && this.evolve.heroes().includes(hk)) p.setHero(hk, false); else this.hud.swap(); }
-    p.cart = null; p.reset(lv.start[0] + O2, lv.start[1] + 0.1);
+    p.cart = null; p.reset(at ? at.s : lv.start[0] + O2, (at ? at.y : lv.start[1]) + 0.1); if (at) buddy = at.buddy ?? buddy;
     this.checkpoint = { s: p.s, y: p.y }; this.levelTime = 0; this.levelGlims0 = this.stats.glims; this.ghosts.start(lv); p.ironUsed = false; p.windUsed = false;
     const [L, R] = this.levelWalls;
     Object.assign(L, { s0: lv.wall + O2 - 2, s1: lv.wall + O2, active: true });
@@ -308,7 +308,11 @@ class Game {
     }
   }
   leaveToMap() {
-    const p = this.player; if (p.comp) p.dismount(false); p.cart = null;
+    const p = this.player;
+    { const lv = this.currentLevel; if (lv && this.state === 'play' || lv && this.state === 'paused') { const st = (this.progress.levels[lv.id] ||= {});
+      const safe = p.grounded && p.state === 'normal' && !this.bosses.busy && !p.cart;
+      if (this.map.unlocked(lv.id)) this.map.cur = lv.id; // the map opens on the level you just left
+      st.resume = safe ? { s: p.s, y: p.y, buddy: p.mount && p.mount !== 'bird' ? p.mount : null } : { ...this.checkpoint, buddy: null }; } } if (p.comp) p.dismount(false); p.cart = null;
     if (this.bosses.busy) this.bosses.end(false);
     this.ghosts.stop(); this.levelWalls.forEach((w) => w.active = false); this.flight = false; this.currentLevel = null;
     this.state = 'map'; $('hud').classList.add('hidden'); $('touch').classList.add('hidden'); $('pause').classList.add('hidden');
@@ -349,7 +353,7 @@ class Game {
     const p = this.player; p.state = 'cutscene'; p.vs = 0;
     const st = (this.progress.levels[lv.id] ||= {});
     const evoBefore = this.evolve.owned(), heroBefore = this.evolve.heroes();
-    st.clear = true; if (lv.boss && this.bosses.defeated.has(lv.boss)) st.boss = true;
+    st.clear = true; delete st.resume; if (lv.boss && this.bosses.defeated.has(lv.boss)) st.boss = true;
     st.best = st.best ? Math.min(st.best, this.levelTime) : this.levelTime;
     const medal = medalFor(lv.id, this.levelTime); const rank = { bronze: 1, silver: 2, gold: 3 }; if (!st.medal || rank[medal] > rank[st.medal]) st.medal = medal;
     const lc = this.extras.levelCoins(lv.id).filter((c) => c.taken).length;
@@ -484,7 +488,7 @@ class Game {
     for (const b of E.blooms) if (Math.abs(b.s - s) < 3 && Math.abs(b.y - y) < 3) E.triggerBloom(b);
     return broke;
   }
-  setCheckpoint(cp) { this.checkpoint = { s: cp.s, y: cp.y }; this.saveGame(); this.audio.play('checkpoint'); this.toast('Beacon lit — checkpoint saved', 1.8); const p = this.player; if (p.hearts < p.maxHearts) { p.hearts = p.maxHearts; this.hud.hearts(p.hearts, p.maxHearts); } }
+  setCheckpoint(cp) { this.checkpoint = { s: cp.s, y: cp.y }; { const lv = this.currentLevel; if (lv) { const st = (this.progress.levels[lv.id] ||= {}); st.beacons ||= []; if (!st.beacons.some((b) => Math.abs(b.s - cp.s) < 1)) st.beacons.push({ s: cp.s, y: cp.y }); } } this.saveGame(); this.audio.play('checkpoint'); this.toast('Beacon lit — checkpoint saved', 1.8); const p = this.player; if (p.hearts < p.maxHearts) { p.hearts = p.maxHearts; this.hud.hearts(p.hearts, p.maxHearts); } }
   killPlayer(reason) {
     const p = this.player; if (p.state === 'dead' || p.state === 'cutscene') return;
     p.state = 'dead'; p.deadT = 0; this.stats.deaths++;

@@ -513,3 +513,13 @@ body.coach #stick::before{animation:skr 1s ease-in-out infinite alternate}
 @keyframes skc{to{transform:translate(-50%,-4px)}}@keyframes skr{to{box-shadow:0 0 0 8px rgba(255,212,106,.45),0 2px 12px rgba(0,0,0,.45)}}
 @media (pointer:coarse){#timer{margin-right:54px}}
 #t-pause{background:rgba(10,24,20,.6);border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 8px rgba(0,0,0,.45)}
+
+/* portal-in chooser */
+#portal-pick{position:fixed;inset:0;z-index:15;background:#020806c0;display:none;align-items:center;justify-content:center;padding:16px}
+#portal-pick.on{display:flex}
+.pp-card{width:min(400px,100%);background:linear-gradient(#173f31,#0a1d16);border:2px solid #9fffd088;border-radius:20px;padding:18px;text-align:center;box-shadow:0 20px 50px #000a}
+.pp-kick{font-size:11px;letter-spacing:.25em;color:#9fffd0}.pp-card h2{margin:4px 0 12px;color:#ffd46a}
+.pp-list{display:flex;flex-direction:column;gap:8px}
+.pp-list button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 14px}
+.pp-list small{font-size:12px;opacity:.75;font-weight:600}
+.pp-x{margin-top:12px}

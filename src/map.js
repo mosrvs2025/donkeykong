@@ -27,7 +27,7 @@ export class WorldMap {
       if (!e.target.closest('button,[data-act],.mp-card') && this.game.map3d) { ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); this.el.setPointerCapture?.(e.pointerId);
         if (ptrs.size === 1) g0 = { x: e.clientX, y: e.clientY, t: performance.now(), lx: e.clientX, ly: e.clientY, moved: 0 };
         if (ptrs.size === 2) { const [a, b2] = [...ptrs.values()]; pinch0 = Math.hypot(a.x - b2.x, a.y - b2.y); g0 = null; } }
-      const b = e.target.closest('[data-act]'); if (b) { e.preventDefault(); if (b.dataset.act === 'buddy') this.cycleBuddy(); if (b.dataset.act === 'go') this.enter(); if (b.dataset.act === 'shop') this.game.extras.openShop(); if (b.dataset.act === 'daily') this.game.daily.open(); if (b.dataset.act === 'grove') this.game.grove.open(); }
+      const b = e.target.closest('[data-act]'); if (b) { e.preventDefault(); if (b.dataset.act === 'buddy') this.cycleBuddy(); if (b.dataset.act === 'go') this.play(); if (b.dataset.act === 'shop') this.game.extras.openShop(); if (b.dataset.act === 'daily') this.game.daily.open(); if (b.dataset.act === 'grove') this.game.grove.open(); }
     });
     this.el.addEventListener('pointermove', (e) => {
       if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); const M3 = this.game.map3d;
@@ -63,7 +63,7 @@ export class WorldMap {
   }
   tapNode(id) {
     if (!this.unlocked(id)) { this.game.audio.play('dismount'); return; }
-    if (id === this.cur) return this.enter();
+    if (id === this.cur) return this.play();
     // walk along the graph to the tapped node
     const route = this.route(this.cur, id); if (route) this.walk(route);
   }
@@ -79,6 +79,7 @@ export class WorldMap {
     this.game.map3d.travel(this.cur, route, (id) => { this.cur = id; this.game.audio.play('glim', 2); this.render(); }, () => { this.moving = null; });
   }
   key(code) {
+    if (this.pick?.classList.contains('on')) return;
     if (!this.open || this.moving) return;
     const here = levelById(this.cur);
     const dirs = { ArrowRight: [1, 0], KeyD: [1, 0], ArrowLeft: [-1, 0], KeyA: [-1, 0], ArrowUp: [0, -1], KeyW: [0, -1], ArrowDown: [0, 1], KeyS: [0, 1] };
@@ -87,9 +88,27 @@ export class WorldMap {
       for (const n of this.neighbors(this.cur)) { const t = levelById(n); const vx = t.at[0] - here.at[0], vy = t.at[1] - here.at[1], l = Math.hypot(vx, vy); const sc = (vx * dx + vy * dy) / l; if (sc > bs) { bs = sc; best = n; } }
       if (best) this.walk([best]);
     }
-    if (code === 'Space' || code === 'Enter' || code === 'KeyZ') this.enter();
+    if (code === 'Space' || code === 'Enter' || code === 'KeyZ') this.play();
     if (code === 'KeyC' || code === 'KeyX' || code === 'ShiftLeft') this.cycleBuddy();
     if (code === 'KeyV' || code === 'KeyB') this.game.extras.openShop();
+  }
+  // Play: if you've been here before, choose where to portal back in
+  play() {
+    if (!this.unlocked(this.cur)) return;
+    const lv = levelById(this.cur), st = this.progress().levels[lv.id] || {}, beacons = (st.beacons || []).slice().sort((a, b) => a.s - b.s);
+    if (!st.resume && !beacons.length) return this.enter();
+    const g = this.game, el = (this.pick ||= Object.assign(document.createElement('div'), { id: 'portal-pick' })); document.body.appendChild(el);
+    const opts = [];
+    if (st.resume) opts.push({ label: '▶ Continue where you left off', sub: st.resume.buddy ? `with ${{ beast: 'Grumbo', frog: 'Boing', fish: 'Nuu', oru: 'Oru' }[st.resume.buddy] || 'your friend'}` : '', at: st.resume });
+    beacons.forEach((b, i) => opts.push({ label: `⚑ Beacon ${i + 1}`, sub: `${Math.max(0, Math.min(100, Math.round(((b.s - (lv.start[0] + 80)) / Math.max(1, (lv.end ?? lv.start[0] + 300) - lv.start[0])) * 100)))}% of the way`, at: { s: b.s, y: b.y } }));
+    opts.push({ label: '↺ Start of the level', sub: '', at: null });
+    el.innerHTML = `<div class="pp-card"><div class="pp-kick">PORTAL INTO</div><h2>${lv.name}</h2><div class="pp-list">${opts.map((o, i) => `<button class="${i ? 'ghost' : ''}" data-pp="${i}"><b>${o.label}</b>${o.sub ? `<small>${o.sub}</small>` : ''}</button>`).join('')}</div><button class="ghost small pp-x" data-pp="x">Back</button></div>`;
+    el.classList.add('on'); g.audio.play('notice'); el.querySelector('[data-pp="0"]').focus({ preventScroll: true });
+    const close = () => { el.classList.remove('on'); removeEventListener('keydown', key, true); };
+    const go = (i) => { close(); const o = opts[i]; this.hide(); g.enterLevel(lv, this.buddy, o.at); };
+    const key = (e) => { if (e.code === 'Escape') { e.stopPropagation(); close(); } };
+    addEventListener('keydown', key, true);
+    el.querySelectorAll('[data-pp]').forEach((b) => b.onclick = () => (b.dataset.pp === 'x' ? close() : go(+b.dataset.pp)));
   }
   enter() { if (!this.unlocked(this.cur)) return; this.hide(); this.game.enterLevel(levelById(this.cur), this.buddy); }
   render() {
