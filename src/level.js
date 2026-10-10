@@ -580,5 +580,20 @@ export function buildLevel() {
   vault('pound', 276, 3); vault('pip', 288, 3);                  // Canopy of Hands (the opening grove)
   vault('brom', 764, 11, 'ruin');                                   // Weeping Ruins
   vault('pound', 1047, -5, 'mine');                                 // Sunwright Mine entrance
+
+  // ═════════════════════ SIDE BRANCHES: optional climbs up into the treetops ═════════════════════
+  // a zigzag of leaf platforms rising off the main road to a hidden grove full of glims
+  L.branches = [];
+  const branch = (s, gy, name) => {
+    // steps rise 2.6 so every hero (even Brom) clears them comfortably
+    [[2, 6], [8, 12], [2, 6], [8, 12], [2, 6]].forEach(([a, b], i) => oneway(s + a, s + b, gy + 2.6 * (i + 1)));
+    oneway(s + 0.5, s + 14.5, gy + 15.6);                          // the grove up top
+    arc(s + 2, s + 13, gy + 16.7, 1.6, 7); ring(s + 9.5, gy + 18.5, 1.1, 6);
+    L.branches.push({ s: s + O, y: gy, name });
+  };
+  branch(40, 1.6, 'Sunleaf Perch'); branch(186, 3.3, 'The Hummingbird Loft');      // Rootwild
+  branch(423, 18.6, 'Canopy Crown');                                                 // Canopy of Hands
+  branch(658, 2.8, 'The Heron’s Roost'); branch(794, 21.4, 'Ruinspire Ledge');      // Weeping Ruins
+  branch(1431, -18.6, 'Seedlight Balcony');                                         // Heart of the Seed
   return L;
 }

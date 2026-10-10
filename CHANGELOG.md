@@ -2,7 +2,12 @@
 
 Patch notes, newest first.
 
-## v1.4.4 · Portal back in (Oct 10)
+## v1.5 · "Connected Worlds" (Oct 10)
+- ⚑ **Beacon warp:** stand at any lit beacon and press ↑ to warp to another one you've lit in that level. Beacons you've lit stay lit when you come back.
+- 🌿 **Side branches:** six hidden climbs up into the treetops (Rootwild, Canopy, Ruins, Heart of the Seed), each ending in a grove full of glims that counts as a secret.
+- ➡️ **Onward:** after clearing a level, go straight into the next one without visiting the map.
+- 🔇 **Fixed the cricket noise:** the background hiss is now a soft breeze that only plays during gameplay, follows the sound-effects volume, and all audio stops when you switch away.
+
 - 🌀 **Pick up where you left off:** leaving a level for the world map remembers exactly where you were, and who you were riding. Press Play and choose **Continue where you left off**, any **beacon** you've lit in that level, or the **start of the level**.
 - The world map now opens on the level you just left.
 

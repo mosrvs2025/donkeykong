@@ -86,14 +86,18 @@ export class Audio {
     }
   }
   ambient() {
-    // soft wind/insect bed
+    // a soft, low forest breeze (was a high insect hiss). Lives on the sound-effects bus and only
+    // plays during gameplay: it fades out on pause, menus and the map.
     const s = this.ctx.createBufferSource(); s.buffer = this.noiseBuf; s.loop = true;
-    const f = this.ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 5200; f.Q.value = 6;
-    const g = this.ctx.createGain(); g.gain.value = 0.015;
-    s.connect(f); f.connect(g); g.connect(this.master); s.start();
+    const f = this.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 420; f.Q.value = 0.4;
+    const g = this.ctx.createGain(); g.gain.value = 0;
+    s.connect(f); f.connect(g); g.connect(this.sfx); s.start();
     this.ambGain = g;
   }
   // theme: 0 jungle, 1 canopy, 2 water, 3 cave, 4 mine/chase
+  setAmbient(on) { if (!this.ambGain || !this.ctx) return; const t = this.ctx.currentTime; this.ambGain.gain.setTargetAtTime(on && !this.muted ? 0.02 : 0, t, 0.6); }
+  // fully silence the game while it's in the background; pick back up when it returns
+  sleep(hidden) { if (!this.ctx) return; try { hidden ? this.ctx.suspend() : this.ctx.resume(); } catch {} }
   updateMusic() {
     if (!this.ctx || !this.musicOn || this.musicWanted === false) { if (this.mus) this.mus.gain.value = 0; return; }
     if (this.theme !== this.lastTheme) { if (this.lastTheme !== undefined) this.q = 1; this.lastTheme = this.theme; } // dip and swell into a new area's band

@@ -27,6 +27,7 @@ import { Evolve } from './evolve.js';
 import { Gfx } from './gfx.js';
 import { MapWorld } from './map3d.js';
 import { Prompts } from './prompts.js';
+import { LevelNav } from './levelnav.js';
 import { Combo } from './combo.js';
 import { Grove } from './grove.js';
 import { Daily } from './daily.js';
@@ -173,13 +174,14 @@ class Game {
     this.loadSave();
     // never lose progress: save when the app is hidden/closed, every 15s while playing, and at key moments
     const autosave = () => { if (this.state !== 'title' && this.state !== 'clash' && this.extras) this.saveGame(); };
-    document.addEventListener('visibilitychange', () => { if (document.hidden) autosave(); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) autosave(); this.audio.sleep(document.hidden); });
     addEventListener('pagehide', autosave); addEventListener('beforeunload', autosave);
     setInterval(() => { if (this.state === 'play' || this.state === 'paused' || this.state === 'map') autosave(); }, 15000);
     try { navigator.storage?.persist?.(); } catch {} // ask the browser not to clear our storage when space is low
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
-    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.ctx = new Prompts(this); this.combo = new Combo(this); this.grove = new Grove(this); this.daily = new Daily(this); this.ambience = new Ambience(this); this.journal = new Journal(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); this.ghosts = new Ghosts(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
+    this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.ctx = new Prompts(this); this.nav = new LevelNav(this);
+    for (const [i, b] of (this.level.branches || []).entries()) SECRETS.push({ id: 'br_' + i, name: b.name, test: (p) => p.s > b.s && p.s < b.s + 15 && p.y > b.y + 15 && p.y < b.y + 23 }); this.combo = new Combo(this); this.grove = new Grove(this); this.daily = new Daily(this); this.ambience = new Ambience(this); this.journal = new Journal(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); this.ghosts = new Ghosts(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
     this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
@@ -280,6 +282,7 @@ class Game {
   }
   // ───────────── levels & the world map
   enterLevel(lv, buddy, at) {
+    this._justCleared = false;
     const p = this.player, O2 = O;
     this.currentLevel = lv; this.state = 'play'; this.endSeq = null; this.progress.last = lv.id;
     const seen = (this.progress.chapters ||= []); if (!seen.includes(lv.id) && CHAPTER_LINES[lv.id]) { seen.push(lv.id); setTimeout(() => this.hud.story(CHAPTER_LINES[lv.id][1], CHAPTER_LINES[lv.id][0]), 5200); }
@@ -299,6 +302,7 @@ class Game {
     const comps = this.entities.companions;
     if (this.flight) { const bird = comps.find((c) => c.kind === 'bird'); this.stats.met.bird = true; bird.cage.visible = false; bird.state = 'idle'; p.mountOn(bird); p.birdTime = 1e9; this.hud.toast('Sola carries Kiri into the sky. <b>↑↓</b> steer · <b>Space</b> flap · <b>Shift</b> dash', 5); }
     else if (buddy) { const c = comps.find((x) => x.kind === buddy); if (c) { c.cage.visible = false; c.state = 'idle'; p.mountOn(c); } }
+    this.nav.relight();
     this.hud.hearts(p.hearts, p.maxHearts); this.snapTheme = true; this.director.update(0.016, p, true);
     this.audio.intensity = 0.2; this.last = performance.now();
     if (lv.id === 'rootwild' && !this.progress.introSeen) {
@@ -309,7 +313,7 @@ class Game {
   }
   leaveToMap() {
     const p = this.player;
-    { const lv = this.currentLevel; if (lv && this.state === 'play' || lv && this.state === 'paused') { const st = (this.progress.levels[lv.id] ||= {});
+    { const lv = this.currentLevel; if (lv && !this._justCleared && (this.state === 'play' || this.state === 'paused')) { const st = (this.progress.levels[lv.id] ||= {});
       const safe = p.grounded && p.state === 'normal' && !this.bosses.busy && !p.cart;
       if (this.map.unlocked(lv.id)) this.map.cur = lv.id; // the map opens on the level you just left
       st.resume = safe ? { s: p.s, y: p.y, buddy: p.mount && p.mount !== 'bird' ? p.mount : null } : { ...this.checkpoint, buddy: null }; } } if (p.comp) p.dismount(false); p.cart = null;
@@ -353,7 +357,7 @@ class Game {
     const p = this.player; p.state = 'cutscene'; p.vs = 0;
     const st = (this.progress.levels[lv.id] ||= {});
     const evoBefore = this.evolve.owned(), heroBefore = this.evolve.heroes();
-    st.clear = true; delete st.resume; if (lv.boss && this.bosses.defeated.has(lv.boss)) st.boss = true;
+    st.clear = true; delete st.resume; this._justCleared = true; if (lv.boss && this.bosses.defeated.has(lv.boss)) st.boss = true;
     st.best = st.best ? Math.min(st.best, this.levelTime) : this.levelTime;
     const medal = medalFor(lv.id, this.levelTime); const rank = { bronze: 1, silver: 2, gold: 3 }; if (!st.medal || rank[medal] > rank[st.medal]) st.medal = medal;
     const lc = this.extras.levelCoins(lv.id).filter((c) => c.taken).length;
@@ -377,10 +381,10 @@ class Game {
       ${coinsDots ? `<div class="rc-coins">${coinsDots}<span>Seed Coins</span></div>` : ''}
       <div class="rc-rows">${row('◆', 'Sun Shards', tal.shard, 0)}${row('❋', 'Echoes', tal.echo, 1)}${row('✦', 'Glims gathered', gl ? '+' + gl : '', 2)}${lv.boss && st.boss ? row('♛', 'Guardian', 'defeated', 3) : ''}${ghostRow}${this.daily.finish()}</div>
       ${extra ? `<div class="rc-unlocks">${extra}</div>` : ''}
-      <div class="rc-btns"><button id="rc-go">Continue ▸</button></div>
+      <div class="rc-btns">${this.nav.next(lv) ? `<button id="rc-on">Onward ▸ ${this.nav.next(lv).name}</button><button id="rc-go" class="ghost">World map</button>` : '<button id="rc-go">Continue ▸</button>'}</div>
       <p class="rc-hint">${this.input.isTouch ? 'tap to continue' : 'Space / Enter to continue'}</p></div>`;
     $('clear').classList.add('on'); this.clearOpen = performance.now();
-    $('rc-go').onclick = () => this.finishClear();
+    $('rc-go').onclick = () => this.finishClear(); if ($('rc-on')) $('rc-on').onclick = () => this.nav.onward(lv);
     this.saveGame();
     clearTimeout(this._clearT); this._clearT = setTimeout(() => this.finishClear(), 20000);
   }
@@ -672,7 +676,7 @@ class Game {
     const h = 1 / 120;
     for (let i = 0; i < secs * 120; i++) {
       this.input.update();
-      this.entities.update(h); this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h); this.player.step(h, this.input); this.thornwell.step(h); this.extras.step(h); this.powers.step(h); this.combo.step(h); this.player.tick(h); this.player.interact(h);
+      this.entities.update(h); this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h); this.player.step(h, this.input); this.thornwell.step(h); this.extras.step(h); this.powers.step(h); this.combo.step(h); this.nav.step(); this.player.tick(h); this.player.interact(h);
       if (i === 0) this.input.endFrame();
     }
     const p = this.player; return { s: +(p.s - O).toFixed(2), y: +p.y.toFixed(2), vs: +p.vs.toFixed(2), vy: +p.vy.toFixed(2), st: p.state, g: p.grounded, mount: p.mount, cart: !!p.cart, glims: this.stats.glims, hearts: p.hearts, deaths: this.stats.deaths, water: p.inWater };
@@ -682,6 +686,7 @@ class Game {
     this.frames = (this.frames || 0) + 1;
     let dt = Math.max(0, Math.min(0.05, (now - this.last) / 1000)); this.last = now;
     this.autoQuality(now - (this._lastRaw ?? now)); this._lastRaw = now;
+    { const amb = this.state === 'play'; if (amb !== this._amb) { this._amb = amb; this.audio.setAmbient(amb); } }
     if (this.state === 'clash') { this.input.update(); this.clash.update(dt); this.input.endFrame(); this.cine.uniforms.time.value = this.time += dt; this.audio.updateMusic(); this.composer.render(); return; }
     if (this.state === 'mini') { this.input.update(); this.minis.update(dt); this.input.endFrame(); this.hud.update(dt); this.audio.updateMusic(); this.cine.uniforms.time.value = this.time += dt; this.composer.render(); return; }
     if (this.state === 'photo') { this.input.update(); this.extras.update(dt, this.time); this.world.update(this.time, 0); this.cine.uniforms.time.value = this.time; this.composer.render(); return; }
@@ -703,7 +708,7 @@ class Game {
         this.entities.update(h);
         this.magic.step(h); this.hollowjaw.step(h); this.finale.step(h); this.bosses.step(h); this.worlds.step(h);
         this.player.step(h, this.input);
-        this.coop.step(h, this.input.p2); this.eggs.step(h); this.combo.step(h); this.thornwell.step(h); this.extras.step(h); this.powers.step(h); this.minis.step(h);
+        this.coop.step(h, this.input.p2); this.eggs.step(h); this.combo.step(h); this.nav.step(); this.thornwell.step(h); this.extras.step(h); this.powers.step(h); this.minis.step(h);
         this.player.tick(h);
         this.player.interact(h);
         this.acc -= h; n++;

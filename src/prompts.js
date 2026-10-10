@@ -41,6 +41,8 @@ export class Prompts {
       if (v.kind === 'pound') { const o = E.solids.find((x) => x.crack === 'pound' && x.s0 === v.s0); if (o?.active) out.push({ s: v.cs, y: v.y + 3, icon: '💥', title: 'Cracked floor', text: `Something's hollow below. Jump and ground pound ${K('down')}`, r: 8 }); }
       else if (v.kind === 'pip') out.push({ s: v.s0 + 5.5, y: v.y0 + 3.4, icon: '🐿', title: 'Tiny tunnel', text: p.hero === 'pip' ? `Pip fits! Run on through` : `Only Pip is small enough. Swap heroes ${K('swap')}`, r: 6 });
     }
+    if ((g.nav?.beaconsHere().length || 0) > 1) for (const c of E.checkpoints) if (c.on) out.push({ s: c.s, y: c.y + 4.4, icon: '⚑', title: 'Beacon', text: `Press ${K('up')} to warp to another beacon`, r: 3.5 });
+    for (const b of g.level.branches || []) out.push({ s: b.s + 4, y: b.y + 4.6, icon: '🌿', title: 'Hidden path', text: 'Climb the leaves up into the treetops', r: 6 });
     for (const h of g.minis?.hollows || []) out.push({ s: h.s, y: h.y + 3, icon: '🕳', title: `Root Hollow · ${h.name}`, text: `Stand on it and press ${K('down')} to dive in`, r: 7 });
     for (const w of g.magic?.waystones || []) out.push({ s: w.s, y: w.y + 5, icon: '◈', title: w.lit ? 'Waystone' : 'Waystone (asleep)', text: w.lit ? `Press ${K('up')} to open the world map` : 'Walk up to it to wake it', r: w.lit ? 7 : 4.5 });
     for (const b of E.blooms) out.push({ s: b.s, y: b.y + 2.6, icon: '❀', title: 'Lumen Bloom', text: 'Touch it, then run across the light bridge before it fades', r: 7 });
