@@ -294,7 +294,7 @@ export class World {
         if (r() < 0.25) crystals.push({ p: V(s, y, d * 0.6), sc: S(0.4 + r() * 1.2, 1 + r() * 4, 0.4 + r()), rx: (r() - 0.5) * 0.8, rz: (r() - 0.5) * 0.8, c: new THREE.Color().setHSL(0.5 + r() * 0.3, 0.9, 0.6) });
         if (r() < 0.3) stal.push({ p: V(s, 11 + Math.abs(d) * 0.3, d * 0.5), sc: S(0.6 + r(), 2 + r() * 6, 0.6 + r()), rx: Math.PI });
         if (r() < 0.2) rocks.push({ p: V(s, y, d), sc: S(1 + r() * 3, 0.7 + r() * 2, 1 + r() * 3), ry: r() * 6, c: new THREE.Color(0x3a3448) });
-        if (r() < 0.05) shrooms.push({ p: V(s, y, Math.min(-28, d * 0.8 - 8)), sc: S(3 + r() * 4, 4 + r() * 6, 3 + r() * 4), ry: r() * 6, c: new THREE.Color().setHSL(0.5 + r() * 0.35, 0.9, 0.5) });
+        if (r() < 0.05) shrooms.push({ p: V(s, y - 2, Math.min(-48, d * 0.8 - 20)), sc: S(3 + r() * 4, 4 + r() * 6, 3 + r() * 4), ry: r() * 6, c: new THREE.Color().setHSL(0.5 + r() * 0.35, 0.9, 0.5) });
         if (r() < 0.35) glowStrands.push({ p: V(s + r() * 2, (gnd ?? base) + 8 + r() * 3, -2.5 - r() * 6), sc: S(1, 2 + r() * 4, 1), c: new THREE.Color().setHSL(0.45 + r() * 0.15, 0.9, 0.65) });
         if (gnd !== null && r() < 0.15) shrooms.push({ p: V(s, gnd, -2.5 - r() * 2), sc: S(0.3 + r() * 0.4), ry: r() * 6, c: new THREE.Color().setHSL(0.45 + r() * 0.4, 0.9, 0.6) });
       } else if (th === 4) {

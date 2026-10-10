@@ -523,3 +523,28 @@ body.coach #stick::before{animation:skr 1s ease-in-out infinite alternate}
 .pp-list button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 14px}
 .pp-list small{font-size:12px;opacity:.75;font-weight:600}
 .pp-x{margin-top:12px}
+
+/* ── title screen: splash, living logo, motes, menu feel */
+#title{background:radial-gradient(ellipse at 50% 45%,#0d2e1f22 0%,#06140e88 55%,#020604e6 100%)!important}
+#title .logo{position:relative;font-size:clamp(46px,12vw,104px);letter-spacing:.06em;animation:logoIn 1.6s cubic-bezier(.2,.9,.2,1) both;filter:drop-shadow(0 6px 0 #6a2a08) drop-shadow(0 0 28px #ff9a3a77)}
+#title .logo::after{content:'THORNWILD';position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,#fffbe0cc 48%,transparent 62%) -200% 0/200% 100% no-repeat;-webkit-background-clip:text;background-clip:text;color:transparent;animation:sheen 4.5s 1.4s ease-in-out infinite}
+@keyframes logoIn{from{opacity:0;transform:translateY(18px) scale(.94);letter-spacing:.3em}to{opacity:1}}
+@keyframes sheen{0%{background-position:-200% 0}55%,100%{background-position:200% 0}}
+#title .vine{display:block;width:min(320px,70vw);margin:-4px auto 2px;opacity:0;animation:fadeUp .9s .8s ease-out forwards}
+#title h2{opacity:0;animation:fadeUp .9s 1s ease-out forwards;color:#bfffe0;text-shadow:0 0 18px #6fffd855}
+#title .kicker{opacity:0;animation:fadeUp .9s .3s ease-out forwards}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:.85;transform:none}}
+#press-start{display:none;margin-top:28px;font-size:15px;font-weight:700;letter-spacing:.35em;text-transform:uppercase;color:#fff;text-shadow:0 0 12px #9fffd0;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+#title.splash #press-start{display:block}
+#title.splash .menu,#title.splash #slot-list{display:none!important}
+#title:not(.splash) .menu:not(.hidden){animation:menuIn .5s cubic-bezier(.2,.9,.2,1)}
+@keyframes menuIn{from{opacity:0;transform:translateY(14px)}}
+#title .menu button{transition:transform .15s,box-shadow .15s,filter .15s;position:relative}
+#title .menu button:hover,#title .menu button:focus-visible{transform:translateX(4px) scale(1.03);box-shadow:0 0 0 2px #ffd46a,0 0 22px #ffd46a66;filter:brightness(1.08)}
+#title .menu button:hover::before,#title .menu button:focus-visible::before{content:'▸';position:absolute;left:-22px;top:50%;transform:translateY(-50%);color:#ffd46a;text-shadow:0 0 8px #ffd46a}
+.motes{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.motes i{position:absolute;left:var(--x);bottom:-10px;width:var(--s);height:var(--s);border-radius:50%;background:#dfffe8;box-shadow:0 0 8px 2px #9fffd0aa;opacity:0;animation:mote var(--d) linear var(--w) infinite}
+@keyframes mote{0%{transform:translate(0,0);opacity:0}10%{opacity:.9}100%{transform:translate(30px,-105vh);opacity:0}}
+#fade.iris{transition:opacity .5s!important}
+@media (max-width:520px){#title .logo{font-size:10.2vw;letter-spacing:.02em}}

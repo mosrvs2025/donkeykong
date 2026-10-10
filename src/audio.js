@@ -68,6 +68,8 @@ export class Audio {
       case 'leap': this.tone(520, 0.18, 'sine', 0.12, 2.4); this.tone(1040, 0.22, 'sine', 0.05, 2, 0.03); this.noise(0.15, 0.06, 3000, 'highpass'); break;
       case 'song': [0, 7, 12, 16, 19, 24].forEach((n, i) => { this.tone(330 * Math.pow(2, n / 12), 1.2, 'sine', 0.07, 0, i * 0.06); this.tone(660 * Math.pow(2, n / 12), 0.8, 'triangle', 0.02, 0, i * 0.06 + 0.02); }); break;
       case 'echo': [0, 5, 9, 12].forEach((n, i) => this.tone(392 * Math.pow(2, n / 12), 2.2, 'sine', 0.08, 0, i * 0.35)); break;
+      case 'tick': this.tone(1500, 0.04, 'sine', 0.035); break;
+      case 'chime': [0, 4, 7, 12].forEach((n, i) => this.tone(523 * Math.pow(2, n / 12), 0.6, 'sine', 0.07, 0, i * 0.09)); break;
       case 'notice': this.tone(880, 0.1, 'square', 0.05); this.tone(1320, 0.14, 'square', 0.05, 0, 0.09); break;
       case 'win': [0, 4, 7, 12, 7, 12, 16, 19, 24].forEach((n, i) => this.tone(392 * Math.pow(2, n / 12), 0.5, 'triangle', 0.12, 0, i * 0.12)); break;
     }

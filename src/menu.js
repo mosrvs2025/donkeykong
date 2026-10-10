@@ -25,8 +25,19 @@ export class Menu {
     const show = (id) => { for (const m of ['menu-main', 'menu-slots', 'menu-settings', 'menu-help']) $(m).classList.toggle('hidden', m !== id); const f = $(id).querySelector('button'); f && f.focus({ preventScroll: true }); };
     this.show = show;
     document.querySelectorAll('.m-back').forEach((b) => b.onclick = () => show('menu-main'));
+    // splash: the logo first; any key or tap reveals the menu (and wakes the audio)
+    const T = $('title'); if (game.input?.isTouch || matchMedia('(pointer:coarse)').matches) $('press-start').textContent = 'tap to begin';
+    if (store.get('autoplay') || new URLSearchParams(location.search).has('autostart')) T.classList.remove('splash');
+    const wake = (e) => { if (!T.classList.contains('splash') || T.classList.contains('hidden')) return; if (e.type === 'keydown' && ['Tab', 'Shift', 'Alt', 'Control', 'Meta'].includes(e.key)) return;
+      e.preventDefault?.(); this._swallow = performance.now() + 450; T.classList.remove('splash'); game.audio.init(); game.audio.resume(); game.audio.play('chime'); setTimeout(() => (T.querySelector('.menu:not(.hidden) button:not(.hidden)'))?.focus({ preventScroll: true }), 60); };
+    addEventListener('keydown', wake, true); T.addEventListener('pointerdown', wake);
+    // the tap that dismisses the splash must not also press the menu button that appears under it
+    T.addEventListener('click', (e) => { if (performance.now() < (this._swallow || 0)) { e.stopPropagation(); e.preventDefault(); } }, true);
+    // every menu button: a soft tick on hover/focus, a click on select
+    T.addEventListener('pointerover', (e) => { const b = e.target.closest('button'); if (b && b !== this._hov) { this._hov = b; game.audio.play('tick'); } });
+    T.addEventListener('focusin', (e) => { if (e.target.matches('button')) game.audio.play('tick'); });
     const cur = readSlot(currentSlot());
-    if (cur) { $('m-continue').classList.remove('hidden'); $('m-continue').textContent = `Continue · Slot ${currentSlot()}`; $('m-continue').onclick = () => game.start(); $('m-continue').focus({ preventScroll: true }); }
+    if (cur) { $('m-continue').classList.remove('hidden'); $('m-continue').textContent = `Continue · Slot ${currentSlot()}`; $('m-continue').onclick = () => game.start(); }
     $('m-new').onclick = () => { this.slotMode = 'new'; this.renderSlots(); show('menu-slots'); };
     $('m-load').onclick = () => { this.slotMode = 'load'; this.renderSlots(); show('menu-slots'); };
     $('m-settings').onclick = () => show('menu-settings');

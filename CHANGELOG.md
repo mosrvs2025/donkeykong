@@ -3,11 +3,14 @@
 Patch notes, newest first.
 
 ## v1.5 · "Connected Worlds" (Oct 10)
+- 🎬 **A real title screen:** an animated logo with a light sweep and vine ornament, drifting glowing motes, the forest visible behind, and "press any key / tap to begin" before the menu slides in. Menu buttons highlight with a soft sound.
+- 🍂 **Atmosphere:** leaves drift and tumble through the forests (some right past the camera), glowing spores rise in the caves.
 - ⚑ **Beacon warp:** stand at any lit beacon and press ↑ to warp to another one you've lit in that level. Beacons you've lit stay lit when you come back.
 - 🌿 **Side branches:** six hidden climbs up into the treetops (Rootwild, Canopy, Ruins, Heart of the Seed), each ending in a grove full of glims that counts as a secret.
 - ➡️ **Onward:** after clearing a level, go straight into the next one without visiting the map.
 - 🔇 **Fixed the cricket noise:** the background hiss is now a soft breeze that only plays during gameplay, follows the sound-effects volume, and all audio stops when you switch away.
 
+## v1.4.4 · Portal back in (Oct 10)
 - 🌀 **Pick up where you left off:** leaving a level for the world map remembers exactly where you were, and who you were riding. Press Play and choose **Continue where you left off**, any **beacon** you've lit in that level, or the **start of the level**.
 - The world map now opens on the level you just left.
 
