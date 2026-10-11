@@ -1,4 +1,5 @@
 import { saveSettings } from './menu.js';
+import { portrait, ui } from './ui.js';
 import { EVOS, HERO_UNLOCKS } from './evolve.js';
 import { ABILITIES } from './magic.js';
 import { COMPANIONS } from './entities.js';
@@ -57,8 +58,8 @@ export class Journal {
   team() {
     const g = this.game, heroes = g.evolve.heroes(), cur = g.player.hero || 'kiri', met = g.stats.met;
     const hc = HERO_UNLOCKS.map((h) => { const on = heroes.includes(h.id), H = HEROES[h.id];
-      return `<button class="jt ${on ? 'on' : ''} ${cur === h.id ? 'sel' : ''}" ${on ? `data-jhero="${h.id}"` : 'disabled'} style="--hc:#${H.color.toString(16).padStart(6, '0')}"><b>${on ? H.name : '? ? ?'}</b><small>${on ? H.power : `freed when the ${LEVELS.find((l) => l.id === h.from)?.name} guardian falls`}</small>${cur === h.id ? '<i class="eq">playing</i>' : on ? '<i>tap to play</i>' : ''}</button>`; }).join('');
-    const cc = Object.entries(COMPANIONS).map(([k, c]) => `<div class="ja ${met[k] ? 'on' : ''}"><span class="ja-ic">${met[k] ? { beast: '🐗', frog: '🐸', bird: '🪶', fish: '🦦', oru: '🔮' }[k] : '?'}</span><div><b>${met[k] ? c.name : '? ? ?'}</b><small>${met[k] ? c.title : 'not met yet'}</small>${met[k] ? `<em>${g.ctx.keys(c.tip)}</em>` : ''}</div></div>`).join('');
+      return `<button class="jt ${on ? 'on' : ''} ${cur === h.id ? 'sel' : ''}" ${on ? `data-jhero="${h.id}"` : 'disabled'} style="--hc:#${H.color.toString(16).padStart(6, '0')}">${portrait(h.id, 'jt-pt' + (on ? '' : ' dim'))}<b>${on ? H.name : '? ? ?'}</b><small>${on ? H.power : `freed when the ${LEVELS.find((l) => l.id === h.from)?.name} guardian falls`}</small>${cur === h.id ? '<i class="eq">playing</i>' : on ? '<i>tap to play</i>' : ''}</button>`; }).join('');
+    const cc = Object.entries(COMPANIONS).map(([k, c]) => `<div class="ja ${met[k] ? 'on' : ''}"><span class="ja-ic ja-pt">${portrait(k, met[k] ? 'pt' : 'pt dim')}</span><div><b>${met[k] ? c.name : '? ? ?'}</b><small>${met[k] ? c.title : 'not met yet'}</small>${met[k] ? `<em>${g.ctx.keys(c.tip)}</em>` : ''}</div></div>`).join('');
     return `<div class="jp"><h3>Team</h3><p class="jp-sub">Swap heroes any time with ${this.key('Q', '⇄')}, or pick one here.</p>
       <div class="jt-grid">${hc}</div><h4>Companions <small>ride them: walk into their cage · hop off ${this.key('C', '⏏')}</small></h4><div class="ja-grid">${cc}</div></div>`;
   }

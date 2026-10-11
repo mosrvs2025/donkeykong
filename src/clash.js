@@ -1,3 +1,4 @@
+import { portrait } from './ui.js';
 import * as THREE from 'three';
 import { moveBody } from './physics.js';
 import { makeHero, makeBeast, makeFrog, makeSpikeback, makeBird, makeFish, makeOru } from './models.js';
@@ -132,7 +133,7 @@ export class Clash {
     const cards = this.slots.map((s, i) => { const F = FIGHTERS[s.kind], off = s.type === 'off';
       return `<div class="cs-card ${off ? 'off' : ''}" style="--pc:#${PCOL[i].toString(16).padStart(6, '0')}">
         <div class="cs-top"><b>P${i + 1}</b><button class="small ${s.type === 'cpu' ? 'ghost' : ''}" data-c="type:${i}">${s.type === 'human' ? 'Player' : s.type === 'cpu' ? 'CPU' : 'Off'}</button></div>
-        ${off ? '<div class="cs-empty">tap to add</div>' : `<div class="cs-pick"><button class="small ghost" data-c="prev:${i}">◀</button><div class="cs-name"><span style="color:#${F.color.toString(16).padStart(6, '0')}">${F.name}</span><small>${F.role}</small></div><button class="small ghost" data-c="next:${i}">▶</button></div>
+        ${off ? '<div class="cs-empty">tap to add</div>' : `${portrait(s.kind) ? `<div class="cs-pt">${portrait(s.kind, 'pt')}</div>` : '<div class="cs-pt"></div>'}<div class="cs-pick"><button class="small ghost" data-c="prev:${i}">◀</button><div class="cs-name"><span style="color:#${F.color.toString(16).padStart(6, '0')}">${F.name}</span><small>${F.role}</small></div><button class="small ghost" data-c="next:${i}">▶</button></div>
         <ul><li><i>Attack</i> ${F.tilt}</li><li><i>Special</i> ${F.special}</li><li><i>Bond</i> ${F.bond}</li></ul>`}
         <small class="cs-ctl">${s.type === 'human' ? this.ctrlHint(i) : s.type === 'cpu' ? 'computer' : ''}</small></div>`; }).join('');
     this.ui.innerHTML = `<div class="cs-setup"><div class="cs-kicker">thornwild</div><h1>SEED CLASH</h1>

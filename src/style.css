@@ -558,3 +558,24 @@ body.coach #stick::before{animation:skr 1s ease-in-out infinite alternate}
 body.portrait-hint #rotate-hint{display:flex}
 #rotate-hint b{font-size:22px;color:#ffd46a}#rotate-hint span{opacity:.8;margin-bottom:10px}
 .rh-phone{font-size:64px;animation:rhr 2.2s ease-in-out infinite}@keyframes rhr{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+
+/* ── painted UI art */
+img.pt{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 2px 3px #0006)}
+img.pt.dim,.jt-pt.dim{filter:brightness(0) opacity(.35)}
+.jt{position:relative;padding-left:78px}
+.jt-pt{position:absolute;left:10px;top:50%;width:58px;height:58px;transform:translateY(-50%);filter:drop-shadow(0 2px 3px #0006)}
+.ja-pt{width:44px;height:44px;flex:0 0 44px}
+.sh-pim{display:flex;align-items:center;gap:12px}.sh-pim .pt{width:64px;height:64px;flex:0 0 64px}
+.cs-pt{width:60px;height:60px;margin:2px auto 0;flex:0 0 auto}
+.coin-ico{width:1.1em;height:1.1em;vertical-align:-.2em;display:inline-block}
+.sk-img{width:100%;height:100%;object-fit:contain;display:block}
+.sh-ic:has(.sk-img),.sh-dicon:has(.sk-img){display:flex;align-items:center;justify-content:center}
+.lt-node .sh-ic .sk-img{width:44px;height:44px}.sh-dicon .sk-img{width:56px;height:56px}
+/* Lumen meter: the painted frame is on top; its window (18.6%–80% across, 30.4%–68.2% down) shows the fill */
+#lumen .lm-bar{position:relative;width:150px;height:auto;aspect-ratio:900/283;background:none;border:0;border-radius:0;overflow:visible;animation:none!important;box-shadow:none!important}
+#lumen .lm-hole{position:absolute;left:18.6%;top:30.4%;width:61.4%;height:37.8%;overflow:hidden;border-radius:6px;background:#06140e center/100% 100% no-repeat}
+#lumen .lm-hole i{position:absolute;right:0;top:0;display:block;height:100%;width:100%;background:#06140ee6;border-radius:0;transition:width .2s}
+#lumen .lm-frame{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#lumen.full .lm-bar{filter:drop-shadow(0 0 8px #ffe080) drop-shadow(0 0 16px #ffb04088);animation:lmg .8s ease-in-out infinite alternate!important}
+#lumen{top:54px}
+@media (max-width:700px){#lumen .lm-bar{width:112px}#lumen{top:50px}}

@@ -1,4 +1,5 @@
 import { JTABS } from './journal.js';
+import { portrait, coinImg, ui } from './ui.js';
 import * as THREE from 'three';
 import { makeHero } from './models.js';
 import { SKILLS } from './skills.js';
@@ -176,7 +177,7 @@ export class Extras {
     const heroes = game.evolve.heroes(), hero = this.pvHero || game.player.hero || 'kiri';
     const eqHat = SHOP.find((x) => x.id === P.hat), eqSc = SHOP.find((x) => x.id === P.scarf), eqCh = { name: (P.charms || []).map((c) => SHOP.find((x) => x.id === c)?.name.replace(' Charm', '')).join(' + ') || null };
     $('shop').innerHTML = `<div class="sh-wrap">
-      <div class="sh-head"><div>${J ? `<div class="kicker">Journal · paused ${game.input.isTouch ? '' : '<small>(Q / E flip pages)</small>'}</div><h2>${game.currentLevel?.name || 'Thornwild'}</h2>` : `<div class="kicker">Pim’s Travelling Stall</div><h2>“Glims for goods, little one!”</h2>`}</div><div class="sh-wallet"><span>✦ ${glims}</span><span title="Seed Coins found">◉ ${coins}</span></div></div>
+      <div class="sh-head"><div>${J ? `<div class="kicker">Journal · paused ${game.input.isTouch ? '' : '<small>(Q / E flip pages)</small>'}</div><h2>${game.currentLevel?.name || 'Thornwild'}</h2>` : `<div class="sh-pim">${portrait('pim', 'pt')}<div><div class="kicker">Pim’s Travelling Stall</div><h2>“Glims for goods, little one!”</h2></div></div>`}</div><div class="sh-wallet"><span>✦ ${glims}</span><span title="Seed Coins found">${coinImg} ${coins}</span></div></div>
       <div class="sh-body">
         <div class="sh-left"><div id="shop-pv" class="sh-pv"></div>
           ${heroes.length > 1 ? `<div class="sh-heroes">${heroes.map((h) => `<button class="small ${h === hero ? '' : 'ghost'}" data-hero="${h}">${h[0].toUpperCase() + h.slice(1)}</button>`).join('')}</div>` : ''}
@@ -201,11 +202,11 @@ export class Extras {
   renderSkills(msg, tabs) {
     const game = this.game, K = game.skills, P = game.progress;
     const nodes = SKILLS.map((sk) => { const own = K.has(sk.id), can = K.canLearn(sk), locked = sk.needs && !K.has(sk.needs);
-      return `<button class="lt-node ${own ? 'own' : can ? 'can' : ''} ${locked ? 'locked' : ''} ${this.sel === sk.id ? 'sel' : ''}" data-ssel="${sk.id}"><span class="sh-ic">${locked ? '🔒' : sk.icon}</span><b>${sk.name}</b><small>${own ? '<i class="eq">learned</i>' : `${sk.cost} ◉`}</small></button>`; });
+      return `<button class="lt-node ${own ? 'own' : can ? 'can' : ''} ${locked ? 'locked' : ''} ${this.sel === sk.id ? 'sel' : ''}" data-ssel="${sk.id}"><span class="sh-ic">${locked ? '🔒' : sk.img ? `<img class="sk-img" src="${ui(sk.img)}" alt="">` : sk.icon}</span><b>${sk.name}</b><small>${own ? '<i class="eq">learned</i>' : `${sk.cost} ◉`}</small></button>`; });
     const sk = SKILLS.find((x) => x.id === this.sel);
     let detail = '<div class="sh-detail empty"><p>Seed Coins grow into skills. Pick one.</p></div>';
     if (sk) { const own = K.has(sk.id), need = sk.needs && !K.has(sk.needs) ? SKILLS.find((x) => x.id === sk.needs).name : null;
-      detail = `<div class="sh-detail"><div class="sh-dicon">${sk.icon}</div><div><b>${sk.name}</b><p>${sk.desc}</p><div class="sh-act">${own ? '<span class="owned">learned ✓</span>' : need ? `<span class="lock">learn ${need} first</span>` : `<button data-learn="${sk.id}" ${K.seeds() < sk.cost ? 'disabled' : ''}>Learn · ${sk.cost} ◉</button>${K.seeds() < sk.cost ? `<small class="lock">find ${sk.cost - K.seeds()} more Seed Coins</small>` : ''}`}</div></div></div>`; }
+      detail = `<div class="sh-detail"><div class="sh-dicon">${sk.img ? `<img class="sk-img" src="${ui(sk.img)}" alt="">` : sk.icon}</div><div><b>${sk.name}</b><p>${sk.desc}</p><div class="sh-act">${own ? '<span class="owned">learned ✓</span>' : need ? `<span class="lock">learn ${need} first</span>` : `<button data-learn="${sk.id}" ${K.seeds() < sk.cost ? 'disabled' : ''}>Learn · ${sk.cost} ◉</button>${K.seeds() < sk.cost ? `<small class="lock">find ${sk.cost - K.seeds()} more Seed Coins</small>` : ''}`}</div></div></div>`; }
     const cur = this.mode === 'journal' ? this.jtab : this.tab;
     this.renderShopFrame(`<div class="sh-tabs">${tabs.map(([k, n]) => `<button class="small ${cur === k ? '' : 'ghost'}" data-tab="${k}">${n}</button>`).join('')}</div>
       <p class="lt-seeds">Lumen Seeds to spend: <b>${K.seeds()} ◉</b> <small>(every Seed Coin you find is a seed)</small></p>

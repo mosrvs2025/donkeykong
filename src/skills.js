@@ -6,7 +6,7 @@ export const SKILLS = [
   { id: 'heartbloom', name: 'Heart Bloom', icon: '❀', cost: 3, desc: 'Lighting a checkpoint restores a heart', needs: null },
   { id: 'pouch', name: 'Charm Pouch', icon: '👝', cost: 4, desc: 'Wear two charms at once', needs: 'heartbloom' },
   { id: 'ironfur', name: 'Iron Fur', icon: '🛡', cost: 5, desc: 'The first hit in every level bounces off', needs: 'heartbloom' },
-  { id: 'starstep', name: 'Starstep', icon: '★', cost: 6, desc: 'Wall-kicks also refresh your Wisp Leaps and dashes in a flash of stars', needs: 'leap2' },
+  { id: 'starstep', name: 'Starstep', icon: '★', img: 'ability_starstep', cost: 6, desc: 'Wall-kicks also refresh your Wisp Leaps and dashes in a flash of stars', needs: 'leap2' },
 ];
 export class Skills {
   constructor(game) { this.game = game; }

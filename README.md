@@ -58,6 +58,8 @@ More detail, tips and a guide to every hero and companion: **[How to play →](d
 
 ## 🐾 The cast
 
+<p align="center"><img src="docs/images/cast.jpg" alt="Kiri, Pip, Brom and their companions" width="820"></p>
+
 **Heroes** (swap any time once they've joined)
 - **Kiri:** a ring-tailed tinkerer and all-rounder. Wisp Leap, Rootgrip, the Lumen Song.
 - **Pip:** small and quick. Glides, fires an acorn sling, swoops in mid-air, and fits through tiny tunnels.

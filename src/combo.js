@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ui } from './ui.js';
 
 // Combos and supers. Stomps, bounces, kills and boss hits build a combo that ranks up (NICE → LEGENDARY)
 // and pays out glims when it ends (2.4s without action). Everything you do also fills the Lumen meter;
@@ -14,10 +15,11 @@ export class Combo {
   constructor(game) {
     this.game = game; this.n = 0; this.timer = 0; this.rank = -1; this.meter = 0; this.superT = 0; this.best = 0;
     const el = document.createElement('div'); el.id = 'combo'; el.innerHTML = '<b></b><span></span><i></i>'; document.body.appendChild(el); this.el = el;
-    const m = document.createElement('div'); m.id = 'lumen'; m.innerHTML = '<div class="lm-bar"><i></i></div><span></span>'; document.getElementById('hud')?.appendChild(m); this.mEl = m;
+    const m = document.createElement('div'); m.id = 'lumen'; m.innerHTML = `<div class="lm-bar"><div class="lm-hole"><i></i></div><img class="lm-frame" src="${ui('bar_frame')}" alt="" draggable="false"></div><span></span>`; document.getElementById('hud')?.appendChild(m); this.mEl = m;
     const btn = document.createElement('div'); btn.id = 't-super'; btn.className = 'tbtn hidden'; btn.innerHTML = '✸<span>super</span>'; document.getElementById('touch')?.appendChild(btn); this.btn = btn;
     btn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.trySuper(); });
     addEventListener('keydown', (e) => { if ((e.code === 'KeyV' || e.code === 'KeyR') && this.game.state === 'play') this.trySuper(); });
+    this.mEl.querySelector('.lm-hole').style.backgroundImage = `url(${ui('bar_fill')})`;
     this.renderMeter();
   }
   get hero() { return this.game.player.hero || 'kiri'; }
@@ -54,7 +56,7 @@ export class Combo {
   fill(a) { if (this.superT > 0) return; const was = this.meter >= 100; this.meter = Math.min(100, this.meter + a); if (!was && this.meter >= 100) { this.game.audio.play('bloom'); this.game.hud.toast(`<b>${SUPERS[this.hero].icon} SUPER READY</b> · ${this.game.input.isTouch ? 'tap ✸' : 'press V'}`, 2.4); } this.renderMeter(); }
   renderMeter() {
     const full = this.meter >= 100, S = SUPERS[this.hero] || SUPERS.kiri;
-    this.mEl.querySelector('i').style.width = this.meter + '%'; this.mEl.classList.toggle('full', full);
+    this.mEl.querySelector('.lm-hole i').style.width = (100 - this.meter) + '%'; // the dark cover shrinks as the meter fills this.mEl.classList.toggle('full', full);
     this.mEl.querySelector('span').textContent = full ? `${S.icon} ${S.name} · ${this.game.input.isTouch ? '✸' : 'V'}` : '';
     this.btn.classList.toggle('hidden', !full);
   }

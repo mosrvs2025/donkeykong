@@ -1,3 +1,4 @@
+import { coinImg } from './ui.js';
 // The world map: an illustrated chart of Thornwild. Kiri walks between levels along
 // paths; branches lead to optional worlds. Progress is shown on every node.
 const O = 80;
@@ -127,7 +128,7 @@ export class WorldMap {
         <div class="mp-found">${g.seeker ? g.seeker.line(here.id) : ''}</div>
         <div class="mp-tags">${st.clear ? '<b class="t ok">✓ cleared</b>' : '<b class="t new">new!</b>'}${here.boss ? (st.boss ? '<b class="t crown">♛ guardian defeated</b>' : '<b class="t boss">♛ guardian awaits</b>') : ''}</div>
       </div>
-      <div class="mp-top"><span>✦ ${g.stats.glims}</span><span>◉ ${g.extras ? g.extras.coinCount : 0}</span><span>⚑ ${doneCount}/${LEVELS.length}</span></div>
+      <div class="mp-top"><span>✦ ${g.stats.glims}</span><span>${coinImg} ${g.extras ? g.extras.coinCount : 0}</span><span>⚑ ${doneCount}/${LEVELS.length}</span></div>
       <div class="mp-foot">
         <button data-act="buddy" class="alt small">Bring: ${this.buddy ? names[this.buddy] : 'nobody'}</button>
         <button data-act="grove" class="ghost small ${g.grove?.hasNew() ? 'fresh dl-btn' : ''}">🏡 Grove${g.grove?.hasNew() ? ' ✨' : ''}</button>
