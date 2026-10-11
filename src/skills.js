@@ -1,11 +1,11 @@
 // The Lumen Tree: permanent upgrades learned with Seed Coins (Pim calls them "Lumen Seeds").
 // Spending never takes away coins you've found; it just uses them up as seeds.
 export const SKILLS = [
-  { id: 'leap2', name: 'Wisp Leap+', icon: '✧', cost: 3, desc: 'One extra Wisp Leap in mid-air', needs: null },
-  { id: 'dash2', name: 'Twin Dash', icon: '➶', cost: 4, desc: 'One extra Sprout Dash in the air', needs: null },
+  { id: 'leap2', img: 'ability_leap', name: 'Wisp Leap+', icon: '✧', cost: 3, desc: 'One extra Wisp Leap in mid-air', needs: null },
+  { id: 'dash2', img: 'ability_dash', name: 'Twin Dash', icon: '➶', cost: 4, desc: 'One extra Sprout Dash in the air', needs: null },
   { id: 'heartbloom', name: 'Heart Bloom', icon: '❀', cost: 3, desc: 'Lighting a checkpoint restores a heart', needs: null },
-  { id: 'pouch', name: 'Charm Pouch', icon: '👝', cost: 4, desc: 'Wear two charms at once', needs: 'heartbloom' },
-  { id: 'ironfur', name: 'Iron Fur', icon: '🛡', cost: 5, desc: 'The first hit in every level bounces off', needs: 'heartbloom' },
+  { id: 'pouch', img: 'pouch', name: 'Charm Pouch', icon: '👝', cost: 4, desc: 'Wear two charms at once', needs: 'heartbloom' },
+  { id: 'ironfur', img: 'ability_ironfur', name: 'Iron Fur', icon: '🛡', cost: 5, desc: 'The first hit in every level bounces off', needs: 'heartbloom' },
   { id: 'starstep', name: 'Starstep', icon: '★', img: 'ability_starstep', cost: 6, desc: 'Wall-kicks also refresh your Wisp Leaps and dashes in a flash of stars', needs: 'leap2' },
 ];
 export class Skills {

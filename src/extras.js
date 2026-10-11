@@ -152,6 +152,8 @@ export class Extras {
     pv.r.render(pv.sc, pv.cam);
   }
   itemIcon(it) {
+    const IMG = { charm_feather: 'charm_feather', charm_wind: 'charm_wind', charm_thorn: 'charm_thorn', charm_magnet: 'charm_magnet', charm_dash: 'charm_dash', heart1: 'heart1', heart2: 'heart1', compass: 'compass', scarf_star: 'scarf_star', scarf_rose: 'scarf_rose' }[it.id];
+    if (IMG) return `<img class="it-img" src="${ui(IMG)}" alt="" draggable="false">`;
     if (it.kind === 'scarf') return `<span class="sw" style="background:#${it.color.toString(16).padStart(6, '0')}"></span>`;
     return { hat_leaf: '🍃', hat_explorer: '🎩', hat_crown: '👑', hat_moon: '🌙', hat_party: '🎉', hat_bloom: '🌸', hat_lantern: '🔦', charm_feather: '🪶', charm_wind: '🌬', charm_thorn: '🌿', heart1: '❤', heart2: '❤', compass: '🧭', charm_magnet: '✦', charm_dash: '➶' }[it.id] || '✦';
   }

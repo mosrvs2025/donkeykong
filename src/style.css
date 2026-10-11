@@ -579,3 +579,16 @@ img.pt.dim,.jt-pt.dim{filter:brightness(0) opacity(.35)}
 #lumen.full .lm-bar{filter:drop-shadow(0 0 8px #ffe080) drop-shadow(0 0 16px #ffb04088);animation:lmg .8s ease-in-out infinite alternate!important}
 #lumen{top:54px}
 @media (max-width:700px){#lumen .lm-bar{width:112px}#lumen{top:50px}}
+
+/* painted ability / charm icons */
+.it-img{width:48px;height:48px;object-fit:contain;display:block;filter:drop-shadow(0 2px 3px #0008)}
+.sh-ic:has(.it-img){height:50px}.sh-dicon .it-img{width:64px;height:64px}
+.ab-img{width:100%;height:100%;object-fit:contain;display:block}
+.ab{width:34px;height:34px;padding:0;background:none!important;border:0!important;box-shadow:none!important}
+.ab:not(.on) .ab-img,.ab:not(.on) img{filter:grayscale(1) brightness(.5) opacity(.55)}
+.ab.on img{filter:drop-shadow(0 0 6px #ffd46a)}
+.ja-ic:has(.ab-img){width:46px;height:46px;flex:0 0 46px}
+.ja-ic img[data-dim]{filter:brightness(0) opacity(.35)}
+.ab img{width:100%;height:100%;object-fit:contain;display:block}
+.ab{overflow:visible;flex:0 0 34px}
+.it-img{width:52px;height:52px}

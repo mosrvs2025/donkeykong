@@ -3,6 +3,8 @@
 Patch notes, newest first.
 
 ## v1.6 · Install it (Oct 11)
+- 🏅 **Painted ability medallions** for Sprout Dash, Thornclaws, Comet Dash, Wisp Leap, Lumen Song, Rootgrip, Tide and Sky forms, and Iron Fur: on the Journal's Abilities page, the Lumen Tree and the HUD.
+- 🎒 **Painted shop icons** for all five charms, the heart container, the compass, the charm pouch and the Starfall and Rosepetal scarves.
 - 🎨 **Painted character portraits:** Kiri, Pip, Brom, Pim and all five companions now have portrait medallions, shown on the Journal's Team page, in Seed Clash's fighter picker, and at Pim's stall.
 - 🪙 A real Seed Coin icon on the coin counters, the Starstep skill's medallion, and an ornate wood-and-gold frame with a teal-to-gold fill for the Lumen meter.
 - 📲 **Install Thornwild as an app:** Add to Home Screen (iPhone: Share → Add to Home Screen; Android: menu → Install app) for its own icon, full-screen play with no browser bar, and loading even with a weak connection or offline. Installed apps also keep your saves safe from Safari clearing site data.

@@ -45,11 +45,12 @@ export class Journal {
   abil() {
     const g = this.game, M = g.magic, E = g.evolve, t = this.t;
     const keys = { dash: t ? '➶ + joystick' : 'F / E + direction', claws: 'hold toward a wall, ↑ / ↓', comet: 'dash into critters' };
-    const card = (on, icon, name, sub, how, lock) => `<div class="ja ${on ? 'on' : ''}"><span class="ja-ic">${on ? icon : '?'}</span><div><b>${on ? name : '? ? ?'}</b><small>${on ? sub : lock}</small>${on && how ? `<em>${how}</em>` : ''}</div></div>`;
-    const evo = EVOS.map((e) => card(E.has(e.id), e.icon, e.name, e.sub, keys[e.id], e.hint)).join('');
-    const mag = Object.entries(ABILITIES).map(([k, a]) => card(M.has(k), a.icon, a.name, a.sub, g.ctx.keys(a.tip), 'found at an Awakening Shrine')).join('');
-    const forms = [card(g.forms.has('tide'), '🌊', 'TIDE FORM', 'breathe and dash underwater', g.ctx.keys('<b>Shift</b> to dash · bursts seals'), 'hidden below the Weeping Ruins'),
-      card(!!g.progress.levels.skyward?.boss || g.forms.has('sky'), '🪶', 'SKY BOND', 'Sola will carry you anywhere', '', 'hidden high above the Canopy')].join('');
+    const card = (on, icon, name, sub, how, lock) => `<div class="ja ${on ? 'on' : ''}"><span class="ja-ic">${icon.startsWith('<') ? icon.replace('<img', on ? '<img' : '<img data-dim="1"') : on ? icon : '?'}</span><div><b>${on ? name : '? ? ?'}</b><small>${on ? sub : lock}</small>${on && how ? `<em>${how}</em>` : ''}</div></div>`;
+    const A = (id) => `<img class="ab-img" src="${ui('ability_' + id)}" alt="" draggable="false">`;
+    const evo = EVOS.map((e) => card(E.has(e.id), A(e.id), e.name, e.sub, keys[e.id], e.hint)).join('');
+    const mag = Object.entries(ABILITIES).map(([k, a]) => card(M.has(k), A(k), a.name, a.sub, g.ctx.keys(a.tip), 'found at an Awakening Shrine')).join('');
+    const forms = [card(g.forms.has('tide'), A('tide'), 'TIDE FORM', 'breathe and dash underwater', g.ctx.keys('<b>Shift</b> to dash · bursts seals'), 'hidden below the Weeping Ruins'),
+      card(!!g.progress.levels.skyward?.boss || g.forms.has('sky'), A('sky'), 'SKY BOND', 'Sola will carry you anywhere', '', 'hidden high above the Canopy')].join('');
     return `<div class="jp"><h3>Abilities</h3><p class="jp-sub">Everything Kiri has learned, and how to use it.</p>
       <h4>Evolutions <small>from guardians</small></h4><div class="ja-grid">${evo}</div>
       <h4>Old magic <small>from shrines</small></h4><div class="ja-grid">${mag}</div>

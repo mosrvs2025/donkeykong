@@ -27,6 +27,7 @@ import { Evolve } from './evolve.js';
 import { Gfx } from './gfx.js';
 import { MapWorld } from './map3d.js';
 import { Prompts } from './prompts.js';
+import { ui } from './ui.js';
 import { Cinema } from './cinema.js';
 import { LevelNav } from './levelnav.js';
 import { Combo } from './combo.js';
@@ -91,7 +92,7 @@ class HUD {
   mount(txt) { $('t-off').classList.toggle('hidden', !(txt && this.game.player.comp)); const el = $('mount'); if (txt) { el.innerHTML = txt; el.classList.add('on'); } else el.classList.remove('on'); }
   toast(html, dur = 3) { const el = $('toast'); el.innerHTML = html; el.classList.add('on'); this.toastT = dur; }
   banner(name, sub, dur = 3) { const el = $('banner'); el.innerHTML = `${name}${sub ? `<small>${sub}</small>` : ''}`; el.classList.add('on'); this.bannerT = dur; }
-  abilities(set) { $('abilities').innerHTML = ['leap', 'song', 'grip'].map((k) => `<div class="ab ${set.has(k) ? 'on' : ''}" title="${ABILITIES[k].name}">${ABILITIES[k].icon}</div>`).join(''); }
+  abilities(set) { $('abilities').innerHTML = ['leap', 'song', 'grip'].map((k) => `<div class="ab ${set.has(k) ? 'on' : ''}" title="${ABILITIES[k].name}"><img src="${ui('ability_' + k)}" alt="" draggable="false"></div>`).join(''); }
   bonds(set) { $('bonds').innerHTML = ['beast', 'frog', 'bird', 'fish', 'oru'].map((k) => `<i class="bd ${set.has(k) ? 'on' : ''} ${k}"></i>`).join(''); }
   bossBar(hp, name) { const el = $('bossbar'); if (!hp) { el.classList.remove('on'); return; } el.innerHTML = `<span>${name}</span><b>${'◆'.repeat(hp)}${'◇'.repeat(3 - hp)}</b>`; el.classList.add('on'); }
   coins(n) { $('coins').textContent = n ? `◉ ${n}` : ''; }
