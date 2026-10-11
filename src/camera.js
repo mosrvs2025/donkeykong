@@ -31,7 +31,7 @@ export class CameraDirector {
     // lead in the direction of motion
     // narrow screens (phones in portrait, cover screens): pull back and shorten the lead so Kiri stays in view
     const aspect = this.cam.aspect;
-    this.narrow = Math.min(1.7, Math.max(1, 1.3 / aspect));
+    this.narrow = Math.min(1.7, Math.max(1, 1.3 / aspect)) * (innerHeight < 420 && aspect > 1.6 ? 0.8 : 1); // short landscape (folded phones): come closer so the hero isn't tiny
     const leadK = Math.min(1, aspect / 1.5);
     let targetLead = (pl.facing * this.p.look + pl.vs * 0.22) * leadK;
     const halfW = this.p.dist * this.narrow * Math.tan(this.p.fov * Math.PI / 360) * aspect;
