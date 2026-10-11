@@ -552,3 +552,9 @@ body.coach #stick::before{animation:skr 1s ease-in-out infinite alternate}
 /* iris wipe */
 #iris{position:fixed;inset:0;z-index:40;pointer-events:none;display:none;background:#030806;--r:0px;-webkit-mask:radial-gradient(circle at var(--x) var(--y),transparent var(--r),#000 calc(var(--r) + 2px));mask:radial-gradient(circle at var(--x) var(--y),transparent var(--r),#000 calc(var(--r) + 2px))}
 #iris.on{display:block}
+
+/* rotate hint (portrait phones) */
+#rotate-hint{position:fixed;inset:0;z-index:60;background:#05110bf2;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px;color:#fff}
+body.portrait-hint #rotate-hint{display:flex}
+#rotate-hint b{font-size:22px;color:#ffd46a}#rotate-hint span{opacity:.8;margin-bottom:10px}
+.rh-phone{font-size:64px;animation:rhr 2.2s ease-in-out infinite}@keyframes rhr{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}

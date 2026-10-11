@@ -2,6 +2,10 @@
 
 Patch notes, newest first.
 
+## v1.6 · Install it (Oct 11)
+- 📲 **Install Thornwild as an app:** Add to Home Screen (iPhone: Share → Add to Home Screen; Android: menu → Install app) for its own icon, full-screen play with no browser bar, and loading even with a weak connection or offline. Installed apps also keep your saves safe from Safari clearing site data.
+- 🔄 A friendly "turn your phone sideways" card shows in portrait on phones (with a Play anyway button).
+
 ## v1.5 · "Connected Worlds" (Oct 10)
 - 🎥 **Cinematic transitions:** an iris wipe opens from Kiri when a level starts and from the centre when the world map appears; the first time you enter each level the camera sweeps in from deep inside it.
 - 💨 **Movement visuals:** dashes leave a streak in each hero's colour; landing dust matches the ground (soil, leaf litter, sand, cave grit, mine sparks) and bigger falls kick up bigger clouds.

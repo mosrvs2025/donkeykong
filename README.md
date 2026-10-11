@@ -35,6 +35,10 @@ of your own.
 - 🎵 **Music for every area** that speeds up for chases and bosses.
 - 📱 **Plays anywhere:** keyboard, gamepad, or touch with a floating joystick.
 
+## 📲 Install it on your phone
+Open the game in your browser, then **iPhone:** Share → *Add to Home Screen* · **Android:** menu → *Install app*.
+You get an icon, full-screen landscape play, offline loading, and saves that the browser won't clear.
+
 ## 🎮 Controls
 
 | Action | Keyboard | Gamepad | Touch |

@@ -178,7 +178,13 @@ class Game {
     document.addEventListener('visibilitychange', () => { if (document.hidden) autosave(); this.audio.sleep(document.hidden); });
     addEventListener('pagehide', autosave); addEventListener('beforeunload', autosave);
     setInterval(() => { if (this.state === 'play' || this.state === 'paused' || this.state === 'map') autosave(); }, 15000);
-    try { navigator.storage?.persist?.(); } catch {} // ask the browser not to clear our storage when space is low
+    try { navigator.storage?.persist?.(); } catch {}
+    // installable app: register the service worker (skipped on localhost dev so hot reload isn't cached)
+    if ('serviceWorker' in navigator && !/^(localhost|127\.)/.test(location.hostname) || location.port === '4173') navigator.serviceWorker?.register('./sw.js').catch(() => {});
+    // portrait phones get a gentle "turn sideways" card (and the app asks for landscape when it can)
+    { const rh = $('rotate-hint'), mq = matchMedia('(orientation: portrait)'), upd = () => document.body.classList.toggle('portrait-hint', this.input.isTouch && mq.matches && !this._rhSkip && innerWidth < 760);
+      $('rh-go').onclick = () => { this._rhSkip = true; upd(); }; mq.addEventListener?.('change', () => { if (!mq.matches) this._rhSkip = false; upd(); }); upd();
+      addEventListener('pointerdown', () => { try { if (this.input.isTouch && !document.fullscreenElement && matchMedia('(display-mode: browser)').matches === false) screen.orientation?.lock?.('landscape').catch(() => {}); } catch {} }, { once: true }); } // ask the browser not to clear our storage when space is low
     addRim(this.player.model); this.entities.companions.forEach((c) => addRim(c.model)); this.entities.enemies.forEach((e) => addRim(e.model));
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
     this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.ctx = new Prompts(this); this.cinema = new Cinema(this); this.nav = new LevelNav(this);
