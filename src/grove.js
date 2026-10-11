@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { makeHero, makeBeast, makeFrog, makeBird, makeFish, makeOru } from './models.js';
 import { makeHat, SHOP } from './extras.js';
 import { BOSSES } from './bosses.js';
+import { ui } from './ui.js';
 
 // Kiri's Grove: a little home clearing that grows with the journey. Every Seed Coin found plants
 // something new; rescued companions and heroes come to live here; fallen guardians leave trophies.
@@ -125,7 +126,7 @@ export class Grove {
   renderUI() {
     const st = this.stats(), nxt = GROWTH[st.grown];
     const recent = GROWTH.slice(0, st.grown).slice(-4).reverse().map(([n, d]) => `<li><b>${n}</b> <small>${d}</small></li>`).join('');
-    this.ui.innerHTML = `<div class="gv-card"><div class="gv-kick">KIRI’S GROVE</div><h2>${st.grown}/${GROWTH.length} grown</h2>
+    this.ui.innerHTML = `<div class="gv-card"><div class="gv-kick"><img class="gv-seed" src="${ui('icon_seed')}" alt=""> KIRI’S GROVE</div><h2>${st.grown}/${GROWTH.length} grown</h2>
       <div class="gv-bar"><i style="width:${st.grown / GROWTH.length * 100}%"></i></div>
       ${nxt ? `<p class="gv-next">Next to grow: <b>${nxt[0]}</b><br><small>find 1 more Seed Coin (you have ◉ ${st.coins})</small></p>` : '<p class="gv-next"><b>The grove is complete.</b> Thank you for every seed.</p>'}
       ${recent ? `<ul class="gv-list">${recent}</ul>` : '<p class="dimt">Find Seed Coins in the levels and they’ll take root here.</p>'}

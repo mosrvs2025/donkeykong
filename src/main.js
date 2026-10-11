@@ -27,7 +27,7 @@ import { Evolve } from './evolve.js';
 import { Gfx } from './gfx.js';
 import { MapWorld } from './map3d.js';
 import { Prompts } from './prompts.js';
-import { ui } from './ui.js';
+import { ui, initUiVars, echoImg } from './ui.js';
 import { Cinema } from './cinema.js';
 import { LevelNav } from './levelnav.js';
 import { Combo } from './combo.js';
@@ -96,7 +96,7 @@ class HUD {
   bonds(set) { $('bonds').innerHTML = ['beast', 'frog', 'bird', 'fish', 'oru'].map((k) => `<i class="bd ${set.has(k) ? 'on' : ''} ${k}"></i>`).join(''); }
   bossBar(hp, name) { const el = $('bossbar'); if (!hp) { el.classList.remove('on'); return; } el.innerHTML = `<span>${name}</span><b>${'◆'.repeat(hp)}${'◇'.repeat(3 - hp)}</b>`; el.classList.add('on'); }
   coins(n) { $('coins').textContent = n ? `◉ ${n}` : ''; }
-  echoes(n) { $('echoes').textContent = n ? `❋ ${n}/8` : ''; }
+  echoes(n) { $('echoes').innerHTML = n ? `${echoImg} ${n}/8` : ''; }
   chain(n) { const el = $('chain'); if (false && n >= 3) { el.textContent = `airborne ×${n}`; el.classList.add('on'); } else el.classList.remove('on'); }
   prompt(t, src = 'way') { (this.prompts ||= {})[src] = t; const v = Object.values(this.prompts).find(Boolean); const el = $('prompt'); if (v) { el.textContent = v; el.classList.add('on'); } else el.classList.remove('on'); }
   power(kind) { const el = $('power'); if (kind) { el.textContent = POWERS[kind].icon; el.classList.add('on'); } else el.classList.remove('on'); }
@@ -190,7 +190,7 @@ class Game {
     this.extras = new Extras(this); this.hud.coins(this.extras.coinCount);
     this.evolve = new Evolve(this); this.map3d = new MapWorld(this); this.powers = new Powers(this); this.minis = new MiniGames(this); addRim(this.minis.hero); this.eggs = new Eggs(this); this.ctx = new Prompts(this); this.cinema = new Cinema(this); this.nav = new LevelNav(this);
     for (const [i, b] of (this.level.branches || []).entries()) SECRETS.push({ id: 'br_' + i, name: b.name, test: (p) => p.s > b.s && p.s < b.s + 15 && p.y > b.y + 15 && p.y < b.y + 23 }); this.combo = new Combo(this); this.grove = new Grove(this); this.daily = new Daily(this); this.ambience = new Ambience(this); this.journal = new Journal(this); this.thornwell = new Thornwell(this); this.clash = new Clash(this); this.seeker = new Seeker(this); this.goals = new Goals(this); this.ghosts = new Ghosts(this); addEventListener('keydown', (e) => { if (e.code === 'Enter' && this.clearOpen && performance.now() - this.clearOpen > 900) this.finishClear(); });
-    this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
+    initUiVars(); this.settings = loadSettings(); this.menu = new Menu(this); this.applySettings(this.settings, true); this.coop.setEnabled(this.settings.coop);
     this.hud.abilities(this.magic.abilities); this.hud.echoes(0);
     this.director = new CameraDirector(this.camera, this.path, this.level);
     this.checkpoint = { s: this.level.start.s, y: this.level.start.y };

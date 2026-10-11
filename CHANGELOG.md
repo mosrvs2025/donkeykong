@@ -7,6 +7,8 @@ Patch notes, newest first.
 - 🎒 **Painted shop icons** for all five charms, the heart container, the compass, the charm pouch and the Starfall and Rosepetal scarves.
 - 🎨 **Painted character portraits:** Kiri, Pip, Brom, Pim and all five companions now have portrait medallions, shown on the Journal's Team page, in Seed Clash's fighter picker, and at Pim's stall.
 - 🪙 A real Seed Coin icon on the coin counters, the Starstep skill's medallion, and an ornate wood-and-gold frame with a teal-to-gold fill for the Lumen meter.
+- ❤️ **Painted HUD:** hearts, glims, Sun Shards, the Star Shard and Echoes are now painted icons, the Grove and map Grove button use the mossy seed pod, and Seed Coins use the new seed-coin art.
+- 🎩 **Painted hats and scarves** at Pim's stall: Leaf Cap, Explorer, Sunwright Crown, Moonpetal, Bloom Crown, Lantern Helm and the Ember, Tide and Moss scarves.
 - 📲 **Install Thornwild as an app:** Add to Home Screen (iPhone: Share → Add to Home Screen; Android: menu → Install app) for its own icon, full-screen play with no browser bar, and loading even with a weak connection or offline. Installed apps also keep your saves safe from Safari clearing site data.
 - 🔄 A friendly "turn your phone sideways" card shows in portrait on phones (with a Play anyway button).
 

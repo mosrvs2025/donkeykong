@@ -1,4 +1,4 @@
-import { coinImg } from './ui.js';
+import { coinImg, ui } from './ui.js';
 // The world map: an illustrated chart of Thornwild. Kiri walks between levels along
 // paths; branches lead to optional worlds. Progress is shown on every node.
 const O = 80;
@@ -131,7 +131,7 @@ export class WorldMap {
       <div class="mp-top"><span>✦ ${g.stats.glims}</span><span>${coinImg} ${g.extras ? g.extras.coinCount : 0}</span><span>⚑ ${doneCount}/${LEVELS.length}</span></div>
       <div class="mp-foot">
         <button data-act="buddy" class="alt small">Bring: ${this.buddy ? names[this.buddy] : 'nobody'}</button>
-        <button data-act="grove" class="ghost small ${g.grove?.hasNew() ? 'fresh dl-btn' : ''}">🏡 Grove${g.grove?.hasNew() ? ' ✨' : ''}</button>
+        <button data-act="grove" class="ghost small ${g.grove?.hasNew() ? 'fresh dl-btn' : ''}"><img class="btn-seed" src="${ui('icon_seed')}" alt=""> Grove${g.grove?.hasNew() ? ' ✨' : ''}</button>
         <button data-act="shop" class="ghost small">Pim’s Stall</button>
         <button data-act="daily" class="ghost small dl-btn ${g.daily && !g.daily.doneToday() ? 'fresh' : ''}">★ Daily${g.daily && g.daily.streakNow() ? ` 🔥${g.daily.streakNow()}` : ''}</button>
         <button data-act="go">Play ▸</button>

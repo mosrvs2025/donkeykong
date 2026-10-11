@@ -592,3 +592,16 @@ img.pt.dim,.jt-pt.dim{filter:brightness(0) opacity(.35)}
 .ab img{width:100%;height:100%;object-fit:contain;display:block}
 .ab{overflow:visible;flex:0 0 34px}
 .it-img{width:52px;height:52px}
+
+/* ── painted HUD art (hearts, glims, shards, echoes) */
+.heart{width:30px;height:28px;clip-path:none!important;background:var(--ui-heart) center/contain no-repeat!important;filter:drop-shadow(0 2px 3px #0008)!important}
+.heart.empty{background:var(--ui-heart-empty) center/contain no-repeat!important;opacity:.75}
+.glim-ico{width:22px;height:24px;border-radius:0!important;transform:none!important;background:var(--ui-glim) center/contain no-repeat!important;box-shadow:none!important;filter:drop-shadow(0 0 6px #7affe0aa)}
+.shard{width:24px;height:28px;clip-path:none!important;background:var(--ui-shard) center/contain no-repeat!important;filter:grayscale(1) brightness(.55) opacity(.55)!important}
+.shard.got{background:var(--ui-shard) center/contain no-repeat!important;filter:drop-shadow(0 0 6px #ffc040)!important}
+.shard.star{background:var(--ui-star) center/contain no-repeat!important}
+.shard.star.got{background:var(--ui-star) center/contain no-repeat!important;filter:drop-shadow(0 0 6px #ffe8a0)!important}
+.echo-ico{width:1.2em;height:1.2em;vertical-align:-.25em;display:inline-block}
+.gv-seed,.btn-seed{width:1.4em;height:1.4em;vertical-align:-.35em;display:inline-block}
+.gv-kick{display:flex;align-items:center;gap:6px}
+@media (max-width:700px){.heart{transform:scale(.85)}}
