@@ -9,6 +9,7 @@ Patch notes, newest first.
 - 🪙 A real Seed Coin icon on the coin counters, the Starstep skill's medallion, and an ornate wood-and-gold frame with a teal-to-gold fill for the Lumen meter.
 - ❤️ **Painted HUD:** hearts, glims, Sun Shards, the Star Shard and Echoes are now painted icons, the Grove and map Grove button use the mossy seed pod, and Seed Coins use the new seed-coin art.
 - 🎩 **Painted hats and scarves** at Pim's stall: Leaf Cap, Explorer, Sunwright Crown, Moonpetal, Bloom Crown, Lantern Helm and the Ember, Tide and Moss scarves.
+- 🦊 **New Kiri and Pip portraits** (a ring-tailed red panda with goggles, and a cheeky acorn-slinging squirrel), redrawn Sun Shard, Star Shard, Echo and glim icons, and **painted wood-and-gold title-menu buttons** that light up on hover.
 - 📲 **Install Thornwild as an app:** Add to Home Screen (iPhone: Share → Add to Home Screen; Android: menu → Install app) for its own icon, full-screen play with no browser bar, and loading even with a weak connection or offline. Installed apps also keep your saves safe from Safari clearing site data.
 - 🔄 A friendly "turn your phone sideways" card shows in portrait on phones (with a Play anyway button).
 

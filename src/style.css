@@ -605,3 +605,8 @@ img.pt.dim,.jt-pt.dim{filter:brightness(0) opacity(.35)}
 .gv-seed,.btn-seed{width:1.4em;height:1.4em;vertical-align:-.35em;display:inline-block}
 .gv-kick{display:flex;align-items:center;gap:6px}
 @media (max-width:700px){.heart{transform:scale(.85)}}
+/* painted wood-and-gold menu buttons (stretchable: only the two ends are fixed) */
+#title .menu button{background:none;box-shadow:none;border:0;border-style:solid;border-image:var(--ui-btn) 0 130 fill/0 30px/0 stretch;border-radius:0;padding:14px 46px;color:#4a2400;text-shadow:0 1px 0 #ffe9b0}
+#title .menu button.ghost,#title .menu button.alt{border-image:var(--ui-btn-dark) 0 130 fill/0 30px/0 stretch;color:#fff3d0;text-shadow:0 1px 2px #000}
+#title .menu button:hover,#title .menu button:focus-visible{box-shadow:none;filter:brightness(1.12) drop-shadow(0 0 10px #ffd46a)}
+#title .menu button:hover,#title .menu button:focus-visible{border-image:var(--ui-btn) 0 130 fill/0 30px/0 stretch;color:#4a2400;text-shadow:0 1px 0 #ffe9b0;outline:0}
